@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {darkMode: "class",theme: {extend: {colors: {"tertiary-fixed-dim": "#f5b7b4", "secondary": "#116c4a", "surface-dim": "#d7dadf", "surface-container-high": "#e5e8ee", "tertiary": "#401b1b", "surface-tint": "#3f6653", "on-tertiary-fixed": "#331111", "surface-container-low": "#f1f4f9", "on-tertiary-container": "#d29895", "surface-variant": "#e0e3e8", "background": "#f7f9ff", "surface-bright": "#f7f9ff", "tertiary-fixed": "#ffdad8", "tertiary-container": "#5a302f", "on-error": "#ffffff", "surface-container-highest": "#e0e3e8", "secondary-fixed": "#a1f4c8", "on-surface-variant": "#414844", "secondary-container": "#a1f4c8", "on-surface": "#181c20", "on-tertiary-fixed-variant": "#673a39", "inverse-on-surface": "#eef1f6", "outline-variant": "#c1c8c2", "primary-container": "#1b4332", "primary-fixed-dim": "#a5d0b9", "on-primary": "#ffffff", "surface": "#f7f9ff", "primary-fixed": "#c1ecd4", "inverse-primary": "#a5d0b9", "on-primary-fixed-variant": "#274e3d", "primary": "#012d1d", "on-primary-container": "#86af99", "on-error-container": "#93000a", "error": "#ba1a1a", "on-secondary-container": "#1b724f", "on-tertiary": "#ffffff", "surface-container-lowest": "#ffffff", "error-container": "#ffdad6", "on-secondary-fixed": "#002113", "outline": "#717973", "on-secondary-fixed-variant": "#005236", "on-primary-fixed": "#002114", "secondary-fixed-dim": "#86d7ad", "on-secondary": "#ffffff", "surface-container": "#ebeef3", "inverse-surface": "#2d3135", "on-background": "#181c20"},borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},spacing: {"space-sm": "0.5rem", "space-lg": "1.5rem", "gutter": "1rem", "margin": "1rem", "space-md": "1rem", "space-xs": "0.25rem", "space-xl": "2rem"},fontFamily: {"headline-lg": ["Plus Jakarta Sans"], "label-md": ["Inter"], "body-sm": ["Inter"], "body-md": ["Inter"], "body-lg": ["Inter"], "label-sm": ["Inter"], "headline-md": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "label-lg": ["Inter"]},fontSize: {"headline-lg": ["28px", {"lineHeight": "36px", "fontWeight": "700"}], "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}], "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}], "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}], "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}], "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}], "headline-md": ["22px", {"lineHeight": "28px", "fontWeight": "600"}], "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}], "label-lg": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]}}}};</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-surface font-body flex flex-col min-h-screen text-on-surface"><header class="fixed top-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-xl pt-safe"><div class="h-16 px-gutter flex items-center justify-between"><a aria-label="Go back" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors" href="#"><span class="material-symbols-outlined">arrow_back</span></a><h1 class="text-headline-sm font-headline-sm text-on-surface">Verify Completion</h1><div class="w-10"></div></div></header><main class="flex flex-col relative w-full px-gutter pt-16 pb-space-xl bg-surface flex-grow"><div class="flex flex-col w-full">
+<!-- Celebration Header Badge -->
+<div class="flex flex-col items-center justify-center pt-2 pb-space-lg text-center">
+<div class="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center text-primary mb-space-sm shadow-sm relative overflow-hidden">
+<span class="material-symbols-outlined text-[32px]" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+<div class="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent"></div>
+</div>
+<h2 class="text-headline-md font-headline-md text-on-surface">Task Completed!</h2>
+<p class="text-body-md text-on-surface-variant mt-space-xs max-w-[280px]">Please review the submitted work and thank your neighborhood helper.</p>
+</div>
+<!-- Evidence Section Card -->
+<div class="bg-surface-container-low rounded-xl p-space-md mb-space-md shadow-sm">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+<span class="text-label-lg font-label-lg text-on-surface">Completed Work Evidence</span>
+</div>
+<span class="text-body-sm text-on-surface-variant">Just now</span>
+</div>
+<!-- Photo Evidence Grid -->
+<div class="grid grid-cols-2 gap-space-sm mb-space-sm">
+<div class="relative rounded-lg overflow-hidden h-36 bg-surface-container group cursor-pointer" onclick="openPhotoModal(this)">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="A clean, freshly mowed residential lawn with neatly edged borders and clear walkways in a bright warm afternoon light, showing professional community helper work." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB26k2FrOrBx2mrClWQVWvXJ01pwp9B3tO3Piv24gxbixei7AJpTMDWanSXluk-CKD6E3MlZUR55cwZL-ewDG55-D6tjal4-M1KiitlGrriLmDh3XpmunyF0CwL5kIwWHk-DT_YmAPFaxPYM7hrEhsjXXOP-VD3ugeEULSsdxVebLZDqq6TIW5Pj2C6tNvfLDSulJ8yxZYJxeUTMf3OlDCLYp_BGeIFMW6NKsgt05-WNpUfnqZchEScQQ"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[28px]">zoom_in</span>
+</div>
+</div>
+<div class="relative rounded-lg overflow-hidden h-36 bg-surface-container group cursor-pointer" onclick="openPhotoModal(this)">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" data-alt="A close-up view of trimmed garden hedges and bagged yard waste arranged neatly by the curb, photographed in bright daytime with natural neighborhood background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6Q5bmPHJk7oLMlhPyg7G8lXLvZWdaXp7vT9x71l-vGtiS0JtKY-HPOS--1HmWs1aMG43UvCZ_S_svmq-iKnJqrfruicpRdU6t3Hirb3t6hILXbEvfbNGe17rDcrhRBK4coHLo2nGUJC_hv-h3Ask5K_wFBrGV0ZEQBYjriYoblO8eh3rgG7vXpvbOoHvHMGVSQH6NUl0IVV1CueoC91oHYmjbUWD6hbMvrLBHS__SuDQa7ZbEc-06ug"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[28px]">zoom_in</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-space-sm bg-surface p-space-sm rounded-lg">
+<div class="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed font-headline-sm text-body-lg">
+        JD
+      </div>
+<div class="flex-grow min-w-0">
+<h4 class="text-label-lg font-label-lg text-on-surface truncate">John Davis</h4>
+<p class="text-body-sm text-on-surface-variant truncate">Completed via Community Aid Program</p>
+</div>
+<div class="flex items-center text-secondary gap-space-xs bg-secondary-container/50 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="text-label-sm font-label-sm">Verified Helper</span>
+</div>
+</div>
+</div>
+<!-- Rating & Review Form Card -->
+<div class="bg-surface-container-low rounded-xl p-space-md mb-space-lg shadow-sm">
+<h3 class="text-label-lg font-label-lg text-on-surface mb-space-xs">Rate Your Experience</h3>
+<p class="text-body-sm text-on-surface-variant mb-space-md">How was your interaction with John?</p>
+<!-- Interactive Star Rating -->
+<div class="flex items-center justify-center gap-space-md mb-space-md" id="star-rating-container">
+<button class="star-btn text-outline hover:scale-110 transition-transform" data-rating="1" type="button">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 0;">star</span>
+</button>
+<button class="star-btn text-outline hover:scale-110 transition-transform" data-rating="2" type="button">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 0;">star</span>
+</button>
+<button class="star-btn text-outline hover:scale-110 transition-transform" data-rating="3" type="button">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 0;">star</span>
+</button>
+<button class="star-btn text-outline hover:scale-110 transition-transform" data-rating="4" type="button">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 0;">star</span>
+</button>
+<button class="star-btn text-outline hover:scale-110 transition-transform" data-rating="5" type="button">
+<span class="material-symbols-outlined text-[36px]" style="font-variation-settings: 'FILL' 0;">star</span>
+</button>
+</div>
+<!-- Quick Feedback Tags -->
+<div class="flex flex-wrap gap-space-xs mb-space-md">
+<button class="tag-chip px-3 py-1.5 rounded-full text-label-md font-label-md bg-surface text-on-surface hover:bg-secondary-container hover:text-on-secondary-container transition-colors" onclick="toggleTag(this)" type="button">
+        ⚡ Super fast
+      </button>
+<button class="tag-chip px-3 py-1.5 rounded-full text-label-md font-label-md bg-surface text-on-surface hover:bg-secondary-container hover:text-on-secondary-container transition-colors" onclick="toggleTag(this)" type="button">
+        🤝 Very polite
+      </button>
+<button class="tag-chip px-3 py-1.5 rounded-full text-label-md font-label-md bg-surface text-on-surface hover:bg-secondary-container hover:text-on-secondary-container transition-colors" onclick="toggleTag(this)" type="button">
+        ✨ Excellent work
+      </button>
+<button class="tag-chip px-3 py-1.5 rounded-full text-label-md font-label-md bg-surface text-on-surface hover:bg-secondary-container hover:text-on-secondary-container transition-colors" onclick="toggleTag(this)" type="button">
+        ⏰ Punctual
+      </button>
+</div>
+<!-- Review Text Area -->
+<div class="relative">
+<textarea class="w-full h-24 p-space-sm bg-surface rounded-lg text-body-md text-on-surface placeholder:text-outline resize-none focus:outline-none focus:ring-2 focus:ring-secondary transition-all" placeholder="Write a kind note or feedback (optional)..."></textarea>
+</div>
+</div>
+<!-- Primary Confirm Button & Tip -->
+<div class="flex flex-col gap-space-sm pb-space-lg">
+<button class="w-full h-14 bg-primary text-on-primary rounded-xl font-label-lg text-label-lg flex items-center justify-center gap-space-sm hover:bg-primary/95 transition-all shadow-md active:scale-[0.99]" onclick="handleCompletion()" type="button">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+      Confirm &amp; Complete Task
+    </button>
+<p class="text-center text-body-sm text-on-surface-variant">
+      Funds will be securely released to the helper upon confirmation.
+    </p>
+</div>
+<!-- Interactive Script -->
+<script>
+    // Star Rating Logic
+    const stars = document.querySelectorAll('.star-btn');
+    let currentRating = 0;
+
+    stars.forEach((star, index) => {
+      star.addEventListener('click', () => {
+        currentRating = index + 1;
+        stars.forEach((s, i) => {
+          const icon = s.querySelector('span');
+          if (i < currentRating) {
+            icon.style.fontVariationSettings = "'FILL' 1";
+            s.classList.remove('text-outline');
+            s.classList.add('text-amber-500');
+          } else {
+            icon.style.fontVariationSettings = "'FILL' 0";
+            s.classList.remove('text-amber-500');
+            s.classList.add('text-outline');
+          }
+        });
+      });
+    });
+
+    // Tag Toggle Logic
+    function toggleTag(el) {
+      el.classList.toggle('bg-secondary-container');
+      el.classList.toggle('text-on-secondary-container');
+      el.classList.toggle('bg-surface');
+      el.classList.toggle('text-on-surface');
+    }
+
+    // Modal Simulation for Photos
+    function openPhotoModal(el) {
+      const img = el.querySelector('img');
+      const altText = img.getAttribute('data-alt');
+      
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-gutter animate-fade-in';
+      modal.innerHTML = \`
+        <div class="bg-surface rounded-2xl p-space-md max-w-sm w-full flex flex-col gap-space-md relative shadow-2xl">
+          <div class="flex items-center justify-between">
+            <span class="text-headline-sm font-headline-sm text-on-surface">Evidence Preview</span>
+            <button onclick="this.closest('.fixed').remove()" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface">
+              <span class="material-symbols-outlined text-sm">close</span>
+            </button>
+          </div>
+          <div class="w-full h-64 rounded-xl bg-surface-container overflow-hidden">
+            <img src="placeholder" data-alt="\${altText}" class="w-full h-full object-cover">
+          </div>
+          <p class="text-body-md text-on-surface-variant">\${altText}</p>
+          <button onclick="this.closest('.fixed').remove()" class="w-full h-11 bg-primary text-on-primary rounded-xl font-label-lg text-label-lg">Close Preview</button>
+        </div>
+      \`;
+      document.body.appendChild(modal);
+    }
+
+    // Completion Handler
+    function handleCompletion() {
+      const btn = event.currentTarget;
+      btn.innerHTML = \`<span class="material-symbols-outlined animate-spin">progress_activity</span> Completing...\`;
+      setTimeout(() => {
+        btn.innerHTML = \`<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">done_all</span> Successfully Completed!\`;
+        btn.classList.remove('bg-primary');
+        btn.classList.add('bg-secondary');
+        
+        // Delightful toast banner
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-16 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface px-4 py-3 rounded-full shadow-lg flex items-center gap-space-sm z-50 transition-all';
+        toast.innerHTML = \`<span class="material-symbols-outlined text-secondary-fixed">favorite</span> Thank you for supporting our community!\`;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.remove(), 3000);
+      }, 1000);
+    }
+  </script>
+</div></main></body></html>
