@@ -1,5 +1,7 @@
 package com.neighborhero.neighborhero
 
+import com.neighborhero.neighborhero.data.local.AppDatabaseHelper
+import com.neighborhero.neighborhero.data.model.NotificationItem
 import com.neighborhero.neighborhero.data.model.NotificationType
 import com.neighborhero.neighborhero.data.model.RequestStatus
 import com.neighborhero.neighborhero.data.repository.*
@@ -39,6 +41,25 @@ class NeighborHeroAppTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    // --- Database Initialization & Safety Tests ---
+    @Test
+    fun testDatabaseHelper_uninitializedGetInstanceThrowsDescriptiveError() {
+        AppDatabaseHelper.resetInstanceForTesting()
+        try {
+            AppDatabaseHelper.getInstance(null)
+            fail("Expected IllegalStateException when calling getInstance without context when uninitialized")
+        } catch (e: IllegalStateException) {
+            assertTrue(e.message?.contains("AppDatabaseHelper has not been initialized") == true)
+        }
+    }
+
+    @Test
+    fun testRepositoryProvider_uninitializedAccessDoesNotCrash() {
+        AppDatabaseHelper.resetInstanceForTesting()
+        val repo = RepositoryProvider.helpRequestRepository
+        assertNotNull(repo)
     }
 
     // --- NLP Classifier Tests ---
@@ -202,7 +223,7 @@ class NeighborHeroAppTest {
 
         val notifCount = initialNotifications.size
         notificationRepository.addNotification(
-            com.neighborhero.neighborhero.data.model.NotificationItem(
+            NotificationItem(
                 id = "test_notif",
                 title = "New Community Request",
                 message = "A neighbor near you posted a new task.",

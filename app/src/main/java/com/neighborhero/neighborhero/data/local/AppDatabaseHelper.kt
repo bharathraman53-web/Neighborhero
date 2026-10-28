@@ -7,8 +7,8 @@ import com.neighborhero.neighborhero.data.local.dao.HelpRequestDao
 import com.neighborhero.neighborhero.data.local.dao.HelperDao
 import com.neighborhero.neighborhero.data.local.dao.NotificationDao
 
-class AppDatabaseHelper(context: Context?) : SQLiteOpenHelper(
-    context,
+class AppDatabaseHelper private constructor(context: Context) : SQLiteOpenHelper(
+    context.applicationContext,
     DATABASE_NAME,
     null,
     DATABASE_VERSION
@@ -22,7 +22,22 @@ class AppDatabaseHelper(context: Context?) : SQLiteOpenHelper(
 
         fun getInstance(context: Context? = null): AppDatabaseHelper {
             return instance ?: synchronized(this) {
-                instance ?: AppDatabaseHelper(context?.applicationContext).also { instance = it }
+                instance ?: run {
+                    val ctx = context?.applicationContext
+                    checkNotNull(ctx) {
+                        "AppDatabaseHelper has not been initialized. Call AppDatabaseHelper.getInstance(context) or RepositoryProvider.init(context) with a valid Context before calling getInstance()."
+                    }
+                    AppDatabaseHelper(ctx).also { instance = it }
+                }
+            }
+        }
+
+        fun isInitialized(): Boolean = instance != null
+
+        fun resetInstanceForTesting() {
+            synchronized(this) {
+                instance?.close()
+                instance = null
             }
         }
     }
@@ -44,4 +59,3 @@ class AppDatabaseHelper(context: Context?) : SQLiteOpenHelper(
         onCreate(db)
     }
 }
-
