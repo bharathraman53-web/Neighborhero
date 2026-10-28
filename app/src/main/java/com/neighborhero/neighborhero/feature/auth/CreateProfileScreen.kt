@@ -29,12 +29,13 @@ import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
 fun CreateProfileScreen(
-    onProfileCompleted: () -> Unit
+    initialName: String = "",
+    onProfileCompleted: (name: String, neighborhood: String, bio: String) -> Unit = { _, _, _ -> }
 ) {
-    var name by remember { mutableStateOf("Eleanor Vance") }
-    var neighborhood by remember { mutableStateOf("Maplewood & Oakridge") }
-    var bio by remember { mutableStateOf("Passionate gardener and retired teacher who loves helping out with local grocery runs, pet sitting, and weekend tutoring.") }
-    val selectedSkills = remember { mutableStateListOf("Groceries", "Repairs", "Pet Care") }
+    var name by remember { mutableStateOf(initialName) }
+    var neighborhood by remember { mutableStateOf("") }
+    var bio by remember { mutableStateOf("") }
+    val selectedSkills = remember { mutableStateListOf<String>() }
 
     val allSkills = listOf("Groceries", "Repairs", "Pet Care", "Tutoring", "Moving", "Yardwork")
 
@@ -125,6 +126,7 @@ fun CreateProfileScreen(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
+                        placeholder = { Text("e.g. Eleanor Vance") },
                         leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = Outline) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
@@ -136,6 +138,7 @@ fun CreateProfileScreen(
                     OutlinedTextField(
                         value = neighborhood,
                         onValueChange = { neighborhood = it },
+                        placeholder = { Text("e.g. Maplewood & Oakridge") },
                         leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = Outline) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
@@ -147,6 +150,7 @@ fun CreateProfileScreen(
                     OutlinedTextField(
                         value = bio,
                         onValueChange = { bio = it },
+                        placeholder = { Text("Tell neighbors how you'd love to help...") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         minLines = 3
@@ -178,7 +182,9 @@ fun CreateProfileScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                PrimaryButton(onClick = onProfileCompleted) {
+                PrimaryButton(onClick = {
+                    onProfileCompleted(name, neighborhood, bio)
+                }) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Complete Profile", style = MaterialTheme.typography.labelLarge)
@@ -193,7 +199,7 @@ fun CreateProfileScreen(
 fun CreateProfileScreenPreview() {
     NeighborheroTheme {
         CreateProfileScreen(
-            onProfileCompleted = {}
+            onProfileCompleted = { _, _, _ -> }
         )
     }
 }

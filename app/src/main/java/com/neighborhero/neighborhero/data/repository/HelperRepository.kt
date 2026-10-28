@@ -1,12 +1,20 @@
 package com.neighborhero.neighborhero.data.repository
 
+import com.neighborhero.neighborhero.data.local.dao.HelperDao
 import com.neighborhero.neighborhero.data.model.HelperProfile
+import com.neighborhero.neighborhero.data.network.NeighborHeroApiService
+import com.neighborhero.neighborhero.data.network.NetworkClient
+import com.neighborhero.neighborhero.data.network.dto.HelperProfileDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class HelperRepository {
-    private val initialHelpers = listOf(
+class HelperRepository(
+    private val apiService: NeighborHeroApiService = NetworkClient.getService(),
+    private val cacheDao: HelperDao? = null,
+    seedForTests: Boolean = false
+) {
+    private val testSeedHelpers = listOf(
         HelperProfile(
             id = "helper_1",
             name = "Vikram Roy",
@@ -54,6 +62,77 @@ class HelperRepository {
         )
     )
 
-    private val _helpers = MutableStateFlow(initialHelpers)
+    private val _helpers = MutableStateFlow(
+        if (seedForTests) testSeedHelpers else (cacheDao?.getAll() ?: emptyList())
+    )
     val helpers: StateFlow<List<HelperProfile>> = _helpers.asStateFlow()
+
+    private val _leaderboard = MutableStateFlow<List<HelperProfile>>(emptyList())
+    val leaderboard: StateFlow<List<HelperProfile>> = _leaderboard.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    fun getHelperById(helperId: String): HelperProfile? {
+        return _helpers.value.find { it.id == helperId } ?: cacheDao?.getById(helperId)
+    }
+
+    suspend fun fetchHelpers(skill: String? = null): Result<List<HelperProfile>> {
+        _isLoading.value = true
+        return try {
+            val response = apiService.getHelpers(skill = skill)
+            if (response.isSuccessful && response.body()?.success == true) {
+                val dtos = response.body()!!.data ?: emptyList()
+                val mapped = dtos.map { mapDtoToDomain(it) }
+                _helpers.value = mapped
+                cacheDao?.insertAll(mapped)
+                Result.success(mapped)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Failed to fetch helpers"))
+            }
+        } catch (e: Exception) {
+            val cached = cacheDao?.getAll() ?: _helpers.value
+            if (cached.isNotEmpty()) {
+                _helpers.value = cached
+            }
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    suspend fun fetchLeaderboard(): Result<List<HelperProfile>> {
+        return try {
+            val response = apiService.getLeaderboard()
+            if (response.isSuccessful && response.body()?.success == true) {
+                val dtos = response.body()!!.data ?: emptyList()
+                val mapped = dtos.map { mapDtoToDomain(it) }
+                _leaderboard.value = mapped
+                Result.success(mapped)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Failed to fetch leaderboard"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun mapDtoToDomain(dto: HelperProfileDto): HelperProfile {
+        return HelperProfile(
+            id = dto.id,
+            name = dto.name,
+            title = dto.title,
+            neighborhood = dto.neighborhood,
+            distance = dto.distance,
+            rating = dto.rating,
+            reviewCount = dto.reviewCount,
+            tasksDone = dto.tasksDone,
+            onTimePercentage = dto.onTimePercentage,
+            bio = dto.bio,
+            skills = dto.skills,
+            isVerified = dto.isVerified,
+            isAvailableToday = dto.isAvailableToday,
+            avatarUrl = dto.avatarUrl
+        )
+    }
 }

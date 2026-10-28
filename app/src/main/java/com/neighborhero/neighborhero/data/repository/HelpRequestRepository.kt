@@ -1,13 +1,23 @@
 package com.neighborhero.neighborhero.data.repository
 
+import com.neighborhero.neighborhero.data.local.dao.HelpRequestDao
 import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.data.model.RequestStatus
+import com.neighborhero.neighborhero.data.network.NeighborHeroApiService
+import com.neighborhero.neighborhero.data.network.NetworkClient
+import com.neighborhero.neighborhero.data.network.dto.AssignHelperDto
+import com.neighborhero.neighborhero.data.network.dto.CreateHelpRequestDto
+import com.neighborhero.neighborhero.data.network.dto.HelpRequestDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class HelpRequestRepository {
-    private val initialRequests = listOf(
+class HelpRequestRepository(
+    private val apiService: NeighborHeroApiService = NetworkClient.getService(),
+    private val cacheDao: HelpRequestDao? = null,
+    seedForTests: Boolean = false
+) {
+    private val testSeedRequests = listOf(
         HelpRequest(
             id = "req_1",
             title = "Weekly Groceries Pickup",
@@ -68,21 +78,142 @@ class HelpRequestRepository {
         )
     )
 
-    private val _requests = MutableStateFlow(initialRequests)
+    private val _requests = MutableStateFlow(
+        if (seedForTests) testSeedRequests else (cacheDao?.getAll() ?: emptyList())
+    )
     val requests: StateFlow<List<HelpRequest>> = _requests.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
     fun addRequest(request: HelpRequest) {
-        _requests.value = listOf(request) + _requests.value
+        _requests.value = listOf(request) + _requests.value.filter { it.id != request.id }
+        cacheDao?.insertOrUpdate(request)
+    }
+
+    fun getRequestById(requestId: String): HelpRequest? {
+        return _requests.value.find { it.id == requestId } ?: cacheDao?.getById(requestId)
     }
 
     fun updateRequestStatus(requestId: String, newStatus: RequestStatus, helperName: String? = null) {
         _requests.value = _requests.value.map { req ->
             if (req.id == requestId) {
-                req.copy(
+                val updated = req.copy(
                     status = newStatus,
                     assignedHelperName = helperName ?: req.assignedHelperName
                 )
+                cacheDao?.insertOrUpdate(updated)
+                updated
             } else req
         }
+    }
+
+    suspend fun fetchRequests(category: String? = null, status: String? = null): Result<List<HelpRequest>> {
+        _isLoading.value = true
+        _errorMessage.value = null
+        return try {
+            val response = apiService.getRequests(
+                category = if (category == "All") null else category,
+                status = status
+            )
+            if (response.isSuccessful && response.body()?.success == true) {
+                val dtos = response.body()!!.data ?: emptyList()
+                val mapped = dtos.map { mapDtoToDomain(it) }
+                _requests.value = mapped
+                cacheDao?.insertAll(mapped)
+                Result.success(mapped)
+            } else {
+                val msg = response.body()?.message ?: "Failed to fetch requests"
+                _errorMessage.value = msg
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            _errorMessage.value = e.message
+            // Fall back to cached entries if offline
+            val cached = cacheDao?.getAll() ?: _requests.value
+            if (cached.isNotEmpty()) {
+                _requests.value = cached
+            }
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    suspend fun createRemoteRequest(
+        title: String,
+        category: String,
+        description: String,
+        time: String,
+        location: String
+    ): Result<HelpRequest> {
+        _isLoading.value = true
+        _errorMessage.value = null
+        return try {
+            val dto = CreateHelpRequestDto(
+                title = title,
+                category = category,
+                description = description,
+                location = location,
+                requestedTime = time.ifBlank { "Due Today, 4:00 PM" }
+            )
+            val response = apiService.createRequest(dto)
+            if (response.isSuccessful && response.body()?.success == true) {
+                val created = mapDtoToDomain(response.body()!!.data!!)
+                addRequest(created)
+                Result.success(created)
+            } else {
+                val msg = response.body()?.message ?: "Failed to create request"
+                _errorMessage.value = msg
+                Result.failure(Exception(msg))
+            }
+        } catch (e: Exception) {
+            _errorMessage.value = e.message
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    suspend fun assignRemoteHelper(requestId: String, helperId: String? = null): Result<HelpRequest> {
+        return try {
+            val response = apiService.assignHelper(requestId, AssignHelperDto(helperId))
+            if (response.isSuccessful && response.body()?.success == true) {
+                val updated = mapDtoToDomain(response.body()!!.data!!)
+                addRequest(updated)
+                Result.success(updated)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Failed to assign helper"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun mapDtoToDomain(dto: HelpRequestDto): HelpRequest {
+        val st = try {
+            RequestStatus.valueOf(dto.status.uppercase())
+        } catch (e: Exception) {
+            RequestStatus.OPEN
+        }
+        return HelpRequest(
+            id = dto.id,
+            title = dto.title,
+            category = dto.category,
+            description = dto.description,
+            requesterName = dto.requesterName,
+            requesterRating = dto.requesterRating,
+            requesterTaskCount = dto.requesterTaskCount,
+            location = dto.location,
+            distance = dto.distance,
+            requestedTime = dto.requestedTime,
+            isUrgent = dto.isUrgent,
+            status = st,
+            assignedHelperId = dto.assignedHelperId,
+            assignedHelperName = dto.assignedHelperName
+        )
     }
 }

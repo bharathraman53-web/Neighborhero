@@ -1,29 +1,41 @@
 package com.neighborhero.neighborhero.feature.task
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.neighborhero.neighborhero.R
+import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.ui.components.AppTopBar
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
 fun ActiveTaskScreen(
+    task: HelpRequest? = null,
     onBackClick: () -> Unit,
     onChatClick: () -> Unit,
     onSubmitCompletionClick: () -> Unit
 ) {
+    val title = task?.title ?: "Active Task"
+    val location = task?.location ?: "Community Location"
+    val requesterName = task?.requesterName ?: "Neighbor"
+
     Scaffold(
         topBar = { AppTopBar(title = "Active Task", onBackClick = onBackClick) }
     ) { innerPadding ->
@@ -47,14 +59,14 @@ fun ActiveTaskScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Text("Weekly Groceries Pickup", style = MaterialTheme.typography.headlineMedium, color = OnPrimary)
+                        Text(title, style = MaterialTheme.typography.headlineMedium, color = OnPrimary)
 
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.LocationOn, contentDescription = null, tint = PrimaryFixedDim)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("42 Maplewood Drive", style = MaterialTheme.typography.bodyMedium, color = PrimaryFixedDim)
+                            Text(location, style = MaterialTheme.typography.bodyMedium, color = PrimaryFixedDim)
                         }
                     }
                 }
@@ -72,26 +84,48 @@ fun ActiveTaskScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            val avatarRes = when {
+                                requesterName.contains("Martha", ignoreCase = true) -> R.drawable.img_elderly_martha
+                                requesterName.contains("Marcus", ignoreCase = true) -> R.drawable.img_contact_marcus
+                                requesterName.contains("Sarah", ignoreCase = true) -> R.drawable.img_contact_sarah
+                                requesterName.contains("Eleanor", ignoreCase = true) -> R.drawable.img_eleanor_vance
+                                else -> null
+                            }
+
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .background(PrimaryFixed, CircleShape),
+                                    .clip(CircleShape)
+                                    .background(PrimaryFixed),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("EV", style = MaterialTheme.typography.titleMedium, color = OnPrimaryFixed)
+                                if (avatarRes != null) {
+                                    Image(
+                                        painter = painterResource(id = avatarRes),
+                                        contentDescription = requesterName,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(
+                                        text = requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = OnPrimaryFixed
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Column {
-                                Text("Eleanor Vance", style = MaterialTheme.typography.headlineSmall, color = OnSurface)
+                                Text(requesterName, style = MaterialTheme.typography.headlineSmall, color = OnSurface)
                                 Text("Requester Neighbor", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
                             }
                         }
 
                         Row {
                             IconButton(onClick = onChatClick) {
-                                Icon(Icons.Default.Chat, contentDescription = "Chat", tint = Primary)
+                                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat", tint = Primary)
                             }
                             IconButton(onClick = {}) {
                                 Icon(Icons.Default.Call, contentDescription = "Call", tint = Primary)
@@ -107,5 +141,18 @@ fun ActiveTaskScreen(
                 Text("Submit Task Completion", style = MaterialTheme.typography.labelLarge)
             }
         }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun ActiveTaskScreenPreview() {
+    NeighborheroTheme {
+        ActiveTaskScreen(
+            task = null,
+            onBackClick = {},
+            onChatClick = {},
+            onSubmitCompletionClick = {}
+        )
     }
 }

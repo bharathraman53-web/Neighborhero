@@ -22,12 +22,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
+import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.ui.components.AppTopBar
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
 fun ConfirmTaskStartScreen(
+    task: HelpRequest? = null,
     onBackClick: () -> Unit,
     onStartConfirmed: () -> Unit
 ) {
@@ -36,6 +38,13 @@ fun ConfirmTaskStartScreen(
     var check3 by remember { mutableStateOf(false) }
 
     val allChecked = check1 && check2 && check3
+
+    val title = task?.title ?: "Help Request"
+    val category = task?.category ?: "Community Help"
+    val time = task?.requestedTime ?: "Scheduled Time"
+    val requesterName = task?.requesterName ?: "Neighbor"
+    val location = task?.location ?: "Community Location"
+    val distance = task?.distance ?: "Nearby"
 
     Scaffold(
         topBar = { AppTopBar(title = "Confirm Start", onBackClick = onBackClick) }
@@ -77,7 +86,7 @@ fun ConfirmTaskStartScreen(
                     }
                 }
 
-                // Task Summary Card with Actual Eleanor Vance Image Asset
+                // Task Summary Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -91,17 +100,17 @@ fun ConfirmTaskStartScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
-                                Text("Community Support", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = OnSecondaryContainer)
+                                Text(category, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = OnSecondaryContainer)
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text("Agreed Time", style = MaterialTheme.typography.labelSmall, color = OnSurfaceVariant)
-                                Text("Today, 2:30 PM", style = MaterialTheme.typography.headlineSmall, color = Secondary, fontWeight = FontWeight.Bold)
+                                Text(time, style = MaterialTheme.typography.headlineSmall, color = Secondary, fontWeight = FontWeight.Bold)
                             }
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        Text("Grocery Delivery & Assistance", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
+                        Text(title, style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -115,25 +124,43 @@ fun ConfirmTaskStartScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
+                                val avatarRes = when {
+                                    requesterName.contains("Martha", ignoreCase = true) -> R.drawable.img_elderly_martha
+                                    requesterName.contains("Marcus", ignoreCase = true) -> R.drawable.img_contact_marcus
+                                    requesterName.contains("Sarah", ignoreCase = true) -> R.drawable.img_contact_sarah
+                                    requesterName.contains("Eleanor", ignoreCase = true) -> R.drawable.img_eleanor_vance
+                                    else -> null
+                                }
+
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
                                         .clip(CircleShape)
-                                        .background(SurfaceContainerHigh)
+                                        .background(SurfaceContainerHigh),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.img_eleanor_vance),
-                                        contentDescription = "Eleanor Vance",
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                    if (avatarRes != null) {
+                                        Image(
+                                            painter = painterResource(id = avatarRes),
+                                            contentDescription = requesterName,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Text(
+                                            text = requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = OnSurface,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
 
                                 Spacer(modifier = Modifier.width(12.dp))
 
                                 Column {
-                                    Text("Eleanor Vance", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                                    Text("42 Maplewood Drive (0.8 mi away)", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                                    Text(requesterName, style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
+                                    Text("$location ($distance)", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
                                 }
                             }
 
@@ -215,6 +242,7 @@ fun ConfirmTaskStartScreen(
 fun ConfirmTaskStartScreenPreview() {
     NeighborheroTheme {
         ConfirmTaskStartScreen(
+            task = null,
             onBackClick = {},
             onStartConfirmed = {}
         )

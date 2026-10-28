@@ -23,19 +23,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
+import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.ui.components.AppTopBar
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
 fun VerifyTaskCompletionScreen(
+    task: HelpRequest? = null,
     onBackClick: () -> Unit,
-    onVerified: () -> Unit
+    onVerified: (rating: Int, feedback: String) -> Unit
 ) {
     var rating by remember { mutableIntStateOf(5) }
     var reviewText by remember { mutableStateOf("") }
-    val selectedTags = remember { mutableStateListOf("Super fast", "Very polite", "Excellent work") }
+    val selectedTags = remember { mutableStateListOf<String>() }
     val tags = listOf("Super fast", "Very polite", "Excellent work", "Punctual")
+
+    val helperName = task?.assignedHelperName ?: "Assigned Helper"
+    val taskTitle = task?.title ?: "Community Assistance"
 
     Scaffold(
         topBar = { AppTopBar(title = "Verify Completion", onBackClick = onBackClick) }
@@ -65,7 +70,7 @@ fun VerifyTaskCompletionScreen(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("Task Completed!", style = MaterialTheme.typography.headlineMedium, color = OnSurface, fontWeight = FontWeight.Bold)
-                Text("Please review the submitted work and thank your neighborhood helper.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
+                Text("Please review the submitted work for \"$taskTitle\" and thank your helper.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
             }
 
             // Evidence Section Card with Actual Lawn Proof Photos
@@ -103,7 +108,7 @@ fun VerifyTaskCompletionScreen(
                         ) {
                             Image(
                                 painter = painterResource(id = R.drawable.img_verify_lawn1),
-                                contentDescription = "Lawn work proof 1",
+                                contentDescription = "Work proof 1",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
@@ -115,7 +120,7 @@ fun VerifyTaskCompletionScreen(
                         ) {
                             Image(
                                 painter = painterResource(id = R.drawable.img_verify_lawn2),
-                                contentDescription = "Lawn work proof 2",
+                                contentDescription = "Work proof 2",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
@@ -138,12 +143,16 @@ fun VerifyTaskCompletionScreen(
                                 .background(SecondaryFixed, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("JD", style = MaterialTheme.typography.labelLarge, color = OnSecondaryFixed)
+                            Text(
+                                text = helperName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = OnSecondaryFixed
+                            )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("John Davis", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                            Text("Completed via Community Aid", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                            Text(helperName, style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
+                            Text("Completed via NeighborHero", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
                         }
                         Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
                             Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -167,7 +176,7 @@ fun VerifyTaskCompletionScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text("Rate Your Experience", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                    Text("How was your interaction with John?", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                    Text("How was your interaction with $helperName?", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
 
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -226,7 +235,7 @@ fun VerifyTaskCompletionScreen(
                 }
             }
 
-            PrimaryButton(onClick = onVerified) {
+            PrimaryButton(onClick = { onVerified(rating, reviewText) }) {
                 Text("Confirm & Release Verification", style = MaterialTheme.typography.labelLarge)
             }
         }
@@ -238,8 +247,9 @@ fun VerifyTaskCompletionScreen(
 fun VerifyTaskCompletionScreenPreview() {
     NeighborheroTheme {
         VerifyTaskCompletionScreen(
+            task = null,
             onBackClick = {},
-            onVerified = {}
+            onVerified = { _, _ -> }
         )
     }
 }

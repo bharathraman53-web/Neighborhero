@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.*
@@ -32,7 +33,7 @@ fun ChatScreen(
     var inputText by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = { AppTopBar(title = "Chat", onBackClick = onBackClick) }
+        topBar = { AppTopBar(title = "Neighbor Chat", onBackClick = onBackClick) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -62,12 +63,12 @@ fun ChatScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Active Task", style = MaterialTheme.typography.labelSmall, color = OnPrimaryContainer)
-                            Text("Grocery Pickup & Delivery", style = MaterialTheme.typography.headlineSmall, color = OnPrimary, fontWeight = FontWeight.Bold)
+                            Text("Community Assistance Channel", style = MaterialTheme.typography.labelSmall, color = OnPrimaryContainer)
+                            Text("Direct Neighbor Messaging", style = MaterialTheme.typography.headlineSmall, color = OnPrimary, fontWeight = FontWeight.Bold)
                         }
                     }
                     Surface(shape = RoundedCornerShape(12.dp), color = Primary) {
-                        Text("In Progress", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = OnPrimary)
+                        Text("Active", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = OnPrimary)
                     }
                 }
             }
@@ -75,52 +76,69 @@ fun ChatScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Chat Messages Container
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(messages) { msg ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (msg.isUser) Primary else SurfaceContainerLow
+            if (messages.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = Outline, modifier = Modifier.size(36.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("No messages yet", style = MaterialTheme.typography.headlineSmall, color = OnSurface)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Send a message to coordinate with your neighbor.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(messages) { msg ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    msg.messageText,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (msg.isUser) OnPrimary else OnSurface
-                                )
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (msg.isUser) Primary else SurfaceContainerLow
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        msg.messageText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (msg.isUser) OnPrimary else OnSurface
+                                    )
 
-                                if (msg.attachmentCode != null) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Card(
-                                        shape = RoundedCornerShape(8.dp),
-                                        colors = CardDefaults.cardColors(containerColor = SurfaceContainerHigh)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(10.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                    if (msg.attachmentCode != null) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Card(
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = CardDefaults.cardColors(containerColor = SurfaceContainerHigh)
                                         ) {
-                                            Icon(Icons.Default.VpnKey, contentDescription = null, tint = Secondary)
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column {
-                                                Text(msg.attachmentTitle ?: "Code", style = MaterialTheme.typography.labelSmall, color = OnSurfaceVariant)
-                                                Text(msg.attachmentCode, style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
+                                            Row(
+                                                modifier = Modifier.padding(10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(Icons.Default.VpnKey, contentDescription = null, tint = Secondary)
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Column {
+                                                    Text(msg.attachmentTitle ?: "Code", style = MaterialTheme.typography.labelSmall, color = OnSurfaceVariant)
+                                                    Text(msg.attachmentCode, style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    msg.timestamp,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (msg.isUser) OnPrimary.copy(alpha = 0.7f) else OnSurfaceVariant
-                                )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        msg.timestamp,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (msg.isUser) OnPrimary.copy(alpha = 0.7f) else OnSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
@@ -149,7 +167,7 @@ fun ChatScreen(
                 TextField(
                     value = inputText,
                     onValueChange = { inputText = it },
-                    placeholder = { Text("Type a message to Eleanor...") },
+                    placeholder = { Text("Type a message to your neighbor...") },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(24.dp),
                     colors = TextFieldDefaults.colors(
@@ -177,37 +195,5 @@ fun ChatScreen(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun ChatScreenPreview() {
-    val sampleMessages = listOf(
-        ChatMessage(
-            id = "msg_1",
-            senderId = "eleanor",
-            senderName = "Eleanor Vance",
-            senderInitials = "EV",
-            messageText = "Hi there! Thank you so much for picking up my grocery list from Trader Joe's.",
-            timestamp = "10:25 AM",
-            isUser = false
-        ),
-        ChatMessage(
-            id = "msg_2",
-            senderId = "user_1",
-            senderName = "You",
-            senderInitials = "ME",
-            messageText = "Yes, I got everything! On my way now.",
-            timestamp = "10:28 AM",
-            isUser = true
-        )
-    )
-    NeighborheroTheme {
-        ChatScreen(
-            messages = sampleMessages,
-            onSendMessage = {},
-            onBackClick = {}
-        )
     }
 }

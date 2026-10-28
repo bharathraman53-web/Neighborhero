@@ -61,20 +61,24 @@ fun HelpRequestDetailsScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(shape = RoundedCornerShape(12.dp), color = ErrorContainer) {
-                            Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Error, contentDescription = null, tint = OnErrorContainer, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Urgent", style = MaterialTheme.typography.labelMedium, color = OnErrorContainer)
-                            }
-                        }
                         Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
                             Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.ShoppingBasket, contentDescription = null, tint = OnSecondaryContainer, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(request.category, style = MaterialTheme.typography.labelMedium, color = OnSecondaryContainer)
+                            }
+                        }
+
+                        if (request.isUrgent) {
+                            Surface(shape = RoundedCornerShape(12.dp), color = ErrorContainer) {
+                                Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Error, contentDescription = null, tint = OnErrorContainer, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Urgent", style = MaterialTheme.typography.labelMedium, color = OnErrorContainer)
+                                }
                             }
                         }
                     }
@@ -121,7 +125,7 @@ fun HelpRequestDetailsScreen(
                 }
             }
 
-            // Requester Profile Card with Actual Stitch Asset Martha
+            // Requester Profile Card with dynamic image resolution
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -135,18 +139,36 @@ fun HelpRequestDetailsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val avatarRes = when {
+                            request.requesterName.contains("Martha", ignoreCase = true) -> R.drawable.img_elderly_martha
+                            request.requesterName.contains("Marcus", ignoreCase = true) -> R.drawable.img_contact_marcus
+                            request.requesterName.contains("Sarah", ignoreCase = true) -> R.drawable.img_contact_sarah
+                            request.requesterName.contains("Eleanor", ignoreCase = true) -> R.drawable.img_eleanor_vance
+                            else -> null
+                        }
+
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(SecondaryContainer)
+                                .background(SecondaryContainer),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.img_elderly_martha),
-                                contentDescription = "Martha W portrait",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                            if (avatarRes != null) {
+                                Image(
+                                    painter = painterResource(id = avatarRes),
+                                    contentDescription = request.requesterName,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text(
+                                    text = request.requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = OnSecondaryContainer,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
@@ -186,7 +208,14 @@ fun HelpRequestDetailsScreen(
             PrimaryButton(onClick = onAcceptClick) {
                 Icon(Icons.Default.Handshake, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Offer Help / Accept Request", style = MaterialTheme.typography.labelLarge)
+                val buttonText = when (request.status) {
+                    RequestStatus.OPEN -> "Offer Help / Accept Request"
+                    RequestStatus.IN_PROGRESS -> "Continue Active Task"
+                    RequestStatus.PENDING_VERIFICATION -> "Pending Verification"
+                    RequestStatus.COMPLETED -> "Task Completed"
+                    RequestStatus.CANCELLED -> "Request Cancelled"
+                }
+                Text(buttonText, style = MaterialTheme.typography.labelLarge)
             }
         }
     }

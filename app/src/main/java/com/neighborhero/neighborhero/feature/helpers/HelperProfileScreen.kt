@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -48,7 +49,7 @@ fun HelperProfileScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Hero Photo Header Banner with Actual Stitch Vikram Roy Asset
+            // Hero Photo Header Banner with dynamic asset resolution
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -57,12 +58,27 @@ fun HelperProfileScreen(
                 colors = CardDefaults.cardColors(containerColor = SurfaceContainer)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    Image(
-                        painter = painterResource(id = R.drawable.img_helper_vikram),
-                        contentDescription = "Vikram Roy portrait",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    if (helper.name.contains("Vikram", ignoreCase = true)) {
+                        Image(
+                            painter = painterResource(id = R.drawable.img_helper_vikram),
+                            contentDescription = "${helper.name} portrait",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = helper.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                style = MaterialTheme.typography.displayLarge,
+                                color = OnPrimary
+                            )
+                        }
+                    }
 
                     // Gradient Scrim for Text Readability
                     Box(
@@ -94,90 +110,124 @@ fun HelperProfileScreen(
                                 ) {
                                     Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = OnSecondary, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Neighborhood Hero", style = MaterialTheme.typography.labelSmall, color = OnSecondary)
+                                    Text(helper.title, style = MaterialTheme.typography.labelSmall, color = OnSecondary)
                                 }
                             }
 
-                            Surface(shape = RoundedCornerShape(12.dp), color = Surface.copy(alpha = 0.3f)) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(Icons.Default.Verified, contentDescription = null, tint = OnPrimary, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Verified ID", style = MaterialTheme.typography.labelSmall, color = OnPrimary)
+                            if (helper.isAvailableToday) {
+                                Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
+                                    Text(
+                                        "Available Today",
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = OnSecondaryContainer
+                                    )
                                 }
                             }
                         }
 
-                        Text(helper.name, style = MaterialTheme.typography.headlineLarge, color = OnPrimary, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(helper.name, style = MaterialTheme.typography.headlineLarge, color = OnPrimary, fontWeight = FontWeight.Bold)
+                            if (helper.isVerified) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(Icons.Default.Verified, contentDescription = "Verified Helper", tint = SecondaryFixed, modifier = Modifier.size(20.dp))
+                            }
+                        }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.LocationOn, contentDescription = null, tint = PrimaryFixedDim, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("${helper.neighborhood} • ${helper.distance}", style = MaterialTheme.typography.bodyMedium, color = PrimaryFixedDim)
+                            Text("${helper.neighborhood} (${helper.distance})", style = MaterialTheme.typography.bodySmall, color = PrimaryFixedDim)
                         }
                     }
                 }
             }
 
-            // Stats Bar Container Card
-            Card(
+            // Stats Row Container
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Star, contentDescription = null, tint = Secondary, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("${helper.rating}", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
                         }
                         Text("${helper.reviewCount} reviews", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
                     }
+                }
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text("${helper.tasksDone}", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
-                        Text("Tasks Done", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                        Text("Tasks done", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
                     }
+                }
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text("${helper.onTimePercentage}%", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
-                        Text("On-Time", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                        Text("On-time", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
                     }
                 }
             }
 
-            // About Section
+            // About Helper
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("About ${helper.name.split(" ").first()}", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.SemiBold)
+                    Text("About ${helper.name.split(" ").firstOrNull() ?: helper.name}", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(helper.bio, style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
                 }
             }
 
-            // Skills & Specialities
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Skills & Specialities", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.SemiBold)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    helper.skills.take(3).forEach { skill ->
-                        Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
-                            Text(skill, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium, color = OnSecondaryContainer)
+            // Skills & Community Badges
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Skills & Superpowers", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        helper.skills.take(3).forEach { skill ->
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = SecondaryContainer
+                            ) {
+                                Text(skill, modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = OnSecondaryContainer)
+                            }
                         }
                     }
                 }
@@ -186,23 +236,28 @@ fun HelperProfileScreen(
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedButton(
+                Button(
                     onClick = onChatClick,
-                    modifier = Modifier.height(52.dp),
-                    shape = RoundedCornerShape(16.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SurfaceContainerHigh, contentColor = Primary)
                 ) {
-                    Icon(Icons.Default.ChatBubble, contentDescription = "Chat", tint = OnSurface)
+                    Icon(Icons.Default.ChatBubble, contentDescription = null, tint = Primary, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Message", style = MaterialTheme.typography.labelLarge)
                 }
 
                 PrimaryButton(
                     onClick = onRequestHelperClick,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1.4f)
                 ) {
-                    Icon(Icons.Default.WavingHand, contentDescription = null)
+                    Icon(Icons.Default.WavingHand, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Request Helper", style = MaterialTheme.typography.labelLarge)
+                    Text("Request Help", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -215,6 +270,7 @@ fun HelperProfileScreenPreview() {
     val sampleHelper = HelperProfile(
         id = "helper_1",
         name = "Vikram Roy",
+        title = "Neighborhood Hero",
         neighborhood = "Greenwood",
         distance = "0.4 miles away",
         rating = 4.9f,
@@ -222,7 +278,9 @@ fun HelperProfileScreenPreview() {
         tasksDone = 42,
         onTimePercentage = 99,
         bio = "Hey neighbor! I’m Vikram, a weekend DIY enthusiast and community handy-person.",
-        skills = listOf("Heavy Lifting", "Furniture Assembly", "Yard Work")
+        skills = listOf("Heavy Lifting", "Furniture Assembly", "Yard Work"),
+        isVerified = true,
+        isAvailableToday = true
     )
     NeighborheroTheme {
         HelperProfileScreen(

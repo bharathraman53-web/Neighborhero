@@ -31,7 +31,9 @@ import com.neighborhero.neighborhero.ui.theme.*
 @Composable
 fun CreateAccountScreen(
     onSignUpSuccess: () -> Unit,
-    onLoginClick: () -> Unit
+    onLoginClick: () -> Unit,
+    onSignUpSubmit: ((fullName: String, email: String, phone: String, pass: String) -> Unit)? = null,
+    errorMessage: String? = null
 ) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -40,6 +42,7 @@ fun CreateAccountScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var agreeTerms by remember { mutableStateOf(false) }
+    var localValidationErr by remember { mutableStateOf<String?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -96,6 +99,21 @@ fun CreateAccountScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    val displayError = localValidationErr ?: errorMessage
+                    if (!displayError.isNullOrBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.errorContainer
+                        ) {
+                            Text(
+                                text = displayError,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+
                     // Full Name
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Full Name", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
@@ -168,7 +186,7 @@ fun CreateAccountScreen(
                         TextField(
                             value = password,
                             onValueChange = { password = it },
-                            placeholder = { Text("At least 8 characters") },
+                            placeholder = { Text("At least 6 characters") },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Outline) },
                             trailingIcon = {
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -236,7 +254,22 @@ fun CreateAccountScreen(
                     }
 
                     // Sign Up Button
-                    PrimaryButton(onClick = onSignUpSuccess) {
+                    PrimaryButton(onClick = {
+                        if (password != confirmPassword) {
+                            localValidationErr = "Passwords do not match."
+                            return@PrimaryButton
+                        }
+                        if (fullName.isBlank() || email.isBlank() || password.isBlank()) {
+                            localValidationErr = "Please complete all required fields."
+                            return@PrimaryButton
+                        }
+                        localValidationErr = null
+                        if (onSignUpSubmit != null) {
+                            onSignUpSubmit(fullName, email, phone, password)
+                        } else {
+                            onSignUpSuccess()
+                        }
+                    }) {
                         Text("Sign Up as NeighborHero", style = MaterialTheme.typography.labelLarge)
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))

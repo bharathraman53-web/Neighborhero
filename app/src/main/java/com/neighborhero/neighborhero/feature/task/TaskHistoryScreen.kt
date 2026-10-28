@@ -35,19 +35,20 @@ data class HistoryTask(
 
 @Composable
 fun TaskHistoryScreen(
+    tasks: List<HistoryTask> = emptyList(),
+    userRating: Float = 5.0f,
+    completedCount: Int = 0,
     onBackClick: (() -> Unit)? = null,
     onNavigate: (String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("all") }
 
-    val historyTasks = listOf(
-        HistoryTask("Grocery Run for Mrs. Gable", "Weekly organic produce pickup", "Oct 14, 2023", 5.0f, "Completed", "completed"),
-        HistoryTask("Community Garden Cleanup", "Cleared weeds and repaired beds", "Oct 09, 2023", 4.9f, "Completed", "completed"),
-        HistoryTask("Golden Retriever Walking", "Afternoon park stroll for Buster", "Sep 28, 2023", 0.0f, "Cancelled", "cancelled")
-    )
+    val allCount = tasks.size
+    val completedCountComputed = tasks.count { it.category == "completed" }
+    val cancelledCountComputed = tasks.count { it.category == "cancelled" }
 
-    val filtered = historyTasks.filter {
+    val filtered = tasks.filter {
         (selectedFilter == "all" || it.category == selectedFilter) &&
         (searchQuery.isBlank() || it.title.contains(searchQuery, ignoreCase = true))
     }
@@ -82,7 +83,11 @@ fun TaskHistoryScreen(
                     )
 
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(listOf("all" to "All History (24)", "completed" to "Completed (18)", "cancelled" to "Cancelled (4)")) { (key, label) ->
+                        items(listOf(
+                            "all" to "All History ($allCount)",
+                            "completed" to "Completed ($completedCountComputed)",
+                            "cancelled" to "Cancelled ($cancelledCountComputed)"
+                        )) { (key, label) ->
                             FilterChip(
                                 selected = selectedFilter == key,
                                 onClick = { selectedFilter = key },
@@ -98,31 +103,62 @@ fun TaskHistoryScreen(
             }
 
             // Summary Banner
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+            if (completedCount > 0 || tasks.isNotEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
-                                Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = OnSecondaryContainer, modifier = Modifier.padding(8.dp))
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
+                                    Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = OnSecondaryContainer, modifier = Modifier.padding(8.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text("Community Standing", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
+                                    val displayCount = if (completedCount > 0) completedCount else completedCountComputed
+                                    Text("$displayCount tasks logged in community history", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                                }
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text("Community Star", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
-                                Text("98% positive ratings across 24 tasks", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(16.dp))
+                                Text(" ${"%.1f".format(userRating)}", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
                             }
                         }
+                    }
+                }
+            }
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(16.dp))
-                            Text(" 4.9", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
+            // Empty State
+            if (filtered.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("No Past Tasks Found", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = OnSurface)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                if (searchQuery.isNotBlank()) "No past tasks match your search query." else "Completed and cancelled tasks will appear here.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = OnSurfaceVariant
+                            )
                         }
                     }
                 }

@@ -1,20 +1,28 @@
 package com.neighborhero.neighborhero.feature.requests
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.neighborhero.neighborhero.nlp.NlpClassifier
 import com.neighborhero.neighborhero.ui.components.AppTopBar
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
@@ -24,6 +32,9 @@ fun CreateRequestScreen(
     onBackClick: () -> Unit,
     onSubmitRequest: (title: String, category: String, description: String, time: String, location: String) -> Unit
 ) {
+    val context = LocalContext.current
+    val nlpClassifier = remember { NlpClassifier(context) }
+
     var title by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("Groceries") }
     var description by remember { mutableStateOf("") }
@@ -31,6 +42,11 @@ fun CreateRequestScreen(
     var location by remember { mutableStateOf("Maplewood District") }
 
     val categories = listOf("Groceries", "Repairs", "Pet Care", "Tutoring")
+
+    // Real-time offline NLP classification
+    val nlpSuggestedCategory = remember(title, description) {
+        nlpClassifier.classifyRequestCategory("$title $description")
+    }
 
     Scaffold(
         topBar = { AppTopBar(title = "Create Request", onBackClick = onBackClick) }
@@ -48,6 +64,39 @@ fun CreateRequestScreen(
                 Text("Need a hand with something local? Drop your request below.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
             }
 
+            // NLP Smart Suggestion Pill
+            AnimatedVisibility(visible = nlpSuggestedCategory != null && nlpSuggestedCategory != selectedCategory) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = PrimaryFixed,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            nlpSuggestedCategory?.let { selectedCategory = it }
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(Primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = OnPrimary, modifier = Modifier.size(14.dp))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Smart Suggestion: Auto-detected \"$nlpSuggestedCategory\". Tap to select.",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = OnPrimaryFixed
+                        )
+                    }
+                }
+            }
+
             Text("Select Category", style = MaterialTheme.typography.labelLarge, color = OnSurface)
 
             Row(
@@ -59,7 +108,10 @@ fun CreateRequestScreen(
                         selected = selectedCategory == cat,
                         onClick = { selectedCategory = cat },
                         label = { Text(cat) },
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryContainer, selectedLabelColor = OnPrimaryContainer)
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = PrimaryContainer,
+                            selectedLabelColor = OnPrimaryContainer
+                        )
                     )
                 }
             }

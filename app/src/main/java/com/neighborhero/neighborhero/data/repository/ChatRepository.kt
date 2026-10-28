@@ -1,12 +1,19 @@
 package com.neighborhero.neighborhero.data.repository
 
 import com.neighborhero.neighborhero.data.model.ChatMessage
+import com.neighborhero.neighborhero.data.network.NeighborHeroApiService
+import com.neighborhero.neighborhero.data.network.NetworkClient
+import com.neighborhero.neighborhero.data.network.dto.ChatMessageDto
+import com.neighborhero.neighborhero.data.network.dto.SendMessageDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class ChatRepository {
-    private val initialMessages = listOf(
+class ChatRepository(
+    private val apiService: NeighborHeroApiService = NetworkClient.getService(),
+    seedForTests: Boolean = false
+) {
+    private val testSeedMessages = listOf(
         ChatMessage(
             id = "msg_1",
             senderId = "eleanor_vance",
@@ -38,7 +45,7 @@ class ChatRepository {
         )
     )
 
-    private val _messages = MutableStateFlow(initialMessages)
+    private val _messages = MutableStateFlow(if (seedForTests) testSeedMessages else emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
 
     fun sendMessage(text: String) {
@@ -52,5 +59,62 @@ class ChatRepository {
             isUser = true
         )
         _messages.value = _messages.value + newMsg
+    }
+
+    suspend fun fetchMessages(conversationId: String? = null): Result<List<ChatMessage>> {
+        return try {
+            val response = apiService.getChatMessages(conversationId = conversationId)
+            if (response.isSuccessful && response.body()?.success == true) {
+                val dtos = response.body()!!.data ?: emptyList()
+                val mapped = dtos.map { mapDtoToDomain(it) }
+                _messages.value = mapped
+                Result.success(mapped)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Failed to fetch chat messages"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun sendRemoteMessage(
+        text: String,
+        conversationId: String? = null,
+        recipientId: String? = null
+    ): Result<ChatMessage> {
+        return try {
+            val dto = SendMessageDto(
+                messageText = text,
+                conversationId = conversationId,
+                recipientId = recipientId
+            )
+            val response = apiService.sendMessage(dto)
+            if (response.isSuccessful && response.body()?.success == true) {
+                val msg = mapDtoToDomain(response.body()!!.data!!)
+                _messages.value = _messages.value + msg
+                Result.success(msg)
+            } else {
+                // Local fallback
+                sendMessage(text)
+                Result.success(_messages.value.last())
+            }
+        } catch (e: Exception) {
+            sendMessage(text)
+            Result.success(_messages.value.last())
+        }
+    }
+
+    private fun mapDtoToDomain(dto: ChatMessageDto): ChatMessage {
+        return ChatMessage(
+            id = dto.id,
+            senderId = dto.senderId,
+            senderName = dto.senderName,
+            senderInitials = dto.senderInitials,
+            messageText = dto.messageText,
+            timestamp = dto.timestamp,
+            isUser = dto.isUser,
+            attachmentCode = dto.attachmentCode,
+            attachmentTitle = dto.attachmentTitle
+        )
     }
 }

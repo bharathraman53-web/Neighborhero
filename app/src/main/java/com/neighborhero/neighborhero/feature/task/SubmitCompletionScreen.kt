@@ -19,16 +19,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
+import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.ui.components.AppTopBar
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
 fun SubmitCompletionScreen(
+    task: HelpRequest? = null,
     onBackClick: () -> Unit,
-    onSubmitSuccess: () -> Unit
+    onSubmitSuccess: (notes: String) -> Unit
 ) {
-    var notes by remember { mutableStateOf("Cleared all weeds from Sector B, tilled garden beds, and spread organic mulch as requested.") }
+    val taskTitle = task?.title ?: "Community Task Assistance"
+    var notes by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = { AppTopBar(title = "Submit Completion", onBackClick = onBackClick) }
@@ -55,7 +58,7 @@ fun SubmitCompletionScreen(
                         Icon(Icons.Default.TaskAlt, contentDescription = null, tint = Secondary, modifier = Modifier.size(48.dp))
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Almost Done!", style = MaterialTheme.typography.headlineMedium, color = OnSurface, fontWeight = FontWeight.Bold)
-                        Text("You're submitting completion for Community Garden Cleanup & Soil Prep.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
+                        Text("You're submitting completion for $taskTitle.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
                     }
                 }
 
@@ -75,7 +78,7 @@ fun SubmitCompletionScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Eco, contentDescription = null, tint = Secondary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Green Thumb Initiative", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
+                            Text("Neighbor Aid Award", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
                         }
                         Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
                             Text("Earn 150 pts", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = OnSecondaryContainer)
@@ -105,7 +108,7 @@ fun SubmitCompletionScreen(
                     Text("${notes.length}/250", modifier = Modifier.align(Alignment.End), style = MaterialTheme.typography.bodySmall, color = Outline)
                 }
 
-                // Proof Photo Upload Box with Actual Garden Proof Image
+                // Proof Photo Upload Box
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Proof Photo", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
 
@@ -119,7 +122,7 @@ fun SubmitCompletionScreen(
                         Box(modifier = Modifier.fillMaxSize()) {
                             Image(
                                 painter = painterResource(id = R.drawable.img_proof_garden),
-                                contentDescription = "Proof photo of garden",
+                                contentDescription = "Proof photo of task",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
@@ -139,7 +142,7 @@ fun SubmitCompletionScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            PrimaryButton(onClick = onSubmitSuccess) {
+            PrimaryButton(onClick = { onSubmitSuccess(notes) }) {
                 Text("Submit Task Completion", style = MaterialTheme.typography.labelLarge)
             }
         }
@@ -151,6 +154,7 @@ fun SubmitCompletionScreen(
 fun SubmitCompletionScreenPreview() {
     NeighborheroTheme {
         SubmitCompletionScreen(
+            task = null,
             onBackClick = {},
             onSubmitSuccess = {}
         )

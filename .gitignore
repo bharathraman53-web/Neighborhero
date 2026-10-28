@@ -16,4 +16,5 @@ local.properties
 
 .idea/
 **/build/
+backend/neighborhero-api/config/local.database.php
 

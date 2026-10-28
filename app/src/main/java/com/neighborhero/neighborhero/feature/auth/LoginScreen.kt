@@ -26,7 +26,9 @@ import com.neighborhero.neighborhero.ui.theme.*
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    onCreateAccountClick: () -> Unit
+    onCreateAccountClick: () -> Unit,
+    onLoginSubmit: ((email: String, pass: String) -> Unit)? = null,
+    errorMessage: String? = null
 ) {
     var emailOrPhone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -97,7 +99,7 @@ fun LoginScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "14 trusted helpers online in your block",
+                            text = "Trusted community helpers active in your area",
                             style = MaterialTheme.typography.labelSmall,
                             color = OnSurfaceVariant
                         )
@@ -116,7 +118,21 @@ fun LoginScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Email / Phone Field with Borderless Filled Container
+                    if (!errorMessage.isNullOrBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.errorContainer
+                        ) {
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+
+                    // Email / Phone Field
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = "Email or Phone Number",
@@ -144,7 +160,7 @@ fun LoginScreen(
                         )
                     }
 
-                    // Password Field with Borderless Filled Container
+                    // Password Field
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -211,7 +227,13 @@ fun LoginScreen(
 
                     // Primary Log In Button
                     Button(
-                        onClick = onLoginSuccess,
+                        onClick = {
+                            if (onLoginSubmit != null && emailOrPhone.isNotBlank() && password.isNotBlank()) {
+                                onLoginSubmit(emailOrPhone, password)
+                            } else {
+                                onLoginSuccess()
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
