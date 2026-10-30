@@ -94,6 +94,20 @@ class HelpRequestRepository(
         cacheDao?.insertOrUpdate(request)
     }
 
+    fun replaceOrAddRequest(tempId: String?, request: HelpRequest) {
+        val current = _requests.value
+        val filtered = if (!tempId.isNullOrBlank()) {
+            current.filter { it.id != tempId && it.id != request.id }
+        } else {
+            current.filter { it.id != request.id }
+        }
+        _requests.value = listOf(request) + filtered
+        if (!tempId.isNullOrBlank()) {
+            cacheDao?.deleteById(tempId)
+        }
+        cacheDao?.insertOrUpdate(request)
+    }
+
     fun getRequestById(requestId: String): HelpRequest? {
         return _requests.value.find { it.id == requestId } ?: cacheDao?.getById(requestId)
     }
@@ -148,7 +162,8 @@ class HelpRequestRepository(
         category: String,
         description: String,
         time: String,
-        location: String
+        location: String,
+        tempId: String? = null
     ): Result<HelpRequest> {
         _isLoading.value = true
         _errorMessage.value = null
@@ -163,7 +178,7 @@ class HelpRequestRepository(
             val response = apiService.createRequest(dto)
             if (response.isSuccessful && response.body()?.success == true) {
                 val created = mapDtoToDomain(response.body()!!.data!!)
-                addRequest(created)
+                replaceOrAddRequest(tempId, created)
                 Result.success(created)
             } else {
                 val msg = response.body()?.message ?: "Failed to create request"
@@ -213,7 +228,9 @@ class HelpRequestRepository(
             isUrgent = dto.isUrgent,
             status = st,
             assignedHelperId = dto.assignedHelperId,
-            assignedHelperName = dto.assignedHelperName
+            assignedHelperName = dto.assignedHelperName,
+            requesterId = dto.requesterId,
+            requesterPhone = dto.requesterPhone
         )
     }
 }

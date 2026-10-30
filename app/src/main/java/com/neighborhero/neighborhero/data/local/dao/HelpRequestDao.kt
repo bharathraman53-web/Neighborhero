@@ -23,6 +23,7 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
         const val COL_STATUS = "status"
         const val COL_ASSIGNED_HELPER_ID = "assigned_helper_id"
         const val COL_ASSIGNED_HELPER_NAME = "assigned_helper_name"
+        const val COL_REQUESTER_ID = "requester_id"
 
         const val CREATE_TABLE = """
             CREATE TABLE IF NOT EXISTS $TABLE_NAME (
@@ -39,7 +40,8 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
                 $COL_IS_URGENT INTEGER NOT NULL,
                 $COL_STATUS TEXT NOT NULL,
                 $COL_ASSIGNED_HELPER_ID TEXT,
-                $COL_ASSIGNED_HELPER_NAME TEXT
+                $COL_ASSIGNED_HELPER_NAME TEXT,
+                $COL_REQUESTER_ID TEXT
             )
         """
     }
@@ -61,6 +63,7 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
             put(COL_STATUS, request.status.name)
             put(COL_ASSIGNED_HELPER_ID, request.assignedHelperId)
             put(COL_ASSIGNED_HELPER_NAME, request.assignedHelperName)
+            put(COL_REQUESTER_ID, request.requesterId)
         }
         db.insertWithOnConflict(TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
@@ -105,7 +108,8 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
                         isUrgent = c.getInt(c.getColumnIndexOrThrow(COL_IS_URGENT)) == 1,
                         status = status,
                         assignedHelperId = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_ID)),
-                        assignedHelperName = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_NAME))
+                        assignedHelperName = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_NAME)),
+                        requesterId = c.getColumnIndex(COL_REQUESTER_ID).takeIf { it >= 0 }?.let { c.getString(it) }
                     )
                 )
             }
@@ -138,15 +142,20 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
                     isUrgent = c.getInt(c.getColumnIndexOrThrow(COL_IS_URGENT)) == 1,
                     status = status,
                     assignedHelperId = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_ID)),
-                    assignedHelperName = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_NAME))
+                    assignedHelperName = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_NAME)),
+                    requesterId = c.getColumnIndex(COL_REQUESTER_ID).takeIf { it >= 0 }?.let { c.getString(it) }
                 )
             }
         }
         return null
     }
 
+    fun deleteById(id: String): Int {
+        val db = dbHelper()
+        return db.delete(TABLE_NAME, "$COL_ID = ?", arrayOf(id))
+    }
+
     fun clear() {
         dbHelper().delete(TABLE_NAME, null, null)
     }
 }
-

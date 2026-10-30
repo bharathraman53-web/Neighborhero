@@ -1,7 +1,10 @@
 package com.neighborhero.neighborhero.feature.safety
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -19,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,12 +36,19 @@ import com.neighborhero.neighborhero.ui.theme.*
 @Composable
 fun SosAndSafetyScreen(
     onNavigate: (String) -> Unit,
-    onBackClick: (() -> Unit)? = null
+    onBackClick: (() -> Unit)? = null,
+    onTriggerSos: ((address: String) -> Unit)? = null
 ) {
+    val context = LocalContext.current
     var sosActive by remember { mutableStateOf(false) }
 
+    var pingContactName by remember { mutableStateOf<String?>(null) }
+    var reportModalTitle by remember { mutableStateOf<String?>(null) }
+    var reportText by remember { mutableStateOf("") }
+    var feedbackSnackbar by remember { mutableStateOf<String?>(null) }
+
     Scaffold(
-        topBar = { AppTopBar(title = "SOS", onBackClick = onBackClick) },
+        topBar = { AppTopBar(title = "SOS & Community Safety", onBackClick = onBackClick) },
         bottomBar = { BottomNavigationBar(currentRoute = Routes.SOS_AND_SAFETY, onNavigate = onNavigate) }
     ) { innerPadding ->
         Column(
@@ -48,11 +59,28 @@ fun SosAndSafetyScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Emergency SOS Hero Banner
+            // Status banner if feedback available
+            if (!feedbackSnackbar.isNullOrBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = PrimaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = feedbackSnackbar ?: "",
+                        color = OnPrimaryContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+
+            // Big Urgent SOS Callout Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = TertiaryContainer)
+                colors = CardDefaults.cardColors(containerColor = ErrorContainer),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -69,13 +97,21 @@ fun SosAndSafetyScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Text("Immediate Assistance", style = MaterialTheme.typography.headlineMedium, color = OnTertiary, fontWeight = FontWeight.Bold)
-                    Text("Press to silently alert local emergency services and your trusted circle.", style = MaterialTheme.typography.bodyMedium, color = OnTertiaryContainer)
+                    Text("Emergency SOS Dispatch", style = MaterialTheme.typography.headlineLarge, color = OnErrorContainer, fontWeight = FontWeight.Bold)
+                    Text("Instant alert to verified neighborhood wardens & emergency contacts", style = MaterialTheme.typography.bodySmall, color = OnErrorContainer)
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
-                        onClick = { sosActive = !sosActive },
+                        onClick = {
+                            sosActive = !sosActive
+                            if (sosActive) {
+                                onTriggerSos?.invoke("Maplewood District")
+                                feedbackSnackbar = "Emergency SOS signal broadcasted to verified safety circle."
+                            } else {
+                                feedbackSnackbar = "Emergency SOS cancelled."
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -85,7 +121,11 @@ fun SosAndSafetyScreen(
                             contentColor = OnError
                         )
                     ) {
-                        Text(if (sosActive) "SOS SIGNAL ACTIVE - HELP EN ROUTE" else "HOLD FOR EMERGENCY SOS", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            if (sosActive) "SOS SIGNAL ACTIVE - HELP EN ROUTE" else "HOLD FOR EMERGENCY SOS",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -102,7 +142,12 @@ fun SosAndSafetyScreen(
             Text("Quick Reporting", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Card(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            reportModalTitle = "Report Suspicious Activity"
+                            reportText = ""
+                        },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
                 ) {
@@ -110,11 +155,16 @@ fun SosAndSafetyScreen(
                         Icon(Icons.Default.Warning, contentDescription = null, tint = Tertiary)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Suspicious Activity", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                        Text("Report unusual behavior", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                        Text("Tap to report incident", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
                     }
                 }
                 Card(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            reportModalTitle = "Report Hazard / Obstacle"
+                            reportText = ""
+                        },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
                 ) {
@@ -127,9 +177,10 @@ fun SosAndSafetyScreen(
                 }
             }
 
-            // Trusted Safety Circle with Actual Stitch Sarah & Marcus Assets
+            // Trusted Safety Circle with Stitch Sarah & Marcus Assets
             Text("Trusted Safety Circle", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.SemiBold)
 
+            // Sarah Jenkins Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -166,12 +217,22 @@ fun SosAndSafetyScreen(
                     }
 
                     Row {
-                        IconButton(onClick = {}) { Icon(Icons.Default.MyLocation, contentDescription = "Ping", tint = Secondary) }
-                        IconButton(onClick = {}) { Icon(Icons.Default.Call, contentDescription = "Call", tint = Primary) }
+                        IconButton(onClick = { pingContactName = "Sarah Jenkins" }) {
+                            Icon(Icons.Default.MyLocation, contentDescription = "Ping", tint = Secondary)
+                        }
+                        IconButton(onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:5552345678"))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }) {
+                            Icon(Icons.Default.Call, contentDescription = "Call", tint = Primary)
+                        }
                     }
                 }
             }
 
+            // Marcus Vance Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -208,11 +269,82 @@ fun SosAndSafetyScreen(
                     }
 
                     Row {
-                        IconButton(onClick = {}) { Icon(Icons.Default.MyLocation, contentDescription = "Ping", tint = Secondary) }
-                        IconButton(onClick = {}) { Icon(Icons.Default.Call, contentDescription = "Call", tint = Primary) }
+                        IconButton(onClick = { pingContactName = "Marcus Vance" }) {
+                            Icon(Icons.Default.MyLocation, contentDescription = "Ping", tint = Secondary)
+                        }
+                        IconButton(onClick = {
+                            try {
+                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:5558765432"))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }) {
+                            Icon(Icons.Default.Call, contentDescription = "Call", tint = Primary)
+                        }
                     }
                 }
             }
+        }
+
+        // Contact Ping Dialog
+        if (pingContactName != null) {
+            AlertDialog(
+                onDismissRequest = { pingContactName = null },
+                title = { Text("Send Location Ping?") },
+                text = {
+                    Text("A silent location ping with your current neighborhood coordinates (Maplewood District) will be registered for $pingContactName.")
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        onTriggerSos?.invoke("Silent Location Ping to $pingContactName")
+                        feedbackSnackbar = "Location ping successfully sent to $pingContactName."
+                        pingContactName = null
+                    }) {
+                        Text("Send Ping")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pingContactName = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // Incident Reporting Dialog
+        if (reportModalTitle != null) {
+            AlertDialog(
+                onDismissRequest = { reportModalTitle = null },
+                title = { Text(reportModalTitle ?: "Report") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Describe what you observed to notify nearby community wardens:")
+                        OutlinedTextField(
+                            value = reportText,
+                            onValueChange = { reportText = it },
+                            placeholder = { Text("e.g. Broken streetlamp near Elm St, suspicious vehicle...") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val desc = reportText.ifBlank { "Safety incident" }
+                            onTriggerSos?.invoke("$reportModalTitle: $desc")
+                            feedbackSnackbar = "$reportModalTitle submitted to community safety registry."
+                            reportModalTitle = null
+                        }
+                    ) {
+                        Text("Submit Report")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { reportModalTitle = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }

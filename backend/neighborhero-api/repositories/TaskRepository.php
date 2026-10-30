@@ -230,4 +230,44 @@ class TaskRepository {
             throw $e;
         }
     }
+
+    public function getEvidence(string $requestId, string $userId): array {
+        $req = $this->requestRepository->findById($requestId);
+        if (!$req) {
+            throw new \RuntimeException("Request not found", 404);
+        }
+
+        $isRequester = ($req['requester_id'] === $userId);
+        $isHelper = (!empty($req['assigned_helper_id']) && $req['assigned_helper_id'] === $userId);
+
+        if (!$isRequester && !$isHelper) {
+            throw new \RuntimeException("Forbidden: Only task participants can view completion evidence", 403);
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT e.*, u.full_name AS helper_name, u.avatar_url AS helper_avatar
+             FROM task_completion_evidence e
+             JOIN users u ON e.helper_id = u.id
+             WHERE e.request_id = :req_id
+             ORDER BY e.submitted_at DESC
+             LIMIT 1"
+        );
+        $stmt->execute([':req_id' => $requestId]);
+        $evidence = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$evidence) {
+            return [
+                'id' => '',
+                'request_id' => $requestId,
+                'helper_id' => $req['assigned_helper_id'] ?? '',
+                'notes' => '',
+                'proof_photo_url' => null,
+                'submitted_at' => '',
+                'helper_name' => '',
+                'helper_avatar' => '',
+            ];
+        }
+
+        return $evidence;
+    }
 }

@@ -28,12 +28,15 @@ import com.neighborhero.neighborhero.ui.theme.*
 fun ChatScreen(
     messages: List<ChatMessage>,
     onSendMessage: (String) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    recipientName: String? = null,
+    isSending: Boolean = false
 ) {
     var inputText by remember { mutableStateOf("") }
+    val displayTitle = if (!recipientName.isNullOrBlank()) recipientName else "Neighbor Chat"
 
     Scaffold(
-        topBar = { AppTopBar(title = "Neighbor Chat", onBackClick = onBackClick) }
+        topBar = { AppTopBar(title = displayTitle, onBackClick = onBackClick) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -63,8 +66,8 @@ fun ChatScreen(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text("Community Assistance Channel", style = MaterialTheme.typography.labelSmall, color = OnPrimaryContainer)
-                            Text("Direct Neighbor Messaging", style = MaterialTheme.typography.headlineSmall, color = OnPrimary, fontWeight = FontWeight.Bold)
+                            Text("Direct Neighbor Messaging", style = MaterialTheme.typography.labelSmall, color = OnPrimaryContainer)
+                            Text(displayTitle, style = MaterialTheme.typography.headlineSmall, color = OnPrimary, fontWeight = FontWeight.Bold)
                         }
                     }
                     Surface(shape = RoundedCornerShape(12.dp), color = Primary) {
@@ -88,7 +91,7 @@ fun ChatScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("No messages yet", style = MaterialTheme.typography.headlineSmall, color = OnSurface)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Send a message to coordinate with your neighbor.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
+                        Text("Send a message to coordinate privately with your neighbor.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
                     }
                 }
             } else {
@@ -96,7 +99,7 @@ fun ChatScreen(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(messages) { msg ->
+                    items(messages, key = { it.id }) { msg ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start
@@ -152,9 +155,14 @@ fun ChatScreen(
             ) {
                 items(listOf("I'm on my way!", "Got it, thanks!", "Running 5 mins late")) { chipText ->
                     AssistChip(
-                        onClick = { onSendMessage(chipText) },
+                        onClick = {
+                            if (!isSending) {
+                                onSendMessage(chipText)
+                            }
+                        },
                         label = { Text(chipText) },
-                        colors = AssistChipDefaults.assistChipColors(containerColor = SurfaceContainerLow)
+                        colors = AssistChipDefaults.assistChipColors(containerColor = SurfaceContainerLow),
+                        enabled = !isSending
                     )
                 }
             }
@@ -167,7 +175,7 @@ fun ChatScreen(
                 TextField(
                     value = inputText,
                     onValueChange = { inputText = it },
-                    placeholder = { Text("Type a message to your neighbor...") },
+                    placeholder = { Text("Type a private message...") },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(24.dp),
                     colors = TextFieldDefaults.colors(
@@ -182,18 +190,33 @@ fun ChatScreen(
 
                 IconButton(
                     onClick = {
-                        if (inputText.isNotBlank()) {
-                            onSendMessage(inputText)
+                        if (inputText.isNotBlank() && !isSending) {
+                            val textToSend = inputText
                             inputText = ""
+                            onSendMessage(textToSend)
                         }
                     },
+                    enabled = !isSending && inputText.isNotBlank(),
                     modifier = Modifier
                         .size(48.dp)
-                        .background(Primary, CircleShape)
+                        .background(if (!isSending && inputText.isNotBlank()) Primary else Primary.copy(alpha = 0.5f), CircleShape)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = OnPrimary)
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun ChatScreenPreview() {
+    NeighborheroTheme {
+        ChatScreen(
+            messages = emptyList(),
+            onSendMessage = {},
+            onBackClick = {},
+            recipientName = "Sarah Jenkins"
+        )
     }
 }

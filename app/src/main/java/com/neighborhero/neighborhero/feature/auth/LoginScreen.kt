@@ -135,14 +135,14 @@ fun LoginScreen(
                     // Email / Phone Field
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Email or Phone Number",
+                            text = "Email or phone number",
                             style = MaterialTheme.typography.labelMedium,
                             color = OnSurfaceVariant
                         )
                         TextField(
                             value = emailOrPhone,
                             onValueChange = { emailOrPhone = it },
-                            placeholder = { Text("name@example.com or phone") },
+                            placeholder = { Text("Email or phone number") },
                             leadingIcon = {
                                 Icon(Icons.Default.AlternateEmail, contentDescription = null, tint = Outline)
                             },

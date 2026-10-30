@@ -14,7 +14,9 @@ data class HelpRequest(
     val isUrgent: Boolean = false,
     val status: RequestStatus = RequestStatus.OPEN,
     val assignedHelperId: String? = null,
-    val assignedHelperName: String? = null
+    val assignedHelperName: String? = null,
+    val requesterId: String? = null,
+    val requesterPhone: String? = null
 )
 
 enum class RequestStatus {

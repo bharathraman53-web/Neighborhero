@@ -8,6 +8,7 @@ data class ChatMessage(
     val messageText: String,
     val timestamp: String,
     val isUser: Boolean,
+    val conversationId: String? = null,
     val attachmentCode: String? = null,
     val attachmentTitle: String? = null
 )

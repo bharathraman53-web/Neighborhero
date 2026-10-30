@@ -88,6 +88,11 @@ class NotificationRepository(
         } catch (_: Exception) {}
     }
 
+    fun clear() {
+        _notifications.value = emptyList()
+        cacheDao?.clear()
+    }
+
     private fun mapDtoToDomain(dto: NotificationDto): NotificationItem {
         val type = try {
             NotificationType.valueOf(dto.type.uppercase())
@@ -100,7 +105,8 @@ class NotificationRepository(
             message = dto.message,
             timeAgo = dto.timeAgo,
             type = type,
-            isRead = dto.isRead
+            isRead = dto.isRead,
+            relatedRequestId = dto.relatedRequestId
         )
     }
 }

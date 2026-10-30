@@ -6,7 +6,8 @@ data class NotificationItem(
     val message: String,
     val timeAgo: String,
     val type: NotificationType,
-    val isRead: Boolean = false
+    val isRead: Boolean = false,
+    val relatedRequestId: String? = null
 )
 
 enum class NotificationType {

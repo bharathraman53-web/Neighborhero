@@ -34,6 +34,21 @@ class Validator {
         return $this;
     }
 
+    public function phone10(string $field, string $label = ''): self {
+        $label = $label ?: ucfirst(str_replace('_', ' ', $field));
+        if (!isset($this->data[$field]) || trim((string)$this->data[$field]) === '') {
+            $this->errors[$field][] = "{$label} is required.";
+            return $this;
+        }
+
+        $val = trim((string)$this->data[$field]);
+        // Strictly 10 digits only: reject fewer, more, letters, symbols, spaces, or pasted junk
+        if (!preg_match('/^\d{10}$/', $val)) {
+            $this->errors[$field][] = "{$label} must be exactly 10 digits.";
+        }
+        return $this;
+    }
+
     public function minLength(string $field, int $min, string $label = ''): self {
         $label = $label ?: ucfirst(str_replace('_', ' ', $field));
         if (isset($this->data[$field]) && mb_strlen(trim((string)$this->data[$field])) < $min) {

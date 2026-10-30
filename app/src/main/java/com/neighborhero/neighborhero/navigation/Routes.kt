@@ -1,5 +1,7 @@
 package com.neighborhero.neighborhero.navigation
 
+import java.net.URLEncoder
+
 object Routes {
     const val WELCOME = "welcome"
     const val COMMUNITY_ONBOARDING = "community_onboarding"
@@ -15,6 +17,7 @@ object Routes {
     const val HELPER_PROFILE = "helper_profile"
     const val HELPER_PROFILE_PARAM = "helper_profile/{helperId}"
     const val CHAT = "chat"
+    const val CHAT_PARAM = "chat?conversationId={conversationId}&recipientId={recipientId}&recipientName={recipientName}"
     const val ACTIVE_TASK = "active_task"
     const val ACTIVE_TASK_PARAM = "active_task/{taskId}"
     const val CONFIRM_TASK_START = "confirm_task_start"
@@ -39,4 +42,19 @@ object Routes {
     fun activeTask(taskId: String) = "active_task/$taskId"
     fun submitCompletion(taskId: String) = "submit_completion/$taskId"
     fun verifyTaskCompletion(taskId: String) = "verify_task_completion/$taskId"
+
+    fun chat(
+        conversationId: String? = null,
+        recipientId: String? = null,
+        recipientName: String? = null
+    ): String {
+        val params = mutableListOf<String>()
+        if (!conversationId.isNullOrBlank()) params.add("conversationId=$conversationId")
+        if (!recipientId.isNullOrBlank()) params.add("recipientId=$recipientId")
+        if (!recipientName.isNullOrBlank()) {
+            val encoded = try { URLEncoder.encode(recipientName, "UTF-8") } catch (_: Exception) { recipientName }
+            params.add("recipientName=$encoded")
+        }
+        return if (params.isEmpty()) CHAT else "$CHAT?${params.joinToString("&")}"
+    }
 }

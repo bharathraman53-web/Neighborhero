@@ -75,9 +75,13 @@ class AuthViewModel(
         }
     }
 
-    fun logout() {
-        userRepository.logout()
-        _isLoggedIn.value = false
+    fun logout(onComplete: ((serverRevoked: Boolean) -> Unit)? = null) {
+        viewModelScope.launch {
+            val serverRevoked = userRepository.logout()
+            RepositoryProvider.clearUserSession()
+            _isLoggedIn.value = false
+            onComplete?.invoke(serverRevoked)
+        }
     }
 
     fun clearError() {

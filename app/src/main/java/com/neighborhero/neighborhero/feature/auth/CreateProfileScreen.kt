@@ -1,8 +1,14 @@
 package com.neighborhero.neighborhero.feature.auth
 
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -19,7 +25,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -30,12 +38,48 @@ import com.neighborhero.neighborhero.ui.theme.*
 @Composable
 fun CreateProfileScreen(
     initialName: String = "",
-    onProfileCompleted: (name: String, neighborhood: String, bio: String) -> Unit = { _, _, _ -> }
+    onProfileCompleted: (name: String, neighborhood: String, bio: String) -> Unit = { _, _, _ -> },
+    onProfileCompletedWithPhoto: ((name: String, neighborhood: String, bio: String, photoBytes: ByteArray?, mime: String, filename: String) -> Unit)? = null
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf(initialName) }
     var neighborhood by remember { mutableStateOf("") }
     var bio by remember { mutableStateOf("") }
     val selectedSkills = remember { mutableStateListOf<String>() }
+
+    var selectedPhotoBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var selectedPhotoMime by remember { mutableStateOf("image/jpeg") }
+    var selectedPhotoName by remember { mutableStateOf("avatar.jpg") }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                selectedPhotoMime = mime
+                selectedPhotoName = when {
+                    mime.contains("png", ignoreCase = true) -> "avatar.png"
+                    mime.contains("webp", ignoreCase = true) -> "avatar.webp"
+                    else -> "avatar.jpg"
+                }
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes != null && bytes.isNotEmpty()) {
+                    selectedPhotoBytes = bytes
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    val previewBitmap = remember(selectedPhotoBytes) {
+        selectedPhotoBytes?.let {
+            try {
+                BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
 
     val allSkills = listOf("Groceries", "Repairs", "Pet Care", "Tutoring", "Moving", "Yardwork")
 
@@ -75,7 +119,13 @@ fun CreateProfileScreen(
 
             // Profile Photo Upload Card with Actual Stitch Asset
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -93,12 +143,21 @@ fun CreateProfileScreen(
                                 .background(SurfaceContainerHigh),
                             contentAlignment = Alignment.Center
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.img_create_profile_user),
-                                contentDescription = "Profile photo",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                            if (previewBitmap != null) {
+                                Image(
+                                    bitmap = previewBitmap,
+                                    contentDescription = "Selected profile photo",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_create_profile_user),
+                                    contentDescription = "Profile photo",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         }
 
                         Box(
@@ -183,7 +242,11 @@ fun CreateProfileScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 PrimaryButton(onClick = {
-                    onProfileCompleted(name, neighborhood, bio)
+                    if (onProfileCompletedWithPhoto != null) {
+                        onProfileCompletedWithPhoto(name, neighborhood, bio, selectedPhotoBytes, selectedPhotoMime, selectedPhotoName)
+                    } else {
+                        onProfileCompleted(name, neighborhood, bio)
+                    }
                 }) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))

@@ -15,7 +15,7 @@ class AppDatabaseHelper private constructor(context: Context) : SQLiteOpenHelper
 ) {
     companion object {
         const val DATABASE_NAME = "neighborhero_cache.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
 
         @Volatile
         private var instance: AppDatabaseHelper? = null

@@ -18,14 +18,32 @@ class ChatController {
         $this->chatRepository = new ChatRepository($pdo);
     }
 
+    public function getConversations(): void {
+        $user = AuthMiddleware::authenticate(true);
+        $convs = $this->chatRepository->getUserConversations($user['id']);
+        Response::success($convs);
+    }
+
     public function getMessages(): void {
         $user = AuthMiddleware::authenticate(true);
-        $convId = $_GET['conversation_id'] ?? null;
-        $sinceId = $_GET['since_id'] ?? null;
+        $convId = isset($_GET['conversation_id']) && trim((string)$_GET['conversation_id']) !== ''
+            ? trim((string)$_GET['conversation_id'])
+            : null;
+        $recipientId = isset($_GET['recipient_id']) && trim((string)$_GET['recipient_id']) !== ''
+            ? trim((string)$_GET['recipient_id'])
+            : null;
+        $sinceId = isset($_GET['since_id']) && trim((string)$_GET['since_id']) !== ''
+            ? trim((string)$_GET['since_id'])
+            : null;
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
 
-        $messages = $this->chatRepository->getMessages($user['id'], $convId, $sinceId, $limit);
-        Response::success($messages);
+        try {
+            $messages = $this->chatRepository->getMessages($user['id'], $convId, $recipientId, $sinceId, $limit);
+            Response::success($messages);
+        } catch (Throwable $e) {
+            $code = ($e->getCode() >= 400 && $e->getCode() <= 499) ? (int)$e->getCode() : 400;
+            Response::error($e->getMessage(), $code);
+        }
     }
 
     public function sendMessage(): void {
@@ -43,15 +61,16 @@ class ChatController {
             $msg = $this->chatRepository->sendMessage(
                 $user['id'],
                 (string)$input['message_text'],
-                $input['conversation_id'] ?? null,
-                $input['recipient_id'] ?? null,
-                $input['attachment_code'] ?? null,
-                $input['attachment_title'] ?? null
+                !empty($input['conversation_id']) ? (string)$input['conversation_id'] : null,
+                !empty($input['recipient_id']) ? (string)$input['recipient_id'] : null,
+                !empty($input['client_message_id']) ? (string)$input['client_message_id'] : null,
+                !empty($input['attachment_code']) ? (string)$input['attachment_code'] : null,
+                !empty($input['attachment_title']) ? (string)$input['attachment_title'] : null
             );
             Response::success($msg, 'Message sent', 201);
         } catch (Throwable $e) {
-            Response::error($e->getMessage(), $e->getCode() >= 400 && $e->getCode() <= 499 ? (int)$e->getCode() : 400);
+            $code = ($e->getCode() >= 400 && $e->getCode() <= 499) ? (int)$e->getCode() : 400;
+            Response::error($e->getMessage(), $code);
         }
     }
 }
-

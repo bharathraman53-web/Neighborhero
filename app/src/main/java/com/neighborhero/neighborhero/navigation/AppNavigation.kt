@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -13,6 +14,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.neighborhero.neighborhero.data.model.RequestStatus
+import com.neighborhero.neighborhero.data.network.NetworkClient
+import com.neighborhero.neighborhero.data.network.dto.TriggerSosDto
+import kotlinx.coroutines.launch
 import com.neighborhero.neighborhero.feature.auth.CommunityOnboardingScreen
 import com.neighborhero.neighborhero.feature.auth.CreateAccountScreen
 import com.neighborhero.neighborhero.feature.auth.CreateProfileScreen
@@ -70,6 +74,7 @@ fun AppNavigation(
     val helpers by helperViewModel.helpers.collectAsState()
     val chatMessages by chatViewModel.messages.collectAsState()
     val notifications by homeViewModel.notifications.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     NavHost(
         navController = navController,
@@ -162,6 +167,18 @@ fun AppNavigation(
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.WELCOME) { inclusive = true }
                     }
+                },
+                onProfileCompletedWithPhoto = { name, neighborhood, bio, photoBytes, mime, filename ->
+                    if (photoBytes != null && photoBytes.isNotEmpty()) {
+                        homeViewModel.uploadProfilePhoto(photoBytes, mime, filename) { _, _ ->
+                            homeViewModel.updateUserProfile(name, neighborhood, bio)
+                        }
+                    } else {
+                        homeViewModel.updateUserProfile(name, neighborhood, bio)
+                    }
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.WELCOME) { inclusive = true }
+                    }
                 }
             )
         }
@@ -208,10 +225,36 @@ fun AppNavigation(
                     request = req,
                     onBackClick = { navController.popBackStack() },
                     onAcceptClick = {
-                        requestViewModel.acceptRequest(req.id, currentUser.fullName)
-                        navController.navigate(Routes.confirmTaskStart(req.id))
+                        when (req.status) {
+                            RequestStatus.OPEN -> {
+                                requestViewModel.acceptRequest(req.id, currentUser.fullName)
+                                navController.navigate(Routes.confirmTaskStart(req.id))
+                            }
+                            RequestStatus.IN_PROGRESS -> {
+                                navController.navigate(Routes.activeTask(req.id))
+                            }
+                            RequestStatus.PENDING_VERIFICATION -> {
+                                navController.navigate(Routes.verifyTaskCompletion(req.id))
+                            }
+                            else -> {
+                                navController.navigate(Routes.activeTask(req.id))
+                            }
+                        }
                     },
-                    onChatClick = { navController.navigate(Routes.CHAT) }
+                    onChatClick = {
+                        val isUserRequester = (currentUser.id.isNotBlank() && currentUser.id == req.requesterId) ||
+                                (currentUser.fullName.isNotBlank() && currentUser.fullName == req.requesterName)
+                        val targetRecipientId = if (isUserRequester) req.assignedHelperId else (req.requesterId ?: req.requesterName)
+                        val targetRecipientName = if (isUserRequester) (req.assignedHelperName ?: "Assigned Helper") else req.requesterName
+                        if (!targetRecipientId.isNullOrBlank()) {
+                            navController.navigate(
+                                Routes.chat(
+                                    recipientId = targetRecipientId,
+                                    recipientName = targetRecipientName
+                                )
+                            )
+                        }
+                    }
                 )
             }
         }
@@ -223,10 +266,36 @@ fun AppNavigation(
                     request = req,
                     onBackClick = { navController.popBackStack() },
                     onAcceptClick = {
-                        requestViewModel.acceptRequest(req.id, currentUser.fullName)
-                        navController.navigate(Routes.confirmTaskStart(req.id))
+                        when (req.status) {
+                            RequestStatus.OPEN -> {
+                                requestViewModel.acceptRequest(req.id, currentUser.fullName)
+                                navController.navigate(Routes.confirmTaskStart(req.id))
+                            }
+                            RequestStatus.IN_PROGRESS -> {
+                                navController.navigate(Routes.activeTask(req.id))
+                            }
+                            RequestStatus.PENDING_VERIFICATION -> {
+                                navController.navigate(Routes.verifyTaskCompletion(req.id))
+                            }
+                            else -> {
+                                navController.navigate(Routes.activeTask(req.id))
+                            }
+                        }
                     },
-                    onChatClick = { navController.navigate(Routes.CHAT) }
+                    onChatClick = {
+                        val isUserRequester = (currentUser.id.isNotBlank() && currentUser.id == req.requesterId) ||
+                                (currentUser.fullName.isNotBlank() && currentUser.fullName == req.requesterName)
+                        val targetRecipientId = if (isUserRequester) req.assignedHelperId else (req.requesterId ?: req.requesterName)
+                        val targetRecipientName = if (isUserRequester) (req.assignedHelperName ?: "Assigned Helper") else req.requesterName
+                        if (!targetRecipientId.isNullOrBlank()) {
+                            navController.navigate(
+                                Routes.chat(
+                                    recipientId = targetRecipientId,
+                                    recipientName = targetRecipientName
+                                )
+                            )
+                        }
+                    }
                 )
             }
         }
@@ -264,8 +333,16 @@ fun AppNavigation(
                 HelperProfileScreen(
                     helper = helper,
                     onBackClick = { navController.popBackStack() },
-                    onRequestHelperClick = { navController.navigate(Routes.CHAT) },
-                    onChatClick = { navController.navigate(Routes.CHAT) }
+                    onRequestHelperClick = {
+                        navController.navigate(
+                            Routes.chat(recipientId = helper.id, recipientName = helper.name)
+                        )
+                    },
+                    onChatClick = {
+                        navController.navigate(
+                            Routes.chat(recipientId = helper.id, recipientName = helper.name)
+                        )
+                    }
                 )
             }
         }
@@ -276,18 +353,82 @@ fun AppNavigation(
                 HelperProfileScreen(
                     helper = helper,
                     onBackClick = { navController.popBackStack() },
-                    onRequestHelperClick = { navController.navigate(Routes.CHAT) },
-                    onChatClick = { navController.navigate(Routes.CHAT) }
+                    onRequestHelperClick = {
+                        navController.navigate(
+                            Routes.chat(recipientId = helper.id, recipientName = helper.name)
+                        )
+                    },
+                    onChatClick = {
+                        navController.navigate(
+                            Routes.chat(recipientId = helper.id, recipientName = helper.name)
+                        )
+                    }
                 )
             }
         }
 
         // 12. Chat
-        composable(Routes.CHAT) {
+        composable(
+            route = Routes.CHAT_PARAM,
+            arguments = listOf(
+                navArgument("conversationId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("recipientId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("recipientName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val convId = backStackEntry.arguments?.getString("conversationId")
+            val recId = backStackEntry.arguments?.getString("recipientId")
+            val rawName = backStackEntry.arguments?.getString("recipientName")
+            val recName = if (!rawName.isNullOrBlank()) {
+                try { java.net.URLDecoder.decode(rawName, "UTF-8") } catch (_: Exception) { rawName }
+            } else null
+
+            val chatMsgs by chatViewModel.messages.collectAsState()
+            val isSendingMsg by chatViewModel.isSending.collectAsState()
+            val activeName by chatViewModel.recipientName.collectAsState()
+
+            LaunchedEffect(convId, recId) {
+                chatViewModel.openConversation(convId, recId, recName)
+            }
+
             ChatScreen(
-                messages = chatMessages,
+                messages = chatMsgs,
+                onSendMessage = { text -> chatViewModel.sendMessage(text, convId, recId) },
+                onBackClick = {
+                    chatViewModel.stopPolling()
+                    navController.popBackStack()
+                },
+                recipientName = recName ?: activeName,
+                isSending = isSendingMsg
+            )
+        }
+
+        composable(Routes.CHAT) {
+            val chatMsgs by chatViewModel.messages.collectAsState()
+            val isSendingMsg by chatViewModel.isSending.collectAsState()
+            val activeName by chatViewModel.recipientName.collectAsState()
+
+            ChatScreen(
+                messages = chatMsgs,
                 onSendMessage = { text -> chatViewModel.sendMessage(text) },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = {
+                    chatViewModel.stopPolling()
+                    navController.popBackStack()
+                },
+                recipientName = activeName,
+                isSending = isSendingMsg
             )
         }
 
@@ -301,7 +442,14 @@ fun AppNavigation(
             ActiveTaskScreen(
                 task = task,
                 onBackClick = { navController.popBackStack() },
-                onChatClick = { navController.navigate(Routes.CHAT) },
+                onChatClick = {
+                    navController.navigate(
+                        Routes.chat(
+                            recipientId = task?.assignedHelperId,
+                            recipientName = task?.assignedHelperName ?: "Task Partner"
+                        )
+                    )
+                },
                 onSubmitCompletionClick = {
                     navController.navigate(Routes.submitCompletion(task?.id ?: taskId ?: ""))
                 }
@@ -313,7 +461,14 @@ fun AppNavigation(
             ActiveTaskScreen(
                 task = task,
                 onBackClick = { navController.popBackStack() },
-                onChatClick = { navController.navigate(Routes.CHAT) },
+                onChatClick = {
+                    navController.navigate(
+                        Routes.chat(
+                            recipientId = task?.assignedHelperId,
+                            recipientName = task?.assignedHelperName ?: "Task Partner"
+                        )
+                    )
+                },
                 onSubmitCompletionClick = {
                     navController.navigate(Routes.submitCompletion(task?.id ?: ""))
                 }
@@ -362,6 +517,20 @@ fun AppNavigation(
                 onSubmitSuccess = { notes ->
                     taskViewModel.submitCompletion(taskId, notes)
                     navController.navigate(Routes.verifyTaskCompletion(taskId ?: ""))
+                },
+                onSubmitSuccessWithPhoto = { notes, photoBytes, mime, filename, onDone ->
+                    taskViewModel.submitCompletionWithPhoto(
+                        taskId = taskId,
+                        notes = notes,
+                        photoBytes = photoBytes,
+                        mimeType = mime,
+                        fileName = filename
+                    ) { success, err ->
+                        onDone(success, err)
+                        if (success) {
+                            navController.navigate(Routes.verifyTaskCompletion(taskId ?: ""))
+                        }
+                    }
                 }
             )
         }
@@ -374,6 +543,20 @@ fun AppNavigation(
                 onSubmitSuccess = { notes ->
                     taskViewModel.submitCompletion(task?.id, notes)
                     navController.navigate(Routes.verifyTaskCompletion(task?.id ?: ""))
+                },
+                onSubmitSuccessWithPhoto = { notes, photoBytes, mime, filename, onDone ->
+                    taskViewModel.submitCompletionWithPhoto(
+                        taskId = task?.id,
+                        notes = notes,
+                        photoBytes = photoBytes,
+                        mimeType = mime,
+                        fileName = filename
+                    ) { success, err ->
+                        onDone(success, err)
+                        if (success) {
+                            navController.navigate(Routes.verifyTaskCompletion(task?.id ?: ""))
+                        }
+                    }
                 }
             )
         }
@@ -385,8 +568,15 @@ fun AppNavigation(
         ) { backStackEntry ->
             val taskId = backStackEntry.arguments?.getString("taskId")
             val task = requestViewModel.getRequest(taskId)
+            val evidence by taskViewModel.currentEvidence.collectAsState()
+            LaunchedEffect(taskId) {
+                if (!taskId.isNullOrBlank()) {
+                    taskViewModel.fetchEvidence(taskId)
+                }
+            }
             VerifyTaskCompletionScreen(
                 task = task,
+                evidence = evidence,
                 onBackClick = { navController.popBackStack() },
                 onVerified = { rating, reviewText ->
                     taskViewModel.verifyCompletion(taskId, rating, reviewText)
@@ -399,8 +589,15 @@ fun AppNavigation(
 
         composable(Routes.VERIFY_TASK_COMPLETION) {
             val task = requests.firstOrNull()
+            val evidence by taskViewModel.currentEvidence.collectAsState()
+            LaunchedEffect(task?.id) {
+                if (!task?.id.isNullOrBlank()) {
+                    taskViewModel.fetchEvidence(task!!.id)
+                }
+            }
             VerifyTaskCompletionScreen(
                 task = task,
+                evidence = evidence,
                 onBackClick = { navController.popBackStack() },
                 onVerified = { rating, reviewText ->
                     taskViewModel.verifyCompletion(task?.id, rating, reviewText)
@@ -415,7 +612,21 @@ fun AppNavigation(
         composable(Routes.SOS_AND_SAFETY) {
             SosAndSafetyScreen(
                 onNavigate = { route -> navigateTopLevel(navController, route) },
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onTriggerSos = { address ->
+                    coroutineScope.launch {
+                        try {
+                            NetworkClient.getService().triggerSos(
+                                TriggerSosDto(
+                                    address = address.ifBlank { currentUser.neighborhood.ifBlank { "Maplewood District" } },
+                                    alertType = "EMERGENCY_SOS"
+                                )
+                            )
+                        } catch (_: Exception) {
+                            // Safe fallback
+                        }
+                    }
+                }
             )
         }
 
@@ -460,13 +671,22 @@ fun AppNavigation(
                 onTaskHistoryClick = { navController.navigate(Routes.TASK_HISTORY) },
                 onLeaderboardClick = { navController.navigate(Routes.HELPER_LEADERBOARD) },
                 onSettingsClick = { navController.navigate(Routes.SETTINGS_AND_PRIVACY) },
+                onLogoutClick = {
+                    authViewModel.logout {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                },
                 onNavigate = { route -> navigateTopLevel(navController, route) }
             )
         }
 
         // 21. My Requests
         composable(Routes.MY_REQUESTS) {
-            val myRequests = requests.filter { it.requesterName == currentUser.fullName }
+            val myRequests = requests.filter { 
+                (it.requesterId != null && it.requesterId == currentUser.id) || it.requesterName == currentUser.fullName 
+            }
             MyRequestsScreen(
                 requests = myRequests,
                 onRequestClick = { req -> navController.navigate(Routes.helpRequestDetails(req.id)) },
@@ -492,14 +712,36 @@ fun AppNavigation(
                 onSaveSuccess = { name, neighborhood, bio ->
                     homeViewModel.updateUserProfile(name, neighborhood, bio)
                     navController.popBackStack()
+                },
+                onSaveSuccessWithPhone = { name, neighborhood, bio, phone ->
+                    homeViewModel.updateUserProfile(name, neighborhood, bio, phone = phone)
+                    navController.popBackStack()
+                },
+                onSaveWithPhoto = { name, neighborhood, bio, phone, photoBytes, mime, filename, onDone ->
+                    if (photoBytes != null && photoBytes.isNotEmpty()) {
+                        homeViewModel.uploadProfilePhoto(photoBytes, mime, filename) { success, errMsg ->
+                            if (success) {
+                                homeViewModel.updateUserProfile(name, neighborhood, bio, phone = phone)
+                                onDone(true, null)
+                                navController.popBackStack()
+                            } else {
+                                onDone(false, errMsg)
+                            }
+                        }
+                    } else {
+                        homeViewModel.updateUserProfile(name, neighborhood, bio, phone = phone)
+                        onDone(true, null)
+                        navController.popBackStack()
+                    }
                 }
             )
         }
 
         // 24. Helper Leaderboard
         composable(Routes.HELPER_LEADERBOARD) {
+            val leaderboard by helperViewModel.leaderboard.collectAsState()
             HelperLeaderboardScreen(
-                helpers = helpers,
+                helpers = if (leaderboard.isNotEmpty()) leaderboard else helpers,
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -507,7 +749,14 @@ fun AppNavigation(
         // 25. Settings and Privacy
         composable(Routes.SETTINGS_AND_PRIVACY) {
             SettingsAndPrivacyScreen(
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onLogoutClick = {
+                    authViewModel.logout {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                }
             )
         }
     }

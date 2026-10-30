@@ -80,5 +80,100 @@ class TaskController {
             Response::error($e->getMessage(), $e->getCode() >= 400 && $e->getCode() <= 499 ? (int)$e->getCode() : 400);
         }
     }
+
+    public function uploadEvidencePhoto(string $requestId): void {
+        $user = AuthMiddleware::authenticate(true);
+
+        if (empty($_FILES['photo']) || !isset($_FILES['photo']['error'])) {
+            Response::error('No evidence photo file uploaded.', 400);
+        }
+
+        $file = $_FILES['photo'];
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            Response::error('File upload failed with error code: ' . $file['error'], 400);
+        }
+
+        $maxBytes = 5 * 1024 * 1024; // 5 MB
+        if ($file['size'] > $maxBytes) {
+            Response::error('File size exceeds the 5 MB limit.', 422);
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+
+        $allowedMimes = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+        ];
+
+        if (!isset($allowedMimes[$mime])) {
+            Response::error('Invalid file type. Supported formats: JPEG, PNG, WebP.', 422);
+        }
+
+        $imageInfo = @getimagesize($file['tmp_name']);
+        if ($imageInfo === false) {
+            Response::error('Invalid or corrupt image file.', 422);
+        }
+
+        $extension = $allowedMimes[$mime];
+        $safeName = 'evidence_' . bin2hex(random_bytes(16)) . '.' . $extension;
+
+        $targetDir = realpath(__DIR__ . '/../public/uploads/evidence');
+        if (!$targetDir) {
+            $targetDir = __DIR__ . '/../public/uploads/evidence';
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+        }
+
+        $targetPath = $targetDir . DIRECTORY_SEPARATOR . $safeName;
+
+        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            Response::error('Failed to save uploaded image.', 500);
+        }
+
+        $photoUrl = 'uploads/evidence/' . $safeName;
+        Response::success(['photo_url' => $photoUrl], 'Evidence photo uploaded successfully');
+    }
+
+    public function getEvidence(string $requestId): void {
+        $user = AuthMiddleware::authenticate(true);
+        try {
+            $evidence = $this->taskRepository->getEvidence($requestId, $user['id']);
+            Response::success($evidence);
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), $e->getCode() >= 400 && $e->getCode() <= 499 ? (int)$e->getCode() : 400);
+        }
+    }
+
+    public function streamEvidencePhoto(string $requestId): void {
+        $user = AuthMiddleware::authenticate(true);
+        try {
+            $evidence = $this->taskRepository->getEvidence($requestId, $user['id']);
+            if (empty($evidence['proof_photo_url'])) {
+                Response::error('No evidence photo submitted for this task.', 404);
+            }
+
+            $rawPath = $evidence['proof_photo_url'];
+            $filename = basename($rawPath);
+            $filePath = __DIR__ . '/../public/uploads/evidence/' . $filename;
+
+            if (!file_exists($filePath)) {
+                Response::error('Evidence photo file not found on server.', 404);
+            }
+
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($filePath) ?: 'image/jpeg';
+
+            header('Content-Type: ' . $mime);
+            header('Content-Length: ' . filesize($filePath));
+            header('Cache-Control: private, max-age=86400');
+            readfile($filePath);
+            exit;
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), $e->getCode() >= 400 && $e->getCode() <= 499 ? (int)$e->getCode() : 403);
+        }
+    }
 }
 

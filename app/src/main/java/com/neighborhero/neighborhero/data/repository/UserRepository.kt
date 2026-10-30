@@ -11,6 +11,9 @@ import com.neighborhero.neighborhero.data.network.dto.UserDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class UserRepository(
     private val apiService: NeighborHeroApiService = NetworkClient.getService(),
@@ -55,12 +58,13 @@ class UserRepository(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    fun updateUserProfile(name: String, neighborhood: String, bio: String, skills: List<String>) {
+    fun updateUserProfile(name: String, neighborhood: String, bio: String, skills: List<String>, phone: String? = null) {
         val updated = _currentUser.value.copy(
             fullName = name,
             neighborhood = neighborhood,
             bio = bio,
-            skills = skills
+            skills = skills,
+            phone = phone ?: _currentUser.value.phone
         )
         _currentUser.value = updated
     }
@@ -85,13 +89,31 @@ class UserRepository(
                 _currentUser.value = user
                 Result.success(user)
             } else {
-                val msg = response.body()?.message ?: "Login failed (HTTP ${response.code()})"
+                val msg = if (response.code() == 401) {
+                    "Incorrect email or phone number, or password. Please try again."
+                } else if (response.code() in 500..599) {
+                    "Server error occurred. Please try again later."
+                } else {
+                    val rawError = try { response.errorBody()?.string() } catch (_: Exception) { null }
+                    if (rawError != null && rawError.contains("Incorrect email or phone number")) {
+                        "Incorrect email or phone number, or password. Please try again."
+                    } else {
+                        response.body()?.message ?: "Unable to sign in. Please verify your credentials and try again."
+                    }
+                }
                 _errorMessage.value = msg
                 Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
-            _errorMessage.value = e.message ?: "Network error"
-            Result.failure(e)
+            val userFriendlyMsg = when (e) {
+                is java.net.ConnectException,
+                is java.net.SocketTimeoutException,
+                is java.net.UnknownHostException ->
+                    "Unable to connect to the server. Please check your network connection and try again."
+                else -> e.message ?: "An unexpected error occurred. Please try again."
+            }
+            _errorMessage.value = userFriendlyMsg
+            Result.failure(Exception(userFriendlyMsg, e))
         } finally {
             _isLoading.value = false
         }
@@ -147,26 +169,71 @@ class UserRepository(
         }
     }
 
-    suspend fun updateRemoteProfile(name: String, neighborhood: String, bio: String): Result<User> {
+    suspend fun updateRemoteProfile(name: String, neighborhood: String, bio: String, phone: String? = null): Result<User> {
         return try {
             val response = apiService.updateProfile(
-                UpdateProfileRequest(fullName = name, neighborhood = neighborhood, bio = bio)
+                UpdateProfileRequest(fullName = name, neighborhood = neighborhood, bio = bio, phone = phone)
             )
             if (response.isSuccessful && response.body()?.success == true) {
                 val user = mapUserDtoToDomain(response.body()!!.data!!)
                 _currentUser.value = user
                 Result.success(user)
             } else {
-                updateUserProfile(name, neighborhood, bio, _currentUser.value.skills)
+                updateUserProfile(name, neighborhood, bio, _currentUser.value.skills, phone)
                 Result.success(_currentUser.value)
             }
         } catch (e: Exception) {
-            updateUserProfile(name, neighborhood, bio, _currentUser.value.skills)
+            updateUserProfile(name, neighborhood, bio, _currentUser.value.skills, phone)
             Result.success(_currentUser.value)
         }
     }
 
-    fun logout() {
+    suspend fun uploadProfilePhoto(
+        bytes: ByteArray,
+        mimeType: String = "image/jpeg",
+        fileName: String = "avatar.jpg"
+    ): Result<User> {
+        _isLoading.value = true
+        _errorMessage.value = null
+        return try {
+            val mediaType = mimeType.toMediaTypeOrNull()
+            val requestBody = bytes.toRequestBody(mediaType)
+            val part = MultipartBody.Part.createFormData("photo", fileName, requestBody)
+            val response = apiService.uploadProfilePhoto(part)
+            if (response.isSuccessful && response.body()?.success == true) {
+                val user = mapUserDtoToDomain(response.body()!!.data!!)
+                _currentUser.value = user
+                Result.success(user)
+            } else {
+                val errorMsg = response.body()?.message ?: "Failed to upload profile photo (HTTP ${response.code()})"
+                _errorMessage.value = errorMsg
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            val msg = e.message ?: "Failed to upload profile photo"
+            _errorMessage.value = msg
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    suspend fun logout(): Boolean {
+        var serverRevoked = false
+        try {
+            val response = apiService.logout()
+            if (response.isSuccessful && response.body()?.success == true) {
+                serverRevoked = true
+            }
+        } catch (_: Exception) {
+            // Server unavailable; local session will still be purged safely
+        } finally {
+            clearLocalUserSession()
+        }
+        return serverRevoked
+    }
+
+    fun clearLocalUserSession() {
         sessionManager.clearSession()
         _currentUser.value = User(
             id = "",

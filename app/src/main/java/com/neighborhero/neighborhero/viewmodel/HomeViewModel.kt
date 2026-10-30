@@ -70,15 +70,32 @@ class HomeViewModel(
         }
     }
 
-    fun updateUserProfile(name: String, neighborhood: String, bio: String, skills: List<String> = emptyList()) {
+    fun updateUserProfile(name: String, neighborhood: String, bio: String, skills: List<String> = emptyList(), phone: String? = null) {
         userRepository.updateUserProfile(
             name = name,
             neighborhood = neighborhood,
             bio = bio,
-            skills = if (skills.isEmpty()) currentUser.value.skills else skills
+            skills = if (skills.isEmpty()) currentUser.value.skills else skills,
+            phone = phone
         )
         viewModelScope.launch {
-            userRepository.updateRemoteProfile(name, neighborhood, bio)
+            userRepository.updateRemoteProfile(name, neighborhood, bio, phone)
+        }
+    }
+
+    fun uploadProfilePhoto(
+        bytes: ByteArray,
+        mimeType: String = "image/jpeg",
+        fileName: String = "avatar.jpg",
+        onComplete: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        viewModelScope.launch {
+            val result = userRepository.uploadProfilePhoto(bytes, mimeType, fileName)
+            if (result.isSuccess) {
+                onComplete(true, null)
+            } else {
+                onComplete(false, result.exceptionOrNull()?.message ?: "Upload failed")
+            }
         }
     }
 

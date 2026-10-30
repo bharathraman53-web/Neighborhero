@@ -58,4 +58,10 @@ object RepositoryProvider {
             seedForTests = false
         )
     }
+
+    fun clearUserSession() {
+        userRepository.clearLocalUserSession()
+        notificationRepository.clear()
+        chatRepository.clear()
+    }
 }

@@ -24,13 +24,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.HelpRequest
+import com.neighborhero.neighborhero.data.network.dto.TaskEvidenceDto
 import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.NetworkImage
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
 fun VerifyTaskCompletionScreen(
     task: HelpRequest? = null,
+    evidence: TaskEvidenceDto? = null,
     onBackClick: () -> Unit,
     onVerified: (rating: Int, feedback: String) -> Unit
 ) {
@@ -95,36 +98,68 @@ fun VerifyTaskCompletionScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Photo Evidence Grid
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
+                    // Evidence Photo Section
+                    if (!evidence?.proofPhotoUrl.isNullOrBlank()) {
                         Card(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.img_verify_lawn1),
-                                contentDescription = "Work proof 1",
+                            NetworkImage(
+                                url = evidence?.proofPhotoUrl,
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                                contentDescription = "Completed Work Evidence Photo"
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_verify_lawn1),
+                                    contentDescription = "Work proof fallback",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         }
+                    } else {
+                        // Fallback Photo Evidence Grid
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(130.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_verify_lawn1),
+                                    contentDescription = "Work proof 1",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
 
-                        Card(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.img_verify_lawn2),
-                                contentDescription = "Work proof 2",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                            Card(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_verify_lawn2),
+                                    contentDescription = "Work proof 2",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         }
+                    }
+
+                    if (!evidence?.notes.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Helper Notes: \"${evidence?.notes}\"",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnSurfaceVariant
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))

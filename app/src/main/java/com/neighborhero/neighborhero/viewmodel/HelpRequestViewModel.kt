@@ -72,7 +72,8 @@ class HelpRequestViewModel(
                 category = category,
                 description = description,
                 time = time,
-                location = location
+                location = location,
+                tempId = newId
             )
         }
 

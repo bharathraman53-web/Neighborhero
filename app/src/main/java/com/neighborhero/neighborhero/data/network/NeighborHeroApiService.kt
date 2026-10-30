@@ -1,6 +1,7 @@
 package com.neighborhero.neighborhero.data.network
 
 import com.neighborhero.neighborhero.data.network.dto.*
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -25,6 +26,10 @@ interface NeighborHeroApiService {
 
     @PUT("auth/profile")
     suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<ApiResponse<UserDto>>
+
+    @Multipart
+    @POST("auth/profile/photo")
+    suspend fun uploadProfilePhoto(@Part photo: MultipartBody.Part): Response<ApiResponse<UserDto>>
 
     // --- Help Requests ---
     @GET("requests")
@@ -73,6 +78,16 @@ interface NeighborHeroApiService {
     @POST("tasks/{id}/confirm-start")
     suspend fun confirmTaskStart(@Path("id") id: String): Response<ApiResponse<HelpRequestDto>>
 
+    @Multipart
+    @POST("tasks/{id}/evidence/photo")
+    suspend fun uploadEvidencePhoto(
+        @Path("id") id: String,
+        @Part photo: MultipartBody.Part
+    ): Response<ApiResponse<UploadEvidencePhotoDto>>
+
+    @GET("tasks/{id}/evidence")
+    suspend fun getTaskEvidence(@Path("id") id: String): Response<ApiResponse<TaskEvidenceDto>>
+
     @POST("tasks/{id}/submit-completion")
     suspend fun submitCompletion(
         @Path("id") id: String,
@@ -89,6 +104,7 @@ interface NeighborHeroApiService {
     @GET("chat/messages")
     suspend fun getChatMessages(
         @Query("conversation_id") conversationId: String? = null,
+        @Query("recipient_id") recipientId: String? = null,
         @Query("since_id") sinceId: String? = null,
         @Query("limit") limit: Int = 50
     ): Response<ApiResponse<List<ChatMessageDto>>>

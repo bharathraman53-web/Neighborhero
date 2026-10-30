@@ -28,6 +28,7 @@ data class HelpRequestDto(
     @SerializedName("assigned_helper_id") val assignedHelperId: String? = null,
     @SerializedName("assigned_helper_name") val assignedHelperName: String? = null,
     @SerializedName("requester_id") val requesterId: String? = null,
+    @SerializedName("requester_phone") val requesterPhone: String? = null,
     @SerializedName("created_at") val createdAt: String? = null
 )
 

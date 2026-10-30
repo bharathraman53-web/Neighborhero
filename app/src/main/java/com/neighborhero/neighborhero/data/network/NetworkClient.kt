@@ -18,6 +18,15 @@ object NetworkClient {
     @Volatile
     private var customClient: NeighborHeroApiService? = null
 
+    @Volatile
+    private var okHttpClientInstance: OkHttpClient? = null
+
+    fun getOkHttpClient(): OkHttpClient {
+        return okHttpClientInstance ?: synchronized(this) {
+            okHttpClientInstance ?: buildOkHttpClient().also { okHttpClientInstance = it }
+        }
+    }
+
     fun getService(): NeighborHeroApiService {
         return customClient ?: apiService ?: synchronized(this) {
             apiService ?: buildService().also { apiService = it }
@@ -31,15 +40,16 @@ object NetworkClient {
     fun resetClient() {
         synchronized(this) {
             apiService = null
+            okHttpClientInstance = null
         }
     }
 
-    private fun buildService(): NeighborHeroApiService {
+    private fun buildOkHttpClient(): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
-        val okHttpClient = OkHttpClient.Builder()
+        return OkHttpClient.Builder()
             .addInterceptor(AuthInterceptor(SessionManager.getInstance()))
             .addInterceptor(loggingInterceptor)
             .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -47,14 +57,15 @@ object NetworkClient {
             .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
+    }
 
+    private fun buildService(): NeighborHeroApiService {
         val retrofit = Retrofit.Builder()
             .baseUrl(ApiConfig.baseUrl)
-            .client(okHttpClient)
+            .client(getOkHttpClient())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
         return retrofit.create(NeighborHeroApiService::class.java)
     }
 }
-

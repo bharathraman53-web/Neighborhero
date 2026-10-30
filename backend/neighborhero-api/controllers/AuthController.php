@@ -29,7 +29,9 @@ class AuthController {
             ->required('email')
             ->email('email')
             ->required('password')
-            ->minLength('password', 6);
+            ->minLength('password', 6)
+            ->required('phone')
+            ->phone10('phone');
 
         if (!$validator->passes()) {
             Response::error($validator->firstError() ?: 'Validation failed', 422, $validator->errors());
@@ -40,11 +42,9 @@ class AuthController {
             Response::error('An account with this email address already exists.', 409);
         }
 
-        if (!empty($input['phone'])) {
-            $phone = trim($input['phone']);
-            if ($this->userRepository->findByPhone($phone)) {
-                Response::error('An account with this phone number already exists.', 409);
-            }
+        $phone = trim((string)$input['phone']);
+        if ($this->userRepository->findByPhone($phone)) {
+            Response::error('An account with this phone number already exists.', 409);
         }
 
         $passwordHash = $this->authService->hashPassword((string)$input['password']);
@@ -52,7 +52,7 @@ class AuthController {
         $user = $this->userRepository->create([
             'full_name' => trim($input['full_name']),
             'email' => $email,
-            'phone' => !empty($input['phone']) ? trim($input['phone']) : null,
+            'phone' => $phone,
             'password_hash' => $passwordHash,
             'neighborhood' => $input['neighborhood'] ?? 'Maplewood District',
             'bio' => $input['bio'] ?? '',
@@ -93,7 +93,7 @@ class AuthController {
 
         if (!$user || !$this->authService->verifyPassword($password, $user['password_hash'])) {
             // Constant-time safe error message to prevent enumeration
-            Response::error('Invalid email/phone or password.', 401);
+            Response::error('Incorrect email or phone number, or password. Please try again.', 401);
         }
 
         $token = $this->authService->createToken($user['id']);
@@ -126,10 +126,82 @@ class AuthController {
         $currentUser = AuthMiddleware::authenticate(true);
         $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 
+        if (isset($input['phone'])) {
+            $phone = trim((string)$input['phone']);
+            if (!preg_match('/^\d{10}$/', $phone)) {
+                Response::error('Phone number must be exactly 10 digits.', 422, [
+                    'phone' => ['Phone number must be exactly 10 digits.']
+                ]);
+            }
+            $existing = $this->userRepository->findByPhone($phone);
+            if ($existing && $existing['id'] !== $currentUser['id']) {
+                Response::error('An account with this phone number already exists.', 409);
+            }
+        }
+
         $this->userRepository->updateProfile($currentUser['id'], $input);
         $updated = $this->userRepository->findById($currentUser['id']);
 
         Response::success($updated, 'Profile updated successfully');
+    }
+
+    public function uploadPhoto(): void {
+        $currentUser = AuthMiddleware::authenticate(true);
+
+        if (empty($_FILES['photo']) || !isset($_FILES['photo']['error'])) {
+            Response::error('No photo file uploaded.', 400);
+        }
+
+        $file = $_FILES['photo'];
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            Response::error('File upload failed with error code: ' . $file['error'], 400);
+        }
+
+        $maxBytes = 5 * 1024 * 1024; // 5 MB
+        if ($file['size'] > $maxBytes) {
+            Response::error('File size exceeds the 5 MB limit.', 422);
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+
+        $allowedMimes = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+        ];
+
+        if (!isset($allowedMimes[$mime])) {
+            Response::error('Invalid file type. Supported formats: JPEG, PNG, WebP.', 422);
+        }
+
+        $imageInfo = @getimagesize($file['tmp_name']);
+        if ($imageInfo === false) {
+            Response::error('Invalid or corrupt image file.', 422);
+        }
+
+        $extension = $allowedMimes[$mime];
+        $safeName = 'avatar_' . bin2hex(random_bytes(16)) . '.' . $extension;
+
+        $targetDir = realpath(__DIR__ . '/../public/uploads/avatars');
+        if (!$targetDir) {
+            $targetDir = __DIR__ . '/../public/uploads/avatars';
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0755, true);
+            }
+        }
+
+        $targetPath = $targetDir . DIRECTORY_SEPARATOR . $safeName;
+
+        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            Response::error('Failed to save uploaded image.', 500);
+        }
+
+        $avatarUrl = 'uploads/avatars/' . $safeName;
+        $this->userRepository->updateProfile($currentUser['id'], ['avatar_url' => $avatarUrl]);
+        $updated = $this->userRepository->findById($currentUser['id']);
+
+        Response::success($updated, 'Profile photo uploaded successfully');
     }
 }
 

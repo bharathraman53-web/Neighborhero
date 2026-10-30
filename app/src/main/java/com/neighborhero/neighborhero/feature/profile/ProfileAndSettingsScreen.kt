@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
@@ -17,15 +18,17 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.data.model.User
 import com.neighborhero.neighborhero.navigation.Routes
 import com.neighborhero.neighborhero.ui.components.AppTopBar
 import com.neighborhero.neighborhero.ui.components.BottomNavigationBar
+import com.neighborhero.neighborhero.ui.components.NetworkImage
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
@@ -37,8 +40,11 @@ fun ProfileAndSettingsScreen(
     onTaskHistoryClick: () -> Unit,
     onLeaderboardClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onLogoutClick: () -> Unit = {},
     onNavigate: (String) -> Unit
 ) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = { AppTopBar(title = "Profile & Community") },
         bottomBar = { BottomNavigationBar(currentRoute = Routes.PROFILE_AND_SETTINGS, onNavigate = onNavigate) }
@@ -62,15 +68,30 @@ fun ProfileAndSettingsScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(76.dp)
+                            .clip(CircleShape)
                             .background(PrimaryFixed, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            user.fullName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = OnPrimaryFixed
-                        )
+                        if (user.avatarUrl.isNotBlank()) {
+                            NetworkImage(
+                                url = user.avatarUrl,
+                                modifier = Modifier.fillMaxSize(),
+                                contentDescription = "Profile avatar"
+                            ) {
+                                Text(
+                                    user.fullName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    color = OnPrimaryFixed
+                                )
+                            }
+                        } else {
+                            Text(
+                                user.fullName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                style = MaterialTheme.typography.headlineLarge,
+                                color = OnPrimaryFixed
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -163,7 +184,39 @@ fun ProfileAndSettingsScreen(
                             .clickable { onSettingsClick() },
                         colors = ListItemDefaults.colors(containerColor = SurfaceContainerLow)
                     )
+                    HorizontalDivider()
+                    ListItem(
+                        headlineContent = { Text("Log Out", color = MaterialTheme.colorScheme.error) },
+                        leadingContent = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Log Out", tint = MaterialTheme.colorScheme.error) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showLogoutDialog = true },
+                        colors = ListItemDefaults.colors(containerColor = SurfaceContainerLow)
+                    )
                 }
+            }
+
+            if (showLogoutDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutDialog = false },
+                    title = { Text("Sign Out of NeighborHero?") },
+                    text = { Text("Are you sure you want to log out? Your local session will be terminated and server authentication token will be revoked.") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showLogoutDialog = false
+                                onLogoutClick()
+                            }
+                        ) {
+                            Text("Log Out", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showLogoutDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
             }
         }
     }

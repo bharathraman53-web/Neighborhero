@@ -1,11 +1,18 @@
 package com.neighborhero.neighborhero.feature.task
 
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material3.*
@@ -13,7 +20,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,10 +37,56 @@ import com.neighborhero.neighborhero.ui.theme.*
 fun SubmitCompletionScreen(
     task: HelpRequest? = null,
     onBackClick: () -> Unit,
-    onSubmitSuccess: (notes: String) -> Unit
+    onSubmitSuccess: (notes: String) -> Unit,
+    onSubmitSuccessWithPhoto: ((notes: String, photoBytes: ByteArray?, mimeType: String, fileName: String, onDone: (Boolean, String?) -> Unit) -> Unit)? = null
 ) {
+    val context = LocalContext.current
     val taskTitle = task?.title ?: "Community Task Assistance"
     var notes by remember { mutableStateOf("") }
+
+    var selectedPhotoBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var selectedPhotoMime by remember { mutableStateOf("image/jpeg") }
+    var selectedPhotoName by remember { mutableStateOf("evidence.jpg") }
+
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isSubmitting by remember { mutableStateOf(false) }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+                selectedPhotoMime = mime
+                selectedPhotoName = when {
+                    mime.contains("png", ignoreCase = true) -> "evidence.png"
+                    mime.contains("webp", ignoreCase = true) -> "evidence.webp"
+                    else -> "evidence.jpg"
+                }
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes != null && bytes.isNotEmpty()) {
+                    if (bytes.size > 5 * 1024 * 1024) {
+                        errorMessage = "Selected proof photo exceeds 5 MB limit. Please select a smaller photo."
+                    } else {
+                        selectedPhotoBytes = bytes
+                        errorMessage = null
+                    }
+                }
+            } catch (e: Exception) {
+                errorMessage = "Failed to load image: ${e.message}"
+            }
+        }
+    }
+
+    val previewBitmap = remember(selectedPhotoBytes) {
+        selectedPhotoBytes?.let {
+            try {
+                BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap()
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
 
     Scaffold(
         topBar = { AppTopBar(title = "Submit Completion", onBackClick = onBackClick) }
@@ -45,6 +100,21 @@ fun SubmitCompletionScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (!errorMessage.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = errorMessage ?: "",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
+
                 // Celebration Header Banner
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -98,6 +168,7 @@ fun SubmitCompletionScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         minLines = 3,
+                        enabled = !isSubmitting,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = SurfaceContainerLow,
                             unfocusedContainerColor = SurfaceContainerLow,
@@ -110,30 +181,77 @@ fun SubmitCompletionScreen(
 
                 // Proof Photo Upload Box
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Proof Photo", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Proof Photo", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = if (selectedPhotoBytes != null) "Photo selected" else "Optional",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Secondary
+                        )
+                    }
 
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(160.dp),
+                            .height(180.dp)
+                            .clickable(enabled = !isSubmitting) {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
                     ) {
                         Box(modifier = Modifier.fillMaxSize()) {
-                            Image(
-                                painter = painterResource(id = R.drawable.img_proof_garden),
-                                contentDescription = "Proof photo of task",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                            if (previewBitmap != null) {
+                                Image(
+                                    bitmap = previewBitmap,
+                                    contentDescription = "Selected proof photo of task",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_proof_garden),
+                                    contentDescription = "Proof photo of task",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+
                             Surface(
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
-                                    .padding(12.dp),
+                                    .padding(12.dp)
+                                    .clickable(enabled = !isSubmitting) {
+                                        photoPickerLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    },
                                 shape = RoundedCornerShape(20.dp),
-                                color = Color.Black.copy(alpha = 0.6f)
+                                color = Color.Black.copy(alpha = 0.65f)
                             ) {
-                                Text("Change Photo", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, color = Color.White)
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = if (selectedPhotoBytes != null) "Change Photo" else "Select Photo",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
                     }
@@ -142,8 +260,45 @@ fun SubmitCompletionScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            PrimaryButton(onClick = { onSubmitSuccess(notes) }) {
-                Text("Submit Task Completion", style = MaterialTheme.typography.labelLarge)
+            PrimaryButton(
+                onClick = {
+                    if (notes.isBlank()) {
+                        errorMessage = "Please enter completion notes describing the finished work."
+                        return@PrimaryButton
+                    }
+                    errorMessage = null
+                    isSubmitting = true
+
+                    if (onSubmitSuccessWithPhoto != null) {
+                        onSubmitSuccessWithPhoto(
+                            notes.trim(),
+                            selectedPhotoBytes,
+                            selectedPhotoMime,
+                            selectedPhotoName
+                        ) { success, err ->
+                            isSubmitting = false
+                            if (!success) {
+                                errorMessage = err ?: "Task completion submission failed."
+                            }
+                        }
+                    } else {
+                        onSubmitSuccess(notes.trim())
+                        isSubmitting = false
+                    }
+                },
+                enabled = !isSubmitting
+            ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = OnPrimary,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Submitting...", style = MaterialTheme.typography.labelLarge)
+                } else {
+                    Text("Submit Task Completion", style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
     }

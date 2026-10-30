@@ -1,5 +1,7 @@
 package com.neighborhero.neighborhero.feature.task
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -164,8 +167,15 @@ fun ConfirmTaskStartScreen(
                                 }
                             }
 
+                            val context = LocalContext.current
+                            val phoneToDial = task?.requesterPhone?.takeIf { it.isNotBlank() } ?: "5551234567"
                             IconButton(
-                                onClick = {},
+                                onClick = {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneToDial"))
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                },
                                 modifier = Modifier
                                     .size(36.dp)
                                     .background(PrimaryFixed, CircleShape)

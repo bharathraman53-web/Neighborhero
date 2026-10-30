@@ -1,6 +1,7 @@
 package com.neighborhero.neighborhero.feature.helpers
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -22,7 +23,8 @@ import com.neighborhero.neighborhero.ui.theme.*
 @Composable
 fun HelperLeaderboardScreen(
     helpers: List<HelperProfile>,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onHelperClick: (HelperProfile) -> Unit = {}
 ) {
     Scaffold(
         topBar = { AppTopBar(title = "Helper Leaderboard", onBackClick = onBackClick) }
@@ -65,7 +67,9 @@ fun HelperLeaderboardScreen(
 
             itemsIndexed(helpers) { index, helper ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onHelperClick(helper) },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
                 ) {

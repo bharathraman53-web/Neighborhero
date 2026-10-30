@@ -223,12 +223,14 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     id VARCHAR(64) NOT NULL PRIMARY KEY,
     conversation_id VARCHAR(64) NOT NULL,
     sender_id VARCHAR(64) NOT NULL,
+    client_message_id VARCHAR(64) NULL,
     message_text TEXT NOT NULL,
     attachment_code VARCHAR(64) NULL,
     attachment_title VARCHAR(128) NULL,
     is_read TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_messages_conv (conversation_id, created_at),
+    INDEX idx_conv_client_msg (conversation_id, client_message_id),
     CONSTRAINT fk_messages_conv FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE,
     CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

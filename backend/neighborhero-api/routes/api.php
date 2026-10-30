@@ -22,6 +22,7 @@ return function(Router $router): void {
     $router->post('/api/auth/logout', [AuthController::class, 'logout']);
     $router->get('/api/auth/me', [AuthController::class, 'me']);
     $router->put('/api/auth/profile', [AuthController::class, 'updateProfile']);
+    $router->post('/api/auth/profile/photo', [AuthController::class, 'uploadPhoto']);
 
     // Help Requests
     $router->get('/api/requests', [HelpRequestController::class, 'index']);
@@ -39,10 +40,14 @@ return function(Router $router): void {
     // Task Lifecycle
     $router->post('/api/tasks/{id}/assign', [TaskController::class, 'assign']);
     $router->post('/api/tasks/{id}/confirm-start', [TaskController::class, 'confirmStart']);
+    $router->post('/api/tasks/{id}/evidence/photo', [TaskController::class, 'uploadEvidencePhoto']);
+    $router->get('/api/tasks/{id}/evidence', [TaskController::class, 'getEvidence']);
+    $router->get('/api/tasks/{id}/evidence/photo', [TaskController::class, 'streamEvidencePhoto']);
     $router->post('/api/tasks/{id}/submit-completion', [TaskController::class, 'submitCompletion']);
     $router->post('/api/tasks/{id}/verify-completion', [TaskController::class, 'verifyCompletion']);
 
     // Chat
+    $router->get('/api/chat/conversations', [ChatController::class, 'getConversations']);
     $router->get('/api/chat/messages', [ChatController::class, 'getMessages']);
     $router->post('/api/chat/messages', [ChatController::class, 'sendMessage']);
 

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -21,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -160,12 +163,25 @@ fun CreateAccountScreen(
 
                     // Phone Number
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Phone Number", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Mobile Number (10 digits)", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
+                            Text("${phone.length}/10", style = MaterialTheme.typography.labelSmall, color = if (phone.length == 10) Secondary else Outline)
+                        }
                         TextField(
                             value = phone,
-                            onValueChange = { phone = it },
-                            placeholder = { Text("(555) 000-0000") },
+                            onValueChange = { input ->
+                                phone = input.filter { it.isDigit() }.take(10)
+                            },
+                            placeholder = { Text("10-digit mobile number") },
                             leadingIcon = { Icon(Icons.Default.Call, contentDescription = null, tint = Outline) },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Next
+                            ),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true,
@@ -255,17 +271,29 @@ fun CreateAccountScreen(
 
                     // Sign Up Button
                     PrimaryButton(onClick = {
-                        if (password != confirmPassword) {
-                            localValidationErr = "Passwords do not match."
-                            return@PrimaryButton
-                        }
                         if (fullName.isBlank() || email.isBlank() || password.isBlank()) {
                             localValidationErr = "Please complete all required fields."
                             return@PrimaryButton
                         }
+                        if (phone.length != 10) {
+                            localValidationErr = "Phone number must be exactly 10 digits."
+                            return@PrimaryButton
+                        }
+                        if (password != confirmPassword) {
+                            localValidationErr = "Passwords do not match."
+                            return@PrimaryButton
+                        }
+                        if (password.length < 6) {
+                            localValidationErr = "Password must be at least 6 characters."
+                            return@PrimaryButton
+                        }
+                        if (!agreeTerms) {
+                            localValidationErr = "Please agree to NeighborHero's Guidelines & Terms to continue."
+                            return@PrimaryButton
+                        }
                         localValidationErr = null
                         if (onSignUpSubmit != null) {
-                            onSignUpSubmit(fullName, email, phone, password)
+                            onSignUpSubmit(fullName.trim(), email.trim(), phone.trim(), password)
                         } else {
                             onSignUpSuccess()
                         }

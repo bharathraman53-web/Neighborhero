@@ -17,3 +17,19 @@ data class VerifyCompletionDto(
     @SerializedName("tags") val tags: String = ""
 )
 
+data class UploadEvidencePhotoDto(
+    @SerializedName("photo_url") val photoUrl: String
+)
+
+data class TaskEvidenceDto(
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("request_id") val requestId: String? = null,
+    @SerializedName("helper_id") val helperId: String? = null,
+    @SerializedName("notes") val notes: String? = null,
+    @SerializedName("proof_photo_url") val proofPhotoUrl: String? = null,
+    @SerializedName("submitted_at") val submittedAt: String? = null,
+    @SerializedName("helper_name") val helperName: String? = null,
+    @SerializedName("helper_avatar") val helperAvatar: String? = null
+)
+
+

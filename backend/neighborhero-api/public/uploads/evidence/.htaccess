@@ -1,0 +1,5 @@
+# Deny all direct web access to evidence files
+# Evidence files must be retrieved through the authenticated API: /api/tasks/{id}/evidence/photo
+Order Deny,Allow
+Deny from all
+
