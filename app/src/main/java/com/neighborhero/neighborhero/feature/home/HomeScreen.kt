@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
@@ -34,7 +33,6 @@ fun HomeScreen(
     onRequestClick: (HelpRequest) -> Unit,
     onHelperClick: (HelperProfile) -> Unit,
     onCreateRequestClick: () -> Unit,
-    onSosClick: () -> Unit,
     onNavigate: (String) -> Unit,
     onActiveTaskClick: (HelpRequest?) -> Unit = { onNavigate(Routes.ACTIVE_TASK) }
 ) {
@@ -47,18 +45,6 @@ fun HomeScreen(
                     Column {
                         Text("NeighborHero", style = MaterialTheme.typography.headlineMedium, color = OnSurface)
                         Text("Maplewood District", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onSosClick) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(ErrorContainer, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Emergency, contentDescription = "SOS", tint = OnErrorContainer)
-                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Surface)

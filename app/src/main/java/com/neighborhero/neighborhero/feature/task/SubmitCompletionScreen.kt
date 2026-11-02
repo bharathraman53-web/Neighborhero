@@ -13,8 +13,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.TaskAlt
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +33,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
+import com.neighborhero.neighborhero.ai.AiMatchStatus
+import com.neighborhero.neighborhero.ai.EvidenceAssessmentStatus
+import com.neighborhero.neighborhero.ai.EvidenceClassificationResult
+import com.neighborhero.neighborhero.ai.ImageEvidenceClassifier
 import com.neighborhero.neighborhero.data.model.HelpRequest
+import com.neighborhero.neighborhero.data.model.RequestStatus
+import com.neighborhero.neighborhero.data.model.User
 import com.neighborhero.neighborhero.ui.components.AppTopBar
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
@@ -36,10 +47,21 @@ import com.neighborhero.neighborhero.ui.theme.*
 @Composable
 fun SubmitCompletionScreen(
     task: HelpRequest? = null,
+    currentUser: User? = null,
     onBackClick: () -> Unit,
     onSubmitSuccess: (notes: String) -> Unit,
     onSubmitSuccessWithPhoto: ((notes: String, photoBytes: ByteArray?, mimeType: String, fileName: String, onDone: (Boolean, String?) -> Unit) -> Unit)? = null
 ) {
+    val isRequester = currentUser != null && (
+        (currentUser.id.isNotBlank() && currentUser.id == task?.requesterId) ||
+        (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(task?.requesterName, ignoreCase = true))
+    )
+    val isAssignedHelper = currentUser == null || (
+        (currentUser.id.isNotBlank() && currentUser.id == task?.assignedHelperId) ||
+        (!task?.assignedHelperName.isNullOrBlank() && currentUser.fullName.equals(task?.assignedHelperName, ignoreCase = true)) ||
+        task?.assignedHelperId.isNullOrBlank()
+    )
+    val isAlreadySubmitted = (task?.status == RequestStatus.PENDING_VERIFICATION || task?.status == RequestStatus.COMPLETED)
     val context = LocalContext.current
     val taskTitle = task?.title ?: "Community Task Assistance"
     var notes by remember { mutableStateOf("") }
@@ -88,6 +110,114 @@ fun SubmitCompletionScreen(
         }
     }
 
+    val imageClassifier = remember { ImageEvidenceClassifier(context) }
+    DisposableEffect(imageClassifier) {
+        onDispose {
+            imageClassifier.close()
+        }
+    }
+
+    var aiAssessment by remember { mutableStateOf<EvidenceClassificationResult?>(null) }
+    var isAnalyzingImage by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedPhotoBytes, task?.category) {
+        val bytes = selectedPhotoBytes
+        if (bytes != null && bytes.isNotEmpty()) {
+            isAnalyzingImage = true
+            aiAssessment = imageClassifier.classifyEvidence(bytes, task?.category)
+            isAnalyzingImage = false
+        } else {
+            aiAssessment = null
+            isAnalyzingImage = false
+        }
+    }
+
+    if (isRequester) {
+        Scaffold(
+            topBar = { AppTopBar(title = "Task Status", onBackClick = onBackClick) }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Awaiting Helper Completion",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OnSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Your assigned helper is currently completing this task. Once they submit evidence, you will be notified to review and verify their work.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                PrimaryButton(
+                    onClick = onBackClick
+                ) {
+                    Text("Back to Active Task", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
+        return
+    }
+
+    if (!isAssignedHelper) {
+        Scaffold(
+            topBar = { AppTopBar(title = "Restricted Access", onBackClick = onBackClick) }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Assigned Helper Only",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OnSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Only the assigned helper (${task?.assignedHelperName ?: "helper"}) can upload evidence and submit completion for this request.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                PrimaryButton(
+                    onClick = onBackClick
+                ) {
+                    Text("Return", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
+        return
+    }
+
     Scaffold(
         topBar = { AppTopBar(title = "Submit Completion", onBackClick = onBackClick) }
     ) { innerPadding ->
@@ -100,6 +230,24 @@ fun SubmitCompletionScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (isAlreadySubmitted) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Task completion has already been submitted and is currently pending verification.",
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+
                 if (!errorMessage.isNullOrBlank()) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -255,13 +403,103 @@ fun SubmitCompletionScreen(
                             }
                         }
                     }
+
+                    // Local On-Device AI Evidence Relevance Assessment Banner
+                    if (isAnalyzingImage) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = SurfaceContainer)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = Secondary,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Analyzing visual evidence locally...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = OnSurfaceVariant
+                                )
+                            }
+                        }
+                    } else if (aiAssessment != null) {
+                        val assessment = aiAssessment!!
+                        val matchStatus = assessment.matchStatus
+                        val (badgeColor, textColor, icon) = when (matchStatus) {
+                            AiMatchStatus.MATCHED -> Triple(
+                                SecondaryContainer,
+                                OnSecondaryContainer,
+                                Icons.Default.CheckCircle
+                            )
+                            AiMatchStatus.PARTIALLY_MATCHED -> Triple(
+                                SurfaceContainerHigh,
+                                OnSurface,
+                                Icons.Default.Info
+                            )
+                            AiMatchStatus.NOT_MATCHED -> Triple(
+                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                                MaterialTheme.colorScheme.onErrorContainer,
+                                Icons.Default.Warning
+                            )
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = badgeColor)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = textColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = matchStatus.title,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textColor
+                                    )
+                                }
+                                Text(
+                                    text = matchStatus.advisory,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = textColor
+                                )
+                                Text(
+                                    text = "Visual AI assessment is an advisory signal for the requester, never automatic completion proof. The requester makes the final accept/reject decision.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = textColor.copy(alpha = 0.85f)
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val canSubmit = !isSubmitting && !isRequester && !isAlreadySubmitted
+
             PrimaryButton(
                 onClick = {
+                    if (!canSubmit) return@PrimaryButton
                     if (notes.isBlank()) {
                         errorMessage = "Please enter completion notes describing the finished work."
                         return@PrimaryButton
@@ -286,7 +524,7 @@ fun SubmitCompletionScreen(
                         isSubmitting = false
                     }
                 },
-                enabled = !isSubmitting
+                enabled = canSubmit
             ) {
                 if (isSubmitting) {
                     CircularProgressIndicator(
@@ -296,6 +534,10 @@ fun SubmitCompletionScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Submitting...", style = MaterialTheme.typography.labelLarge)
+                } else if (isRequester) {
+                    Text("Requesters Cannot Submit Completion", style = MaterialTheme.typography.labelLarge)
+                } else if (isAlreadySubmitted) {
+                    Text("Completion Already Submitted", style = MaterialTheme.typography.labelLarge)
                 } else {
                     Text("Submit Task Completion", style = MaterialTheme.typography.labelLarge)
                 }

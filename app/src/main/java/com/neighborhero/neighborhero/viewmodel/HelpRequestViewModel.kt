@@ -45,10 +45,13 @@ class HelpRequestViewModel(
         category: String,
         description: String,
         time: String,
-        location: String
+        location: String,
+        assignedHelperId: String? = null,
+        assignedHelperName: String? = null
     ): String {
         val currentUser = RepositoryProvider.userRepository.currentUser.value
         val newId = "req_${System.currentTimeMillis()}"
+        val initialStatus = if (!assignedHelperId.isNullOrBlank()) RequestStatus.IN_PROGRESS else RequestStatus.OPEN
         val newReq = HelpRequest(
             id = newId,
             title = title,
@@ -61,7 +64,11 @@ class HelpRequestViewModel(
             distance = "0.1 mi away",
             requestedTime = time.ifBlank { "Due Today, 4:00 PM" },
             isUrgent = false,
-            status = RequestStatus.OPEN
+            status = initialStatus,
+            assignedHelperId = assignedHelperId,
+            assignedHelperName = assignedHelperName,
+            requesterId = currentUser.id.ifBlank { null },
+            requesterAvatarUrl = currentUser.avatarUrl.ifBlank { null }
         )
         repository.addRequest(newReq)
 
@@ -73,17 +80,28 @@ class HelpRequestViewModel(
                 description = description,
                 time = time,
                 location = location,
-                tempId = newId
+                tempId = newId,
+                assignedHelperId = assignedHelperId
             )
         }
 
         return newId
     }
 
-    fun acceptRequest(requestId: String, helperName: String) {
+    fun acceptRequest(
+        requestId: String,
+        helperName: String,
+        onDone: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
         repository.updateRequestStatus(requestId, RequestStatus.IN_PROGRESS, helperName)
         viewModelScope.launch {
-            repository.assignRemoteHelper(requestId)
+            val result = repository.assignRemoteHelper(requestId)
+            if (result.isSuccess) {
+                onDone(true, null)
+            } else {
+                val err = result.exceptionOrNull()?.message ?: "Failed to accept request"
+                onDone(false, err)
+            }
         }
     }
 

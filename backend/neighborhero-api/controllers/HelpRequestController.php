@@ -59,6 +59,8 @@ class HelpRequestController {
             $category = 'Other';
         }
 
+        $assignedHelperId = !empty($input['assigned_helper_id']) ? trim((string)$input['assigned_helper_id']) : (!empty($input['target_helper_id']) ? trim((string)$input['target_helper_id']) : null);
+
         $created = $this->repository->create([
             'requester_id' => $user['id'],
             'title' => trim($input['title']),
@@ -68,7 +70,20 @@ class HelpRequestController {
             'distance' => $input['distance'] ?? '0.4 mi away',
             'requested_time' => !empty($input['requested_time']) ? trim($input['requested_time']) : 'Due Today, 4:00 PM',
             'is_urgent' => !empty($input['is_urgent']),
+            'assigned_helper_id' => $assignedHelperId,
         ]);
+
+        if ($assignedHelperId) {
+            $notifRepo = new \NeighborHero\Repositories\NotificationRepository(\NeighborHero\Services\Database::getConnection());
+            $requesterName = $user['full_name'] ?? 'A neighbor';
+            $notifRepo->create([
+                'user_id' => $assignedHelperId,
+                'title' => 'New Direct Help Request',
+                'message' => "{$requesterName} requested your help for: {$created['title']}",
+                'type' => 'REQUEST_ASSIGNED',
+                'related_request_id' => $created['id'],
+            ]);
+        }
 
         Response::success($created, 'Help request created successfully', 201);
     }

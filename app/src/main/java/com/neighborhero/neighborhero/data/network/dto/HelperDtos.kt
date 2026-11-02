@@ -16,7 +16,11 @@ data class HelperProfileDto(
     @SerializedName("skills") val skills: List<String> = emptyList(),
     @SerializedName("isVerified") val isVerified: Boolean = true,
     @SerializedName("isAvailableToday") val isAvailableToday: Boolean = true,
-    @SerializedName("avatarUrl") val avatarUrl: String = "",
+    @SerializedName("avatarUrl") val avatarUrl: String? = null,
+    @SerializedName("avatar_url") val avatar_url: String? = null,
     @SerializedName("points") val points: Int = 0
-)
+) {
+    val resolvedAvatarUrl: String
+        get() = avatarUrl?.takeIf { it.isNotBlank() } ?: avatar_url?.takeIf { it.isNotBlank() } ?: ""
+}
 

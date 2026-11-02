@@ -163,7 +163,8 @@ class HelpRequestRepository(
         description: String,
         time: String,
         location: String,
-        tempId: String? = null
+        tempId: String? = null,
+        assignedHelperId: String? = null
     ): Result<HelpRequest> {
         _isLoading.value = true
         _errorMessage.value = null
@@ -173,7 +174,8 @@ class HelpRequestRepository(
                 category = category,
                 description = description,
                 location = location,
-                requestedTime = time.ifBlank { "Due Today, 4:00 PM" }
+                requestedTime = time.ifBlank { "Due Today, 4:00 PM" },
+                assignedHelperId = assignedHelperId
             )
             val response = apiService.createRequest(dto)
             if (response.isSuccessful && response.body()?.success == true) {
@@ -201,7 +203,18 @@ class HelpRequestRepository(
                 addRequest(updated)
                 Result.success(updated)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "Failed to assign helper"))
+                val rawError = try { response.errorBody()?.string() } catch (_: Exception) { null }
+                var errorMsg = response.body()?.message
+                if (errorMsg.isNullOrBlank() && !rawError.isNullOrBlank()) {
+                    try {
+                        val json = org.json.JSONObject(rawError)
+                        if (json.has("message")) {
+                            errorMsg = json.getString("message")
+                        }
+                    } catch (_: Exception) {}
+                }
+                val finalMsg = errorMsg ?: "Failed to assign helper (HTTP ${response.code()})"
+                Result.failure(Exception(finalMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -230,7 +243,9 @@ class HelpRequestRepository(
             assignedHelperId = dto.assignedHelperId,
             assignedHelperName = dto.assignedHelperName,
             requesterId = dto.requesterId,
-            requesterPhone = dto.requesterPhone
+            requesterPhone = dto.requesterPhone,
+            requesterAvatarUrl = dto.requesterAvatar,
+            assignedHelperAvatarUrl = dto.assignedHelperAvatar
         )
     }
 }

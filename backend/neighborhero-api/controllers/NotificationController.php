@@ -36,5 +36,11 @@ class NotificationController {
         $this->repository->markAllAsRead($user['id']);
         Response::success(null, 'All notifications marked as read');
     }
+
+    public function clearAll(): void {
+        $user = AuthMiddleware::authenticate(true);
+        $this->repository->clearAllForUser($user['id']);
+        Response::success(null, 'All notifications cleared successfully');
+    }
 }
 

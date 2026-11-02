@@ -19,10 +19,12 @@ class HelpRequestRepository {
                     u.rating AS requester_rating,
                     u.completed_tasks_count AS requester_task_count,
                     u.phone AS requester_phone,
+                    u.avatar_url AS requester_avatar,
                     r.location, r.distance, r.requested_time,
                     r.is_urgent, r.status,
                     r.assigned_helper_id,
                     h.full_name AS assigned_helper_name,
+                    h.avatar_url AS assigned_helper_avatar,
                     r.requester_id,
                     r.created_at, r.updated_at
              FROM help_requests r
@@ -63,10 +65,12 @@ class HelpRequestRepository {
                        u.rating AS requester_rating,
                        u.completed_tasks_count AS requester_task_count,
                        u.phone AS requester_phone,
+                       u.avatar_url AS requester_avatar,
                        r.location, r.distance, r.requested_time,
                        r.is_urgent, r.status,
                        r.assigned_helper_id,
                        h.full_name AS assigned_helper_name,
+                       h.avatar_url AS assigned_helper_avatar,
                        r.requester_id,
                        r.created_at, r.updated_at
                 FROM help_requests r
@@ -95,10 +99,12 @@ class HelpRequestRepository {
                     u.rating AS requester_rating,
                     u.completed_tasks_count AS requester_task_count,
                     u.phone AS requester_phone,
+                    u.avatar_url AS requester_avatar,
                     r.location, r.distance, r.requested_time,
                     r.is_urgent, r.status,
                     r.assigned_helper_id,
                     h.full_name AS assigned_helper_name,
+                    h.avatar_url AS assigned_helper_avatar,
                     r.requester_id,
                     r.created_at, r.updated_at
              FROM help_requests r
@@ -118,10 +124,12 @@ class HelpRequestRepository {
                     u.rating AS requester_rating,
                     u.completed_tasks_count AS requester_task_count,
                     u.phone AS requester_phone,
+                    u.avatar_url AS requester_avatar,
                     r.location, r.distance, r.requested_time,
                     r.is_urgent, r.status,
                     r.assigned_helper_id,
                     h.full_name AS assigned_helper_name,
+                    h.avatar_url AS assigned_helper_avatar,
                     r.requester_id,
                     r.created_at, r.updated_at
              FROM help_requests r
@@ -136,9 +144,12 @@ class HelpRequestRepository {
 
     public function create(array $data): array {
         $id = $data['id'] ?? ('req_' . bin2hex(random_bytes(10)));
+        $assignedHelperId = !empty($data['assigned_helper_id']) ? $data['assigned_helper_id'] : null;
+        $status = !empty($data['status']) ? $data['status'] : ($assignedHelperId ? 'IN_PROGRESS' : 'OPEN');
+
         $stmt = $this->pdo->prepare(
-            "INSERT INTO help_requests (id, requester_id, title, category, description, location, distance, requested_time, is_urgent, status)
-             VALUES (:id, :requester_id, :title, :category, :description, :location, :distance, :requested_time, :is_urgent, :status)"
+            "INSERT INTO help_requests (id, requester_id, title, category, description, location, distance, requested_time, is_urgent, status, assigned_helper_id)
+             VALUES (:id, :requester_id, :title, :category, :description, :location, :distance, :requested_time, :is_urgent, :status, :assigned_helper_id)"
         );
         $stmt->execute([
             ':id' => $id,
@@ -150,7 +161,8 @@ class HelpRequestRepository {
             ':distance' => $data['distance'] ?? '0.4 mi away',
             ':requested_time' => $data['requested_time'],
             ':is_urgent' => !empty($data['is_urgent']) ? 1 : 0,
-            ':status' => 'OPEN',
+            ':status' => $status,
+            ':assigned_helper_id' => $assignedHelperId,
         ]);
 
         return $this->findById($id);
@@ -226,6 +238,7 @@ class HelpRequestRepository {
             'requester_rating' => (float)$row['requester_rating'],
             'requester_task_count' => (int)$row['requester_task_count'],
             'requester_phone' => (string)($row['requester_phone'] ?? ''),
+            'requester_avatar' => !empty($row['requester_avatar']) ? (string)$row['requester_avatar'] : null,
             'location' => (string)$row['location'],
             'distance' => (string)$row['distance'],
             'requested_time' => (string)$row['requested_time'],
@@ -233,6 +246,7 @@ class HelpRequestRepository {
             'status' => (string)$row['status'],
             'assigned_helper_id' => $row['assigned_helper_id'] ? (string)$row['assigned_helper_id'] : null,
             'assigned_helper_name' => $row['assigned_helper_name'] ? (string)$row['assigned_helper_name'] : null,
+            'assigned_helper_avatar' => !empty($row['assigned_helper_avatar']) ? (string)$row['assigned_helper_avatar'] : null,
             'requester_id' => (string)$row['requester_id'],
             'created_at' => (string)$row['created_at'],
         ];

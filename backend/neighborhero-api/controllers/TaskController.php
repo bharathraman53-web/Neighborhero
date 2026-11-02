@@ -84,6 +84,13 @@ class TaskController {
     public function uploadEvidencePhoto(string $requestId): void {
         $user = AuthMiddleware::authenticate(true);
 
+        try {
+            $this->taskRepository->validateEvidenceUpload($requestId, $user['id']);
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), $e->getCode() >= 400 && $e->getCode() <= 499 ? (int)$e->getCode() : 403);
+            return;
+        }
+
         if (empty($_FILES['photo']) || !isset($_FILES['photo']['error'])) {
             Response::error('No evidence photo file uploaded.', 400);
         }
@@ -174,6 +181,12 @@ class TaskController {
         } catch (Throwable $e) {
             Response::error($e->getMessage(), $e->getCode() >= 400 && $e->getCode() <= 499 ? (int)$e->getCode() : 403);
         }
+    }
+
+    public function history(): void {
+        $user = AuthMiddleware::authenticate(true);
+        $history = $this->taskRepository->getTaskHistory($user['id']);
+        Response::success($history);
     }
 }
 

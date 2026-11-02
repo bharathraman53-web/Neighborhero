@@ -42,6 +42,7 @@ class HelperRepository {
         $row['onTimePercentage'] = (int)$row['onTimePercentage'];
         $row['isVerified'] = (bool)$row['isVerified'];
         $row['isAvailableToday'] = (bool)$row['isAvailableToday'];
+        $row['avatar_url'] = $row['avatarUrl'];
         return $row;
     }
 
@@ -100,6 +101,7 @@ class HelperRepository {
             $h['onTimePercentage'] = (int)$h['onTimePercentage'];
             $h['isVerified'] = (bool)$h['isVerified'];
             $h['isAvailableToday'] = (bool)$h['isAvailableToday'];
+            $h['avatar_url'] = $h['avatarUrl'];
         }
         return $helpers;
     }

@@ -22,7 +22,6 @@ use NeighborHero\Repositories\ChatRepository;
 use NeighborHero\Repositories\HelperRepository;
 use NeighborHero\Repositories\HelpRequestRepository;
 use NeighborHero\Repositories\NotificationRepository;
-use NeighborHero\Repositories\SafetyRepository;
 use NeighborHero\Repositories\TaskRepository;
 use NeighborHero\Repositories\UserRepository;
 use NeighborHero\Services\AuthService;
@@ -203,17 +202,6 @@ $pdo->exec("
         related_request_id VARCHAR(64) NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-
-    CREATE TABLE sos_alerts (
-        id VARCHAR(64) PRIMARY KEY,
-        user_id VARCHAR(64) NOT NULL,
-        latitude REAL NULL,
-        longitude REAL NULL,
-        address VARCHAR(255) NOT NULL DEFAULT 'Maplewood District',
-        alert_type VARCHAR(64) NOT NULL DEFAULT 'EMERGENCY_SOS',
-        status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
 ");
 
 // Initialize Repositories and Services
@@ -224,7 +212,6 @@ $helperRepo = new HelperRepository($pdo);
 $taskRepo = new TaskRepository($pdo);
 $chatRepo = new ChatRepository($pdo);
 $notifRepo = new NotificationRepository($pdo);
-$safetyRepo = new SafetyRepository($pdo);
 
 echo "--- 1. Validation & Payload Security Tests ---\n";
 $v = Validator::make(['email' => 'bad-email', 'name' => ''])
@@ -379,6 +366,61 @@ assertTest(count($bookHelpers) === 0, "Helper recommendation: 'Books' does not c
 $tutoringHelpers = $helperRepo->getRecommendations('Tutoring');
 assertTest(count($tutoringHelpers) >= 1 && $tutoringHelpers[0]['id'] === 'usr_2', "Helper recommendation: 'Tutoring' returns helper with distinct Tutoring skill");
 
+// Avatar Exposure and Direct Assignment Tests
+$userRepo->updateProfile('usr_2', ['avatar_url' => 'uploads/avatars/helper_bob.jpg']);
+$reqDirect = $requestRepo->create([
+    'id' => 'req_direct_1',
+    'requester_id' => 'usr_1',
+    'title' => 'Direct tutoring session for science',
+    'category' => 'Books',
+    'description' => 'Direct assignment request',
+    'location' => 'Maplewood',
+    'distance' => '0.1 mi',
+    'requested_time' => 'Saturday 11am',
+    'is_urgent' => false,
+    'assigned_helper_id' => 'usr_2',
+]);
+assertTest($reqDirect['assigned_helper_id'] === 'usr_2', "Direct help request assigned helper set to target helper ID");
+assertTest($reqDirect['status'] === 'IN_PROGRESS', "Direct help request initialized immediately to IN_PROGRESS");
+
+// Query direct request through findById to verify avatars mapped
+$fetchedDirect = $requestRepo->findById('req_direct_1');
+assertTest($fetchedDirect !== null, "Direct help request retrievable by ID");
+assertTest($fetchedDirect['requester_avatar'] === 'uploads/avatars/avatar_test123.jpg', "Direct help request includes requester avatar URL");
+assertTest($fetchedDirect['assigned_helper_avatar'] === 'uploads/avatars/helper_bob.jpg', "Direct help request includes assigned helper avatar URL");
+
+// Verify listAll also exposes avatars
+$allDirectList = $requestRepo->listAll('Books', 'IN_PROGRESS');
+assertTest(count($allDirectList) >= 1 && !empty($allDirectList[0]['requester_avatar']), "HelpRequestRepository::listAll exposes requester avatar URL");
+assertTest(count($allDirectList) >= 1 && !empty($allDirectList[0]['assigned_helper_avatar']), "HelpRequestRepository::listAll exposes assigned helper avatar URL");
+
+// Verify HelperRepository exposes avatar_url and avatarUrl
+$helperWithAvatar = $helperRepo->findById('usr_2');
+assertTest($helperWithAvatar !== null && $helperWithAvatar['avatar_url'] === 'uploads/avatars/helper_bob.jpg', "HelperRepository::findById exposes avatar_url");
+assertTest($helperWithAvatar['avatarUrl'] === 'uploads/avatars/helper_bob.jpg', "HelperRepository::findById exposes camelCase avatarUrl");
+
+$recHelpers = $helperRepo->getRecommendations('Tutoring');
+assertTest(count($recHelpers) >= 1 && $recHelpers[0]['avatar_url'] === 'uploads/avatars/helper_bob.jpg', "HelperRepository::getRecommendations exposes avatar_url");
+assertTest(count($recHelpers) >= 1 && $recHelpers[0]['avatarUrl'] === 'uploads/avatars/helper_bob.jpg', "HelperRepository::getRecommendations exposes camelCase avatarUrl");
+
+// Direct request notification creation
+$notifRepo->create([
+    'user_id' => 'usr_2',
+    'title' => 'New Direct Help Request',
+    'message' => 'Sarah Jenkins requested your help for: Direct tutoring session for science',
+    'type' => 'REQUEST_ASSIGNED',
+    'related_request_id' => 'req_direct_1',
+]);
+$helperNotifs = $notifRepo->getNotificationsForUser('usr_2');
+$directNotifFound = false;
+foreach ($helperNotifs as $n) {
+    if ($n['type'] === 'REQUEST_ASSIGNED' && $n['related_request_id'] === 'req_direct_1') {
+        $directNotifFound = true;
+        break;
+    }
+}
+assertTest($directNotifFound, "Assigned helper received REQUEST_ASSIGNED in-app notification for direct request");
+
 echo "\n--- 5. Task Lifecycle & Points Duplication Prevention Tests ---\n";
 // Assign helper (usr_2 accepts usr_1's request)
 $assigned = $taskRepo->assignHelper('req_101', 'usr_2', 'usr_2');
@@ -448,6 +490,126 @@ try {
     }
 }
 assertTest($unauthorizedEvidenceBlocked, "Unauthorized third party blocked from viewing task evidence (HTTP 403)");
+
+// Role Permissions, Anti-Self-Assignment, and Duplicate Submission Prevention Tests
+$req3 = $requestRepo->create([
+    'id' => 'req_103',
+    'requester_id' => 'usr_1',
+    'title' => 'Grocery delivery assistance',
+    'category' => 'Groceries',
+    'description' => 'Need help picking up groceries from supermarket.',
+    'location' => 'Maplewood District',
+    'distance' => '0.5 mi away',
+    'requested_time' => 'Today 5pm',
+    'is_urgent' => false,
+]);
+
+// 1. Requester cannot accept / assign self to their own request
+$selfAssignBlocked = false;
+try {
+    $taskRepo->assignHelper('req_103', 'usr_1', 'usr_1');
+} catch (\Exception $e) {
+    if ($e->getCode() === 403 && str_contains($e->getMessage(), 'Requesters cannot accept')) {
+        $selfAssignBlocked = true;
+    }
+}
+assertTest($selfAssignBlocked, "Requester cannot accept or assign themselves to their own request (HTTP 403)");
+
+// Properly assign usr_2 as helper
+$taskRepo->assignHelper('req_103', 'usr_2', 'usr_2');
+
+// 2. Requester cannot submit completion for their own request
+$requesterSubmitBlocked = false;
+try {
+    $taskRepo->submitCompletion('req_103', 'usr_1', 'Trying to submit my own request');
+} catch (\Exception $e) {
+    if ($e->getCode() === 403 && str_contains($e->getMessage(), 'Requesters cannot submit completion')) {
+        $requesterSubmitBlocked = true;
+    }
+}
+assertTest($requesterSubmitBlocked, "Requester blocked from submitting task completion for own request (HTTP 403)");
+
+// 3. Unassigned third-party cannot submit completion
+$thirdPartySubmitBlocked = false;
+try {
+    $taskRepo->submitCompletion('req_103', 'usr_3', 'Third party trying to submit');
+} catch (\Exception $e) {
+    if ($e->getCode() === 403 && str_contains($e->getMessage(), 'Only the assigned helper')) {
+        $thirdPartySubmitBlocked = true;
+    }
+}
+assertTest($thirdPartySubmitBlocked, "Unassigned third party blocked from submitting task completion (HTTP 403)");
+
+// 4. Evidence upload authorization checks
+$requesterEvidenceUploadBlocked = false;
+try {
+    $taskRepo->validateEvidenceUpload('req_103', 'usr_1');
+} catch (\Exception $e) {
+    if ($e->getCode() === 403 && str_contains($e->getMessage(), 'Requesters cannot upload')) {
+        $requesterEvidenceUploadBlocked = true;
+    }
+}
+assertTest($requesterEvidenceUploadBlocked, "Requester blocked from uploading completion evidence (HTTP 403)");
+
+$thirdPartyEvidenceUploadBlocked = false;
+try {
+    $taskRepo->validateEvidenceUpload('req_103', 'usr_3');
+} catch (\Exception $e) {
+    if ($e->getCode() === 403 && str_contains($e->getMessage(), 'Only the assigned helper')) {
+        $thirdPartyEvidenceUploadBlocked = true;
+    }
+}
+assertTest($thirdPartyEvidenceUploadBlocked, "Unassigned third party blocked from uploading evidence (HTTP 403)");
+
+// Helper can validate evidence upload
+$helperUploadAllowed = true;
+try {
+    $taskRepo->validateEvidenceUpload('req_103', 'usr_2');
+} catch (\Exception $e) {
+    $helperUploadAllowed = false;
+}
+assertTest($helperUploadAllowed, "Assigned helper authorized to upload completion evidence");
+
+// 5. Assigned helper submits completion successfully
+$req3Submitted = $taskRepo->submitCompletion('req_103', 'usr_2', 'Picked up and delivered groceries.');
+assertTest($req3Submitted['status'] === 'PENDING_VERIFICATION', "Assigned helper submits completion successfully (PENDING_VERIFICATION)");
+
+// 6. Duplicate submission blocked with HTTP 409
+$duplicateSubmitBlocked = false;
+try {
+    $taskRepo->submitCompletion('req_103', 'usr_2', 'Submitting again right away');
+} catch (\Exception $e) {
+    if ($e->getCode() === 409 && str_contains($e->getMessage(), 'already been submitted')) {
+        $duplicateSubmitBlocked = true;
+    }
+}
+assertTest($duplicateSubmitBlocked, "Duplicate completion submission blocked with HTTP 409 Conflict");
+
+// 7. Duplicate evidence upload blocked with HTTP 409
+$duplicateUploadBlocked = false;
+try {
+    $taskRepo->validateEvidenceUpload('req_103', 'usr_2');
+} catch (\Exception $e) {
+    if ($e->getCode() === 409) {
+        $duplicateUploadBlocked = true;
+    }
+}
+assertTest($duplicateUploadBlocked, "Uploading evidence after completion already submitted blocked with HTTP 409");
+
+// 8. Helper cannot verify own task
+$helperVerifyBlocked = false;
+try {
+    $taskRepo->verifyCompletion('req_103', 'usr_2', 5, 'Self verification');
+} catch (\Exception $e) {
+    if ($e->getCode() === 403) {
+        $helperVerifyBlocked = true;
+    }
+}
+assertTest($helperVerifyBlocked, "Helper blocked from verifying task completion (HTTP 403)");
+
+// 9. Requester successfully verifies completion and awards points
+$req3Verified = $taskRepo->verifyCompletion('req_103', 'usr_1', 5, 'Thank you so much!');
+assertTest($req3Verified['status'] === 'COMPLETED', "Requester verifies completion successfully (COMPLETED)");
 
 echo "\n--- 6. Chat Privacy, Recipient Isolation & Security Tests ---\n";
 // Create distinct test users: Alice, Bob, and Charlie
@@ -567,13 +729,13 @@ $notifRepo->markAsRead($notifs[0]['id'], 'usr_1');
 $notifsUpdated = $notifRepo->getNotificationsForUser('usr_1');
 assertTest($notifsUpdated[0]['is_read'] === true, "Notification successfully marked as read");
 
-echo "\n--- 8. Safety & Emergency SOS Tests ---\n";
-$sos = $safetyRepo->triggerSos('usr_1', 37.7749, -122.4194, 'Maplewood Ave');
-assertTest($sos['status'] === 'ACTIVE', "Emergency SOS alert created in ACTIVE state");
-$safetyRepo->resolveSos($sos['id'], 'usr_1');
+$notifRepo->clearAllForUser('usr_1');
+$notifsAfterClear = $notifRepo->getNotificationsForUser('usr_1');
+assertTest(count($notifsAfterClear) === 0, "All notifications cleared for user");
 
-$history = $safetyRepo->getTaskHistory('usr_1');
-assertTest(count($history) === 1, "Completed task visible in user real task history");
+echo "\n--- 8. Real Task History Tests ---\n";
+$history = $taskRepo->getTaskHistory('usr_1');
+assertTest(count($history) >= 1, "Completed task visible in user real task history");
 assertTest($history[0]['status'] === 'Completed', "Task history derived from real database status");
 
 echo "\n==================================================\n";

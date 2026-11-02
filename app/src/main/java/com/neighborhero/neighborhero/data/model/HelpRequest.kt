@@ -16,7 +16,9 @@ data class HelpRequest(
     val assignedHelperId: String? = null,
     val assignedHelperName: String? = null,
     val requesterId: String? = null,
-    val requesterPhone: String? = null
+    val requesterPhone: String? = null,
+    val requesterAvatarUrl: String? = null,
+    val assignedHelperAvatarUrl: String? = null
 )
 
 enum class RequestStatus {

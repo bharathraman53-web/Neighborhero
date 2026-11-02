@@ -40,6 +40,10 @@ class TaskViewModel(
     private val _evidenceError = MutableStateFlow<String?>(null)
     val evidenceError: StateFlow<String?> = _evidenceError.asStateFlow()
 
+    fun clearError() {
+        _evidenceError.value = null
+    }
+
     fun confirmStart(taskId: String? = null) {
         _taskStarted.value = true
         if (taskId != null) {
@@ -52,19 +56,59 @@ class TaskViewModel(
         }
     }
 
-    fun submitCompletion(taskId: String? = null, notes: String = "") {
+    fun submitCompletion(
+        taskId: String? = null,
+        notes: String = "",
+        onDone: (Boolean, String?) -> Unit = { _, _ -> }
+    ) {
+        if (taskId == null) {
+            onDone(false, "Invalid task ID")
+            return
+        }
+        if (_isSubmitting.value) {
+            return
+        }
+        _isSubmitting.value = true
+        _evidenceError.value = null
         _taskSubmitted.value = true
-        if (taskId != null) {
-            requestRepository.updateRequestStatus(taskId, RequestStatus.PENDING_VERIFICATION)
-            viewModelScope.launch {
-                try {
-                    NetworkClient.getService().submitCompletion(
-                        taskId,
-                        SubmitCompletionDto(
-                            notes = notes.ifBlank { "Task completed as requested." }
-                        )
+        requestRepository.updateRequestStatus(taskId, RequestStatus.PENDING_VERIFICATION)
+        viewModelScope.launch {
+            try {
+                val response = NetworkClient.getService().submitCompletion(
+                    taskId,
+                    SubmitCompletionDto(
+                        notes = notes.ifBlank { "Task completed as requested." }
                     )
-                } catch (_: Exception) {}
+                )
+                if (response.isSuccessful && response.body()?.success == true) {
+                    onDone(true, null)
+                } else {
+                    _taskSubmitted.value = false
+                    requestRepository.updateRequestStatus(taskId, RequestStatus.IN_PROGRESS)
+                    val rawError = try { response.errorBody()?.string() } catch (_: Exception) { null }
+                    var err = response.body()?.message
+                    if (err.isNullOrBlank() && !rawError.isNullOrBlank()) {
+                        try {
+                            val json = org.json.JSONObject(rawError)
+                            if (json.has("message")) {
+                                err = json.getString("message")
+                            }
+                        } catch (_: Exception) {}
+                    }
+                    if (err.isNullOrBlank()) {
+                        err = when (response.code()) {
+                            403 -> "Forbidden: Only the assigned helper can submit task completion"
+                            409 -> "Task completion has already been submitted and is pending verification"
+                            else -> "Submission failed (HTTP ${response.code()})"
+                        }
+                    }
+                    _evidenceError.value = err
+                    onDone(false, err)
+                }
+            } catch (e: Exception) {
+                onDone(true, null)
+            } finally {
+                _isSubmitting.value = false
             }
         }
     }
@@ -81,9 +125,12 @@ class TaskViewModel(
             onDone(false, "Invalid task ID")
             return
         }
+        if (_isSubmitting.value) {
+            return
+        }
+        _isSubmitting.value = true
+        _evidenceError.value = null
         viewModelScope.launch {
-            _isSubmitting.value = true
-            _evidenceError.value = null
             try {
                 var photoUrl: String? = null
                 if (photoBytes != null && photoBytes.isNotEmpty()) {
@@ -94,9 +141,24 @@ class TaskViewModel(
                     if (uploadRes.isSuccessful && uploadRes.body()?.success == true) {
                         photoUrl = uploadRes.body()!!.data?.photoUrl
                     } else {
-                        val err = uploadRes.body()?.message ?: "Failed to upload proof photo (HTTP ${uploadRes.code()})"
+                        val rawError = try { uploadRes.errorBody()?.string() } catch (_: Exception) { null }
+                        var err = uploadRes.body()?.message
+                        if (err.isNullOrBlank() && !rawError.isNullOrBlank()) {
+                            try {
+                                val json = org.json.JSONObject(rawError)
+                                if (json.has("message")) {
+                                    err = json.getString("message")
+                                }
+                            } catch (_: Exception) {}
+                        }
+                        if (err.isNullOrBlank()) {
+                            err = when (uploadRes.code()) {
+                                403 -> "Forbidden: Only the assigned helper can upload completion evidence"
+                                409 -> "Task completion has already been submitted and is pending verification"
+                                else -> "Failed to upload proof photo (HTTP ${uploadRes.code()})"
+                            }
+                        }
                         _evidenceError.value = err
-                        _isSubmitting.value = false
                         onDone(false, err)
                         return@launch
                     }
@@ -115,7 +177,23 @@ class TaskViewModel(
                     requestRepository.updateRequestStatus(taskId, RequestStatus.PENDING_VERIFICATION)
                     onDone(true, null)
                 } else {
-                    val err = response.body()?.message ?: "Submission failed (HTTP ${response.code()})"
+                    val rawError = try { response.errorBody()?.string() } catch (_: Exception) { null }
+                    var err = response.body()?.message
+                    if (err.isNullOrBlank() && !rawError.isNullOrBlank()) {
+                        try {
+                            val json = org.json.JSONObject(rawError)
+                            if (json.has("message")) {
+                                err = json.getString("message")
+                            }
+                        } catch (_: Exception) {}
+                    }
+                    if (err.isNullOrBlank()) {
+                        err = when (response.code()) {
+                            403 -> "Forbidden: Only the assigned helper can submit task completion"
+                            409 -> "Task completion has already been submitted and is pending verification"
+                            else -> "Submission failed (HTTP ${response.code()})"
+                        }
+                    }
                     _evidenceError.value = err
                     onDone(false, err)
                 }

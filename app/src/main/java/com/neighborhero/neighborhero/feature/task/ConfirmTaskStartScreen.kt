@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.NetworkImage
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
@@ -142,7 +143,29 @@ fun ConfirmTaskStartScreen(
                                         .background(SurfaceContainerHigh),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (avatarRes != null) {
+                                    if (!task?.requesterAvatarUrl.isNullOrBlank()) {
+                                        NetworkImage(
+                                            url = task?.requesterAvatarUrl,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentDescription = requesterName
+                                        ) {
+                                            if (avatarRes != null) {
+                                                Image(
+                                                    painter = painterResource(id = avatarRes),
+                                                    contentDescription = requesterName,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Text(
+                                                    text = requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = OnSurface,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    } else if (avatarRes != null) {
                                         Image(
                                             painter = painterResource(id = avatarRes),
                                             contentDescription = requesterName,

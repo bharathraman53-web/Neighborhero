@@ -18,3 +18,8 @@ local.properties
 **/build/
 backend/neighborhero-api/config/local.database.php
 
+# Python virtualenvs & cache
+ai_training/.venv*/
+ai_training/__pycache__/
+*.pyc
+

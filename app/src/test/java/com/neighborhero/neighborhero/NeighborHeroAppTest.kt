@@ -278,6 +278,13 @@ class NeighborHeroAppTest {
         assertEquals("New Community Request", notificationRepository.notifications.value.first().title)
     }
 
+    @Test
+    fun testNotificationRepository_clearAllNotifications() {
+        assertTrue(notificationRepository.notifications.value.isNotEmpty())
+        notificationRepository.clear()
+        assertTrue(notificationRepository.notifications.value.isEmpty())
+    }
+
     // --- TaskViewModel Lifecycle Tests ---
     @Test
     fun testTaskViewModel_taskFlow() {

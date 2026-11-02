@@ -14,10 +14,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.data.model.HelperProfile
 import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.NetworkImage
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
@@ -86,14 +88,29 @@ fun HelperLeaderboardScreen(
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(SecondaryContainer, CircleShape),
+                                .clip(CircleShape)
+                                .background(SecondaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                helper.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = OnSecondaryContainer
-                            )
+                            if (helper.avatarUrl.isNotBlank()) {
+                                NetworkImage(
+                                    url = helper.avatarUrl,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentDescription = "${helper.name} avatar"
+                                ) {
+                                    Text(
+                                        helper.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = OnSecondaryContainer
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    helper.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = OnSecondaryContainer
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))

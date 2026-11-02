@@ -128,5 +128,5 @@ Runs 36 comprehensive tests covering:
 - Community points ledger (verifies duplicate completion points are strictly blocked)
 - Chat persistence & sender/recipient authorization
 - Notification queue & read states
-- Emergency SOS dispatch & real task history
+- Real completed task history
 

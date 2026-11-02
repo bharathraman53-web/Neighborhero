@@ -13,6 +13,7 @@ object Routes {
     const val HELP_REQUEST_DETAILS = "help_request_details"
     const val HELP_REQUEST_DETAILS_PARAM = "help_request_details/{requestId}"
     const val CREATE_REQUEST = "create_request"
+    const val CREATE_REQUEST_PARAM = "create_request?targetHelperId={targetHelperId}&targetHelperName={targetHelperName}"
     const val RECOMMENDED_HELPERS = "recommended_helpers"
     const val HELPER_PROFILE = "helper_profile"
     const val HELPER_PROFILE_PARAM = "helper_profile/{helperId}"
@@ -26,7 +27,6 @@ object Routes {
     const val SUBMIT_COMPLETION_PARAM = "submit_completion/{taskId}"
     const val VERIFY_TASK_COMPLETION = "verify_task_completion"
     const val VERIFY_TASK_COMPLETION_PARAM = "verify_task_completion/{taskId}"
-    const val SOS_AND_SAFETY = "sos_and_safety"
     const val TASK_HISTORY = "task_history"
     const val NOTIFICATIONS = "notifications"
     const val PROFILE_AND_SETTINGS = "profile_and_settings"
@@ -42,6 +42,16 @@ object Routes {
     fun activeTask(taskId: String) = "active_task/$taskId"
     fun submitCompletion(taskId: String) = "submit_completion/$taskId"
     fun verifyTaskCompletion(taskId: String) = "verify_task_completion/$taskId"
+
+    fun createRequest(targetHelperId: String? = null, targetHelperName: String? = null): String {
+        val params = mutableListOf<String>()
+        if (!targetHelperId.isNullOrBlank()) params.add("targetHelperId=$targetHelperId")
+        if (!targetHelperName.isNullOrBlank()) {
+            val encoded = try { URLEncoder.encode(targetHelperName, "UTF-8") } catch (_: Exception) { targetHelperName }
+            params.add("targetHelperName=$encoded")
+        }
+        return if (params.isEmpty()) CREATE_REQUEST else "$CREATE_REQUEST?${params.joinToString("&")}"
+    }
 
     fun chat(
         conversationId: String? = null,

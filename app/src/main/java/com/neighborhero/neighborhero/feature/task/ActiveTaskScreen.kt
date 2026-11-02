@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,20 +25,43 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.HelpRequest
+import com.neighborhero.neighborhero.data.model.RequestStatus
+import com.neighborhero.neighborhero.data.model.User
 import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.NetworkImage
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
 fun ActiveTaskScreen(
     task: HelpRequest? = null,
+    currentUser: User? = null,
     onBackClick: () -> Unit,
     onChatClick: () -> Unit,
-    onSubmitCompletionClick: () -> Unit
+    onSubmitCompletionClick: () -> Unit,
+    onVerifyCompletionClick: () -> Unit = {}
 ) {
     val title = task?.title ?: "Active Task"
     val location = task?.location ?: "Community Location"
     val requesterName = task?.requesterName ?: "Neighbor"
+
+    val isRequester = currentUser != null && (
+        (currentUser.id.isNotBlank() && currentUser.id == task?.requesterId) ||
+        (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(task?.requesterName, ignoreCase = true))
+    )
+    val isAssignedHelper = currentUser != null && (
+        (currentUser.id.isNotBlank() && currentUser.id == task?.assignedHelperId) ||
+        (!task?.assignedHelperName.isNullOrBlank() && currentUser.fullName.equals(task?.assignedHelperName, ignoreCase = true))
+    )
+    val isPendingVerification = (task?.status == RequestStatus.PENDING_VERIFICATION)
+
+    val partnerName = if (isRequester) {
+        task?.assignedHelperName?.takeIf { it.isNotBlank() } ?: "Assigned Helper"
+    } else {
+        requesterName
+    }
+    val partnerRole = if (isRequester) "Helper Neighbor" else "Requester Neighbor"
+    val partnerAvatarUrl = if (isRequester) task?.assignedHelperAvatarUrl else task?.requesterAvatarUrl
 
     Scaffold(
         topBar = { AppTopBar(title = "Active Task", onBackClick = onBackClick) }
@@ -57,7 +81,12 @@ fun ActiveTaskScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
-                            Text("Task In Progress", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = OnSecondaryContainer)
+                            Text(
+                                text = if (isPendingVerification) "Pending Verification" else "Task In Progress",
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = OnSecondaryContainer
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -88,10 +117,10 @@ fun ActiveTaskScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             val avatarRes = when {
-                                requesterName.contains("Martha", ignoreCase = true) -> R.drawable.img_elderly_martha
-                                requesterName.contains("Marcus", ignoreCase = true) -> R.drawable.img_contact_marcus
-                                requesterName.contains("Sarah", ignoreCase = true) -> R.drawable.img_contact_sarah
-                                requesterName.contains("Eleanor", ignoreCase = true) -> R.drawable.img_eleanor_vance
+                                partnerName.contains("Martha", ignoreCase = true) -> R.drawable.img_elderly_martha
+                                partnerName.contains("Marcus", ignoreCase = true) -> R.drawable.img_contact_marcus
+                                partnerName.contains("Sarah", ignoreCase = true) -> R.drawable.img_contact_sarah
+                                partnerName.contains("Eleanor", ignoreCase = true) -> R.drawable.img_eleanor_vance
                                 else -> null
                             }
 
@@ -102,16 +131,37 @@ fun ActiveTaskScreen(
                                     .background(PrimaryFixed),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (avatarRes != null) {
+                                if (!partnerAvatarUrl.isNullOrBlank()) {
+                                    NetworkImage(
+                                        url = partnerAvatarUrl,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentDescription = partnerName
+                                    ) {
+                                        if (avatarRes != null) {
+                                            Image(
+                                                painter = painterResource(id = avatarRes),
+                                                contentDescription = partnerName,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Text(
+                                                text = partnerName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = OnPrimaryFixed
+                                            )
+                                        }
+                                    }
+                                } else if (avatarRes != null) {
                                     Image(
                                         painter = painterResource(id = avatarRes),
-                                        contentDescription = requesterName,
+                                        contentDescription = partnerName,
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop
                                     )
                                 } else {
                                     Text(
-                                        text = requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                        text = partnerName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
                                         style = MaterialTheme.typography.titleMedium,
                                         color = OnPrimaryFixed
                                     )
@@ -121,8 +171,8 @@ fun ActiveTaskScreen(
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Column {
-                                Text(requesterName, style = MaterialTheme.typography.headlineSmall, color = OnSurface)
-                                Text("Requester Neighbor", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                                Text(partnerName, style = MaterialTheme.typography.headlineSmall, color = OnSurface)
+                                Text(partnerRole, style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
                             }
                         }
 
@@ -147,10 +197,66 @@ fun ActiveTaskScreen(
                 }
             }
 
-            PrimaryButton(onClick = onSubmitCompletionClick) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Submit Task Completion", style = MaterialTheme.typography.labelLarge)
+            if (isRequester) {
+                if (isPendingVerification) {
+                    PrimaryButton(onClick = onVerifyCompletionClick) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Review & Verify Completion", style = MaterialTheme.typography.labelLarge)
+                    }
+                } else {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = SurfaceContainerLow,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = Primary)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Your helper is currently completing this task. Once they submit evidence, you can verify completion and release points here.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = OnSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            } else if (isAssignedHelper) {
+                if (isPendingVerification) {
+                    PrimaryButton(onClick = {}, enabled = false) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Completion Submitted — Awaiting Review", style = MaterialTheme.typography.labelLarge)
+                    }
+                } else {
+                    PrimaryButton(onClick = onSubmitCompletionClick) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Submit Task Completion", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = SurfaceContainerLow,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = Primary)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "This task is currently active between ${task?.requesterName ?: "requester"} and ${task?.assignedHelperName ?: "assigned helper"}.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Handshake
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.ShoppingBasket
@@ -30,17 +31,64 @@ import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.data.model.RequestStatus
+import com.neighborhero.neighborhero.data.model.User
 import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.NetworkImage
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
 fun HelpRequestDetailsScreen(
-    request: HelpRequest,
+    request: HelpRequest? = null,
+    currentUser: User? = null,
     onBackClick: () -> Unit,
     onAcceptClick: () -> Unit,
     onChatClick: () -> Unit
 ) {
+    if (request == null) {
+        Scaffold(
+            topBar = { AppTopBar(title = "Help Request Details", onBackClick = onBackClick) }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = Outline, modifier = Modifier.size(36.dp))
+                        Text("Request Not Found", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = OnSurface)
+                        Text("This request may have been completed, cancelled, or is no longer available.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        PrimaryButton(onClick = onBackClick) {
+                            Text("Back to Dashboard")
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
+
+    val isRequester = currentUser != null && (
+        (currentUser.id.isNotBlank() && currentUser.id == request.requesterId) ||
+        (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(request.requesterName, ignoreCase = true))
+    )
+    val isAssignedHelper = currentUser != null && (
+        (currentUser.id.isNotBlank() && currentUser.id == request.assignedHelperId) ||
+        (!request.assignedHelperName.isNullOrBlank() && currentUser.fullName.equals(request.assignedHelperName, ignoreCase = true))
+    )
     Scaffold(
         topBar = { AppTopBar(title = "Help Request Details", onBackClick = onBackClick) }
     ) { innerPadding ->
@@ -52,6 +100,27 @@ fun HelpRequestDetailsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (isRequester) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = PrimaryFixed,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = OnPrimaryFixed, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "You posted this request. You can track progress and verify completion once finished.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = OnPrimaryFixed
+                        )
+                    }
+                }
+            }
+
             // Status & Urgency Header Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -154,7 +223,29 @@ fun HelpRequestDetailsScreen(
                                 .background(SecondaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (avatarRes != null) {
+                            if (!request.requesterAvatarUrl.isNullOrBlank()) {
+                                NetworkImage(
+                                    url = request.requesterAvatarUrl,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentDescription = request.requesterName
+                                ) {
+                                    if (avatarRes != null) {
+                                        Image(
+                                            painter = painterResource(id = avatarRes),
+                                            contentDescription = request.requesterName,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Text(
+                                            text = request.requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = OnSecondaryContainer,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            } else if (avatarRes != null) {
                                 Image(
                                     painter = painterResource(id = avatarRes),
                                     contentDescription = request.requesterName,
@@ -205,16 +296,83 @@ fun HelpRequestDetailsScreen(
                 }
             }
 
-            PrimaryButton(onClick = onAcceptClick) {
+            val buttonEnabled: Boolean
+            val buttonText: String
+            val buttonAction: () -> Unit
+
+            if (isRequester) {
+                when (request.status) {
+                    RequestStatus.OPEN -> {
+                        buttonEnabled = false
+                        buttonText = "Waiting for Helper to Offer Assistance"
+                        buttonAction = {}
+                    }
+                    RequestStatus.IN_PROGRESS -> {
+                        buttonEnabled = true
+                        buttonText = "Helper Working on Task — View Progress"
+                        buttonAction = onAcceptClick
+                    }
+                    RequestStatus.PENDING_VERIFICATION -> {
+                        buttonEnabled = true
+                        buttonText = "Review & Verify Completion"
+                        buttonAction = onAcceptClick
+                    }
+                    RequestStatus.COMPLETED -> {
+                        buttonEnabled = false
+                        buttonText = "Task Completed"
+                        buttonAction = {}
+                    }
+                    RequestStatus.CANCELLED -> {
+                        buttonEnabled = false
+                        buttonText = "Request Cancelled"
+                        buttonAction = {}
+                    }
+                }
+            } else {
+                when (request.status) {
+                    RequestStatus.OPEN -> {
+                        buttonEnabled = true
+                        buttonText = "Offer Help / Accept Request"
+                        buttonAction = onAcceptClick
+                    }
+                    RequestStatus.IN_PROGRESS -> {
+                        if (isAssignedHelper) {
+                            buttonEnabled = true
+                            buttonText = "Continue Active Task"
+                            buttonAction = onAcceptClick
+                        } else {
+                            buttonEnabled = false
+                            buttonText = "In Progress (Another helper assigned)"
+                            buttonAction = {}
+                        }
+                    }
+                    RequestStatus.PENDING_VERIFICATION -> {
+                        if (isAssignedHelper) {
+                            buttonEnabled = true
+                            buttonText = "Completion Submitted (Pending Review)"
+                            buttonAction = onAcceptClick
+                        } else {
+                            buttonEnabled = false
+                            buttonText = "Pending Requester Verification"
+                            buttonAction = {}
+                        }
+                    }
+                    RequestStatus.COMPLETED -> {
+                        buttonEnabled = false
+                        buttonText = "Task Completed"
+                        buttonAction = {}
+                    }
+                    RequestStatus.CANCELLED -> {
+                        buttonEnabled = false
+                        buttonText = "Request Cancelled"
+                        buttonAction = {}
+                    }
+                }
+            }
+
+            PrimaryButton(onClick = buttonAction, enabled = buttonEnabled) {
                 Icon(Icons.Default.Handshake, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                val buttonText = when (request.status) {
-                    RequestStatus.OPEN -> "Offer Help / Accept Request"
-                    RequestStatus.IN_PROGRESS -> "Continue Active Task"
-                    RequestStatus.PENDING_VERIFICATION -> "Pending Verification"
-                    RequestStatus.COMPLETED -> "Task Completed"
-                    RequestStatus.CANCELLED -> "Request Cancelled"
-                }
                 Text(buttonText, style = MaterialTheme.typography.labelLarge)
             }
         }

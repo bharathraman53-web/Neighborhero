@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.HelperProfile
 import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.NetworkImage
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
@@ -58,7 +59,36 @@ fun HelperProfileScreen(
                 colors = CardDefaults.cardColors(containerColor = SurfaceContainer)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    if (helper.name.contains("Vikram", ignoreCase = true)) {
+                    if (helper.avatarUrl.isNotBlank()) {
+                        NetworkImage(
+                            url = helper.avatarUrl,
+                            modifier = Modifier.fillMaxSize(),
+                            contentDescription = "${helper.name} portrait",
+                            contentScale = ContentScale.Crop
+                        ) {
+                            if (helper.name.contains("Vikram", ignoreCase = true)) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_helper_vikram),
+                                    contentDescription = "${helper.name} portrait",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Primary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = helper.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                        style = MaterialTheme.typography.displayLarge,
+                                        color = OnPrimary
+                                    )
+                                }
+                            }
+                        }
+                    } else if (helper.name.contains("Vikram", ignoreCase = true)) {
                         Image(
                             painter = painterResource(id = R.drawable.img_helper_vikram),
                             contentDescription = "${helper.name} portrait",

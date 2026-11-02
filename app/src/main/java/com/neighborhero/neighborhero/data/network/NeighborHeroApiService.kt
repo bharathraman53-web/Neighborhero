@@ -125,14 +125,11 @@ interface NeighborHeroApiService {
     @POST("notifications/read-all")
     suspend fun markAllNotificationsAsRead(): Response<ApiResponse<Unit>>
 
-    // --- Safety & History ---
-    @POST("safety/sos")
-    suspend fun triggerSos(@Body body: TriggerSosDto): Response<ApiResponse<SosAlertDto>>
+    @DELETE("notifications")
+    suspend fun clearAllNotifications(): Response<ApiResponse<Unit>>
 
-    @POST("safety/sos/{id}/resolve")
-    suspend fun resolveSos(@Path("id") id: String): Response<ApiResponse<Map<String, Any>>>
-
-    @GET("safety/task-history")
+    // --- Task History ---
+    @GET("tasks/history")
     suspend fun getTaskHistory(): Response<ApiResponse<List<TaskHistoryDto>>>
 }
 

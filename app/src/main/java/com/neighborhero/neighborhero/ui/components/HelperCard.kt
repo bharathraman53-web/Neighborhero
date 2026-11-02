@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.data.model.HelperProfile
@@ -36,14 +37,29 @@ fun HelperCard(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .background(PrimaryFixed, CircleShape),
+                        .clip(CircleShape)
+                        .background(PrimaryFixed),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = helper.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = OnPrimaryFixed
-                    )
+                    if (helper.avatarUrl.isNotBlank()) {
+                        NetworkImage(
+                            url = helper.avatarUrl,
+                            modifier = Modifier.fillMaxSize(),
+                            contentDescription = "${helper.name} avatar"
+                        ) {
+                            Text(
+                                text = helper.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = OnPrimaryFixed
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = helper.name.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = OnPrimaryFixed
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))

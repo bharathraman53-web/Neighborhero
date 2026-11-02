@@ -252,20 +252,3 @@ CREATE TABLE IF NOT EXISTS notifications (
     CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ------------------------------------------------------------------------------
--- 14. SOS ALERTS TABLE
--- Emergency security alerts with geographic positioning.
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS sos_alerts (
-    id VARCHAR(64) NOT NULL PRIMARY KEY,
-    user_id VARCHAR(64) NOT NULL,
-    latitude DECIMAL(10, 8) NULL,
-    longitude DECIMAL(11, 8) NULL,
-    address VARCHAR(255) NOT NULL DEFAULT 'Maplewood District',
-    alert_type VARCHAR(64) NOT NULL DEFAULT 'EMERGENCY_SOS', -- EMERGENCY_SOS, SUSPICIOUS_ACTIVITY, HAZARD
-    status ENUM('ACTIVE', 'RESOLVED', 'CANCELLED') NOT NULL DEFAULT 'ACTIVE',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_sos_status (status),
-    CONSTRAINT fk_sos_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-

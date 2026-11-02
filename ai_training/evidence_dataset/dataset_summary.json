@@ -1,0 +1,17 @@
+{
+  "total_images": 219,
+  "categories": {
+    "groceries": 50,
+    "pet_help": 50,
+    "repairs": 69,
+    "unrelated": 50
+  },
+  "splits": {
+    "train": 152,
+    "validation": 31,
+    "test": 36
+  },
+  "format": "RGB JPEG",
+  "max_dimension": 512,
+  "manifest_file": "manifest.csv"
+}

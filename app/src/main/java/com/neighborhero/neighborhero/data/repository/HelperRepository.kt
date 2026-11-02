@@ -132,7 +132,7 @@ class HelperRepository(
             skills = dto.skills,
             isVerified = dto.isVerified,
             isAvailableToday = dto.isAvailableToday,
-            avatarUrl = dto.avatarUrl
+            avatarUrl = dto.resolvedAvatarUrl
         )
     }
 }

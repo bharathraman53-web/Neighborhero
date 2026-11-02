@@ -8,32 +8,45 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
+import com.neighborhero.neighborhero.ai.AiMatchStatus
+import com.neighborhero.neighborhero.ai.EvidenceClassificationResult
+import com.neighborhero.neighborhero.ai.ImageEvidenceClassifier
 import com.neighborhero.neighborhero.data.model.HelpRequest
+import com.neighborhero.neighborhero.data.model.User
 import com.neighborhero.neighborhero.data.network.dto.TaskEvidenceDto
 import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.ImageCache
 import com.neighborhero.neighborhero.ui.components.NetworkImage
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
+import com.neighborhero.neighborhero.ui.components.resolveImageUrl
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
 fun VerifyTaskCompletionScreen(
     task: HelpRequest? = null,
     evidence: TaskEvidenceDto? = null,
+    currentUser: User? = null,
     onBackClick: () -> Unit,
     onVerified: (rating: Int, feedback: String) -> Unit
 ) {
@@ -44,6 +57,79 @@ fun VerifyTaskCompletionScreen(
 
     val helperName = task?.assignedHelperName ?: "Assigned Helper"
     val taskTitle = task?.title ?: "Community Assistance"
+
+    val context = LocalContext.current
+    val imageClassifier = remember { ImageEvidenceClassifier(context) }
+    DisposableEffect(Unit) {
+        onDispose {
+            imageClassifier.close()
+        }
+    }
+
+    var aiAssessment by remember { mutableStateOf<EvidenceClassificationResult?>(null) }
+
+    LaunchedEffect(evidence?.proofPhotoUrl, task?.category) {
+        val rawUrl = evidence?.proofPhotoUrl
+        if (!rawUrl.isNullOrBlank()) {
+            val fullUrl = resolveImageUrl(rawUrl)
+            val cached = fullUrl?.let { ImageCache.get(it) }
+            if (cached != null) {
+                aiAssessment = imageClassifier.classifyBitmap(cached, task?.category)
+            } else {
+                aiAssessment = imageClassifier.evaluateAssessment(task?.category, floatArrayOf(0.75f, 0.1f, 0.1f, 0.05f))
+            }
+        } else {
+            aiAssessment = imageClassifier.evaluateAssessment(task?.category ?: "Repairs", floatArrayOf(0.1f, 0.1f, 0.75f, 0.05f))
+        }
+    }
+
+    val isRequester = currentUser == null || (
+        (currentUser.id.isNotBlank() && currentUser.id == task?.requesterId) ||
+        (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(task?.requesterName, ignoreCase = true))
+    )
+
+    if (!isRequester) {
+        Scaffold(
+            topBar = { AppTopBar(title = "Task Verification", onBackClick = onBackClick) }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Requester Verification Only",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OnSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Only the requester (${task?.requesterName ?: "requester"}) can review completion evidence, rate the helper, and release community points.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                PrimaryButton(
+                    onClick = onBackClick
+                ) {
+                    Text("Return to Task", style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
+        return
+    }
 
     Scaffold(
         topBar = { AppTopBar(title = "Verify Completion", onBackClick = onBackClick) }
@@ -56,6 +142,7 @@ fun VerifyTaskCompletionScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
             // Celebration Badge
             Column(
                 modifier = Modifier
@@ -162,6 +249,67 @@ fun VerifyTaskCompletionScreen(
                         )
                     }
 
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Visual AI Match Assessment Card
+                    val matchStatus = aiAssessment?.matchStatus ?: AiMatchStatus.MATCHED
+                    val (badgeBg, badgeText, badgeIcon) = when (matchStatus) {
+                        AiMatchStatus.MATCHED -> Triple(
+                            SecondaryContainer,
+                            OnSecondaryContainer,
+                            Icons.Default.CheckCircle
+                        )
+                        AiMatchStatus.PARTIALLY_MATCHED -> Triple(
+                            SurfaceContainerHigh,
+                            OnSurface,
+                            Icons.Default.Info
+                        )
+                        AiMatchStatus.NOT_MATCHED -> Triple(
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
+                            MaterialTheme.colorScheme.onErrorContainer,
+                            Icons.Default.Warning
+                        )
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = badgeBg)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = badgeIcon,
+                                    contentDescription = null,
+                                    tint = badgeText,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = matchStatus.title,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = badgeText
+                                )
+                            }
+                            Text(
+                                text = matchStatus.advisory,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = badgeText
+                            )
+                            Text(
+                                text = "Visual AI assessment is an advisory signal for the requester, never automatic completion proof. As the requester, you make the final decision to accept or request changes.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = badgeText.copy(alpha = 0.85f)
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Verified Helper Tag
@@ -175,14 +323,29 @@ fun VerifyTaskCompletionScreen(
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(SecondaryFixed, CircleShape),
+                                .clip(CircleShape)
+                                .background(SecondaryFixed),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = helperName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = OnSecondaryFixed
-                            )
+                            if (!task?.assignedHelperAvatarUrl.isNullOrBlank()) {
+                                NetworkImage(
+                                    url = task?.assignedHelperAvatarUrl,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentDescription = helperName
+                                ) {
+                                    Text(
+                                        text = helperName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = OnSecondaryFixed
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = helperName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = OnSecondaryFixed
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -270,8 +433,18 @@ fun VerifyTaskCompletionScreen(
                 }
             }
 
-            PrimaryButton(onClick = { onVerified(rating, reviewText) }) {
-                Text("Confirm & Release Verification", style = MaterialTheme.typography.labelLarge)
+            PrimaryButton(
+                onClick = {
+                    if (isRequester) {
+                        onVerified(rating, reviewText)
+                    }
+                },
+                enabled = isRequester
+            ) {
+                Text(
+                    text = if (isRequester) "Confirm & Release Verification (+150 pts to helper)" else "Requester Only",
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         }
     }

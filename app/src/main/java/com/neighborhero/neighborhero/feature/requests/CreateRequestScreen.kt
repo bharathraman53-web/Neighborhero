@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Title
@@ -21,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.data.model.RequestCategory
@@ -32,6 +34,8 @@ import com.neighborhero.neighborhero.ui.theme.*
 @Composable
 fun CreateRequestScreen(
     onBackClick: () -> Unit,
+    targetHelperId: String? = null,
+    targetHelperName: String? = null,
     onSubmitRequest: (title: String, category: String, description: String, time: String, location: String) -> Unit
 ) {
     val context = LocalContext.current
@@ -64,6 +68,40 @@ fun CreateRequestScreen(
             Column {
                 Text("Ask your neighbors", style = MaterialTheme.typography.headlineLarge, color = OnSurface)
                 Text("Need a hand with something local? Drop your request below.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
+            }
+
+            if (!targetHelperName.isNullOrBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = SecondaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Handshake,
+                            contentDescription = null,
+                            tint = OnSecondaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "Direct Request for $targetHelperName",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = OnSecondaryContainer
+                            )
+                            Text(
+                                text = "This help request will be assigned directly to $targetHelperName.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSecondaryContainer
+                            )
+                        }
+                    }
+                }
             }
 
             // NLP Smart Suggestion Pill

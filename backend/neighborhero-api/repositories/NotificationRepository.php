@@ -54,6 +54,23 @@ class NotificationRepository {
         return $stmt->execute([':uid' => $userId]);
     }
 
+    public function clearAllForUser(string $userId): bool {
+        $stmt = $this->pdo->prepare(
+            "DELETE FROM notifications WHERE user_id = :uid"
+        );
+        return $stmt->execute([':uid' => $userId]);
+    }
+
+    public function create(array $data): array {
+        return $this->createNotification(
+            $data['user_id'],
+            $data['title'],
+            $data['message'],
+            $data['type'] ?? 'SYSTEM',
+            $data['related_request_id'] ?? null
+        );
+    }
+
     public function createNotification(string $userId, string $title, string $message, string $type, ?string $relatedRequestId = null): array {
         $id = 'notif_' . bin2hex(random_bytes(10));
         $now = gmdate('Y-m-d H:i:s');

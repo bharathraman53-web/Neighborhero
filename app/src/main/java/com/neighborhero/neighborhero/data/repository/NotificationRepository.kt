@@ -88,6 +88,21 @@ class NotificationRepository(
         } catch (_: Exception) {}
     }
 
+    suspend fun clearAllNotifications(): Result<Unit> {
+        _notifications.value = emptyList()
+        cacheDao?.clear()
+        return try {
+            val response = apiService.clearAllNotifications()
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Failed to clear notifications"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun clear() {
         _notifications.value = emptyList()
         cacheDao?.clear()

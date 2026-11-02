@@ -13,9 +13,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.neighborhero.neighborhero.data.model.NotificationType
 import com.neighborhero.neighborhero.data.model.RequestStatus
 import com.neighborhero.neighborhero.data.network.NetworkClient
-import com.neighborhero.neighborhero.data.network.dto.TriggerSosDto
 import kotlinx.coroutines.launch
 import com.neighborhero.neighborhero.feature.auth.CommunityOnboardingScreen
 import com.neighborhero.neighborhero.feature.auth.CreateAccountScreen
@@ -33,7 +33,6 @@ import com.neighborhero.neighborhero.feature.requests.CreateRequestScreen
 import com.neighborhero.neighborhero.feature.requests.HelpRequestDetailsScreen
 import com.neighborhero.neighborhero.feature.requests.MyRequestsScreen
 import com.neighborhero.neighborhero.feature.requests.NearbyRequestsScreen
-import com.neighborhero.neighborhero.feature.safety.SosAndSafetyScreen
 import com.neighborhero.neighborhero.feature.settings.SettingsAndPrivacyScreen
 import com.neighborhero.neighborhero.feature.task.ActiveTaskScreen
 import com.neighborhero.neighborhero.feature.task.ConfirmTaskStartScreen
@@ -191,7 +190,6 @@ fun AppNavigation(
                 onRequestClick = { req -> navController.navigate(Routes.helpRequestDetails(req.id)) },
                 onHelperClick = { helper -> navController.navigate(Routes.helperProfile(helper.id)) },
                 onCreateRequestClick = { navController.navigate(Routes.CREATE_REQUEST) },
-                onSosClick = { navController.navigate(Routes.SOS_AND_SAFETY) },
                 onActiveTaskClick = { activeTask ->
                     val taskId = activeTask?.id ?: requests.firstOrNull { it.status == RequestStatus.IN_PROGRESS }?.id
                     if (taskId != null) {
@@ -219,31 +217,44 @@ fun AppNavigation(
             arguments = listOf(navArgument("requestId") { type = NavType.StringType })
         ) { backStackEntry ->
             val reqId = backStackEntry.arguments?.getString("requestId")
-            val req = requestViewModel.getRequest(reqId) ?: requests.firstOrNull()
-            if (req != null) {
-                HelpRequestDetailsScreen(
-                    request = req,
-                    onBackClick = { navController.popBackStack() },
-                    onAcceptClick = {
-                        when (req.status) {
-                            RequestStatus.OPEN -> {
-                                requestViewModel.acceptRequest(req.id, currentUser.fullName)
-                                navController.navigate(Routes.confirmTaskStart(req.id))
+            val req = requestViewModel.getRequest(reqId) ?: requests.firstOrNull { it.id == reqId } ?: requests.firstOrNull()
+            HelpRequestDetailsScreen(
+                request = req,
+                currentUser = currentUser,
+                onBackClick = { navController.popBackStack() },
+                onAcceptClick = {
+                    if (req != null) {
+                        val isReqOwner = (currentUser.id.isNotBlank() && currentUser.id == req.requesterId) ||
+                                (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(req.requesterName, ignoreCase = true))
+                        if (isReqOwner) {
+                            when (req.status) {
+                                RequestStatus.IN_PROGRESS -> navController.navigate(Routes.activeTask(req.id))
+                                RequestStatus.PENDING_VERIFICATION -> navController.navigate(Routes.verifyTaskCompletion(req.id))
+                                else -> {}
                             }
-                            RequestStatus.IN_PROGRESS -> {
-                                navController.navigate(Routes.activeTask(req.id))
-                            }
-                            RequestStatus.PENDING_VERIFICATION -> {
-                                navController.navigate(Routes.verifyTaskCompletion(req.id))
-                            }
-                            else -> {
-                                navController.navigate(Routes.activeTask(req.id))
+                        } else {
+                            when (req.status) {
+                                RequestStatus.OPEN -> {
+                                    requestViewModel.acceptRequest(req.id, currentUser.fullName)
+                                    navController.navigate(Routes.confirmTaskStart(req.id))
+                                }
+                                RequestStatus.IN_PROGRESS -> {
+                                    navController.navigate(Routes.activeTask(req.id))
+                                }
+                                RequestStatus.PENDING_VERIFICATION -> {
+                                    navController.navigate(Routes.activeTask(req.id))
+                                }
+                                else -> {
+                                    navController.navigate(Routes.activeTask(req.id))
+                                }
                             }
                         }
-                    },
-                    onChatClick = {
+                    }
+                },
+                onChatClick = {
+                    if (req != null) {
                         val isUserRequester = (currentUser.id.isNotBlank() && currentUser.id == req.requesterId) ||
-                                (currentUser.fullName.isNotBlank() && currentUser.fullName == req.requesterName)
+                                (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(req.requesterName, ignoreCase = true))
                         val targetRecipientId = if (isUserRequester) req.assignedHelperId else (req.requesterId ?: req.requesterName)
                         val targetRecipientName = if (isUserRequester) (req.assignedHelperName ?: "Assigned Helper") else req.requesterName
                         if (!targetRecipientId.isNullOrBlank()) {
@@ -255,8 +266,8 @@ fun AppNavigation(
                             )
                         }
                     }
-                )
-            }
+                }
+            )
         }
 
         composable(Routes.HELP_REQUEST_DETAILS) {
@@ -264,27 +275,38 @@ fun AppNavigation(
             if (req != null) {
                 HelpRequestDetailsScreen(
                     request = req,
+                    currentUser = currentUser,
                     onBackClick = { navController.popBackStack() },
                     onAcceptClick = {
-                        when (req.status) {
-                            RequestStatus.OPEN -> {
-                                requestViewModel.acceptRequest(req.id, currentUser.fullName)
-                                navController.navigate(Routes.confirmTaskStart(req.id))
+                        val isReqOwner = (currentUser.id.isNotBlank() && currentUser.id == req.requesterId) ||
+                                (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(req.requesterName, ignoreCase = true))
+                        if (isReqOwner) {
+                            when (req.status) {
+                                RequestStatus.IN_PROGRESS -> navController.navigate(Routes.activeTask(req.id))
+                                RequestStatus.PENDING_VERIFICATION -> navController.navigate(Routes.verifyTaskCompletion(req.id))
+                                else -> {}
                             }
-                            RequestStatus.IN_PROGRESS -> {
-                                navController.navigate(Routes.activeTask(req.id))
-                            }
-                            RequestStatus.PENDING_VERIFICATION -> {
-                                navController.navigate(Routes.verifyTaskCompletion(req.id))
-                            }
-                            else -> {
-                                navController.navigate(Routes.activeTask(req.id))
+                        } else {
+                            when (req.status) {
+                                RequestStatus.OPEN -> {
+                                    requestViewModel.acceptRequest(req.id, currentUser.fullName)
+                                    navController.navigate(Routes.confirmTaskStart(req.id))
+                                }
+                                RequestStatus.IN_PROGRESS -> {
+                                    navController.navigate(Routes.activeTask(req.id))
+                                }
+                                RequestStatus.PENDING_VERIFICATION -> {
+                                    navController.navigate(Routes.activeTask(req.id))
+                                }
+                                else -> {
+                                    navController.navigate(Routes.activeTask(req.id))
+                                }
                             }
                         }
                     },
                     onChatClick = {
                         val isUserRequester = (currentUser.id.isNotBlank() && currentUser.id == req.requesterId) ||
-                                (currentUser.fullName.isNotBlank() && currentUser.fullName == req.requesterName)
+                                (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(req.requesterName, ignoreCase = true))
                         val targetRecipientId = if (isUserRequester) req.assignedHelperId else (req.requesterId ?: req.requesterName)
                         val targetRecipientName = if (isUserRequester) (req.assignedHelperName ?: "Assigned Helper") else req.requesterName
                         if (!targetRecipientId.isNullOrBlank()) {
@@ -300,7 +322,48 @@ fun AppNavigation(
             }
         }
 
-        // 9. Create Request
+        // 9. Create Request (direct with target helper or general)
+        composable(
+            route = Routes.CREATE_REQUEST_PARAM,
+            arguments = listOf(
+                navArgument("targetHelperId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("targetHelperName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val targetHelperId = backStackEntry.arguments?.getString("targetHelperId")
+            val rawTargetHelperName = backStackEntry.arguments?.getString("targetHelperName")
+            val targetHelperName = rawTargetHelperName?.let {
+                try { java.net.URLDecoder.decode(it, "UTF-8") } catch (_: Exception) { it }
+            }
+            CreateRequestScreen(
+                targetHelperId = targetHelperId,
+                targetHelperName = targetHelperName,
+                onBackClick = { navController.popBackStack() },
+                onSubmitRequest = { title, cat, desc, time, loc ->
+                    requestViewModel.createRequest(
+                        title = title,
+                        category = cat,
+                        description = desc,
+                        time = time,
+                        location = loc,
+                        assignedHelperId = targetHelperId,
+                        assignedHelperName = targetHelperName
+                    )
+                    navController.navigate(Routes.NEARBY_REQUESTS) {
+                        popUpTo(Routes.HOME)
+                    }
+                }
+            )
+        }
+
         composable(Routes.CREATE_REQUEST) {
             CreateRequestScreen(
                 onBackClick = { navController.popBackStack() },
@@ -335,7 +398,7 @@ fun AppNavigation(
                     onBackClick = { navController.popBackStack() },
                     onRequestHelperClick = {
                         navController.navigate(
-                            Routes.chat(recipientId = helper.id, recipientName = helper.name)
+                            Routes.createRequest(targetHelperId = helper.id, targetHelperName = helper.name)
                         )
                     },
                     onChatClick = {
@@ -355,7 +418,7 @@ fun AppNavigation(
                     onBackClick = { navController.popBackStack() },
                     onRequestHelperClick = {
                         navController.navigate(
-                            Routes.chat(recipientId = helper.id, recipientName = helper.name)
+                            Routes.createRequest(targetHelperId = helper.id, targetHelperName = helper.name)
                         )
                     },
                     onChatClick = {
@@ -438,20 +501,30 @@ fun AppNavigation(
             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
         ) { backStackEntry ->
             val taskId = backStackEntry.arguments?.getString("taskId")
-            val task = requestViewModel.getRequest(taskId) ?: requests.firstOrNull { it.status == RequestStatus.IN_PROGRESS }
+            val task = requestViewModel.getRequest(taskId) ?: requests.firstOrNull { it.id == taskId } ?: requests.firstOrNull() ?: requests.firstOrNull { it.id == taskId } ?: requests.firstOrNull { it.status == RequestStatus.IN_PROGRESS }
             ActiveTaskScreen(
                 task = task,
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() },
                 onChatClick = {
-                    navController.navigate(
-                        Routes.chat(
-                            recipientId = task?.assignedHelperId,
-                            recipientName = task?.assignedHelperName ?: "Task Partner"
+                    val isReqOwner = (currentUser.id.isNotBlank() && currentUser.id == task?.requesterId) ||
+                            (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(task?.requesterName, ignoreCase = true))
+                    val targetRecipientId = if (isReqOwner) task?.assignedHelperId else (task?.requesterId ?: task?.requesterName)
+                    val targetRecipientName = if (isReqOwner) (task?.assignedHelperName ?: "Assigned Helper") else (task?.requesterName ?: "Requester Neighbor")
+                    if (!targetRecipientId.isNullOrBlank()) {
+                        navController.navigate(
+                            Routes.chat(
+                                recipientId = targetRecipientId,
+                                recipientName = targetRecipientName
+                            )
                         )
-                    )
+                    }
                 },
                 onSubmitCompletionClick = {
                     navController.navigate(Routes.submitCompletion(task?.id ?: taskId ?: ""))
+                },
+                onVerifyCompletionClick = {
+                    navController.navigate(Routes.verifyTaskCompletion(task?.id ?: taskId ?: ""))
                 }
             )
         }
@@ -460,17 +533,27 @@ fun AppNavigation(
             val task = requests.firstOrNull { it.status == RequestStatus.IN_PROGRESS } ?: requests.firstOrNull()
             ActiveTaskScreen(
                 task = task,
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() },
                 onChatClick = {
-                    navController.navigate(
-                        Routes.chat(
-                            recipientId = task?.assignedHelperId,
-                            recipientName = task?.assignedHelperName ?: "Task Partner"
+                    val isReqOwner = (currentUser.id.isNotBlank() && currentUser.id == task?.requesterId) ||
+                            (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(task?.requesterName, ignoreCase = true))
+                    val targetRecipientId = if (isReqOwner) task?.assignedHelperId else (task?.requesterId ?: task?.requesterName)
+                    val targetRecipientName = if (isReqOwner) (task?.assignedHelperName ?: "Assigned Helper") else (task?.requesterName ?: "Requester Neighbor")
+                    if (!targetRecipientId.isNullOrBlank()) {
+                        navController.navigate(
+                            Routes.chat(
+                                recipientId = targetRecipientId,
+                                recipientName = targetRecipientName
+                            )
                         )
-                    )
+                    }
                 },
                 onSubmitCompletionClick = {
                     navController.navigate(Routes.submitCompletion(task?.id ?: ""))
+                },
+                onVerifyCompletionClick = {
+                    navController.navigate(Routes.verifyTaskCompletion(task?.id ?: ""))
                 }
             )
         }
@@ -481,7 +564,7 @@ fun AppNavigation(
             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
         ) { backStackEntry ->
             val taskId = backStackEntry.arguments?.getString("taskId")
-            val task = requestViewModel.getRequest(taskId)
+            val task = requestViewModel.getRequest(taskId) ?: requests.firstOrNull { it.id == taskId } ?: requests.firstOrNull()
             ConfirmTaskStartScreen(
                 task = task,
                 onBackClick = { navController.popBackStack() },
@@ -510,13 +593,33 @@ fun AppNavigation(
             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
         ) { backStackEntry ->
             val taskId = backStackEntry.arguments?.getString("taskId")
-            val task = requestViewModel.getRequest(taskId)
+            val task = requestViewModel.getRequest(taskId) ?: requests.firstOrNull { it.id == taskId } ?: requests.firstOrNull()
+            val isRequester = currentUser.id.isNotBlank() && currentUser.id == task?.requesterId
+            if (task != null && isRequester) {
+                LaunchedEffect(task.id) {
+                    if (task.status == RequestStatus.PENDING_VERIFICATION) {
+                        navController.navigate(Routes.verifyTaskCompletion(task.id)) {
+                            popUpTo(Routes.submitCompletion(task.id)) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Routes.activeTask(task.id)) {
+                            popUpTo(Routes.submitCompletion(task.id)) { inclusive = true }
+                        }
+                    }
+                }
+            }
             SubmitCompletionScreen(
                 task = task,
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() },
                 onSubmitSuccess = { notes ->
-                    taskViewModel.submitCompletion(taskId, notes)
-                    navController.navigate(Routes.verifyTaskCompletion(taskId ?: ""))
+                    taskViewModel.submitCompletion(taskId, notes) { success, _ ->
+                        if (success) {
+                            navController.navigate(Routes.activeTask(taskId ?: "")) {
+                                popUpTo(Routes.activeTask(taskId ?: "")) { inclusive = true }
+                            }
+                        }
+                    }
                 },
                 onSubmitSuccessWithPhoto = { notes, photoBytes, mime, filename, onDone ->
                     taskViewModel.submitCompletionWithPhoto(
@@ -528,7 +631,9 @@ fun AppNavigation(
                     ) { success, err ->
                         onDone(success, err)
                         if (success) {
-                            navController.navigate(Routes.verifyTaskCompletion(taskId ?: ""))
+                            navController.navigate(Routes.activeTask(taskId ?: "")) {
+                                popUpTo(Routes.activeTask(taskId ?: "")) { inclusive = true }
+                            }
                         }
                     }
                 }
@@ -537,12 +642,26 @@ fun AppNavigation(
 
         composable(Routes.SUBMIT_COMPLETION) {
             val task = requests.firstOrNull()
+            val isRequester = currentUser.id.isNotBlank() && currentUser.id == task?.requesterId
+            if (task != null && isRequester) {
+                LaunchedEffect(task.id) {
+                    navController.navigate(Routes.activeTask(task.id)) {
+                        popUpTo(Routes.SUBMIT_COMPLETION) { inclusive = true }
+                    }
+                }
+            }
             SubmitCompletionScreen(
                 task = task,
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() },
                 onSubmitSuccess = { notes ->
-                    taskViewModel.submitCompletion(task?.id, notes)
-                    navController.navigate(Routes.verifyTaskCompletion(task?.id ?: ""))
+                    taskViewModel.submitCompletion(task?.id, notes) { success, _ ->
+                        if (success) {
+                            navController.navigate(Routes.activeTask(task?.id ?: "")) {
+                                popUpTo(Routes.activeTask(task?.id ?: "")) { inclusive = true }
+                            }
+                        }
+                    }
                 },
                 onSubmitSuccessWithPhoto = { notes, photoBytes, mime, filename, onDone ->
                     taskViewModel.submitCompletionWithPhoto(
@@ -554,7 +673,9 @@ fun AppNavigation(
                     ) { success, err ->
                         onDone(success, err)
                         if (success) {
-                            navController.navigate(Routes.verifyTaskCompletion(task?.id ?: ""))
+                            navController.navigate(Routes.activeTask(task?.id ?: "")) {
+                                popUpTo(Routes.activeTask(task?.id ?: "")) { inclusive = true }
+                            }
                         }
                     }
                 }
@@ -567,7 +688,15 @@ fun AppNavigation(
             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
         ) { backStackEntry ->
             val taskId = backStackEntry.arguments?.getString("taskId")
-            val task = requestViewModel.getRequest(taskId)
+            val task = requestViewModel.getRequest(taskId) ?: requests.firstOrNull { it.id == taskId } ?: requests.firstOrNull()
+            val isAssignedHelper = currentUser.id.isNotBlank() && currentUser.id == task?.assignedHelperId
+            if (task != null && isAssignedHelper) {
+                LaunchedEffect(task.id) {
+                    navController.navigate(Routes.activeTask(task.id)) {
+                        popUpTo(Routes.verifyTaskCompletion(task.id)) { inclusive = true }
+                    }
+                }
+            }
             val evidence by taskViewModel.currentEvidence.collectAsState()
             LaunchedEffect(taskId) {
                 if (!taskId.isNullOrBlank()) {
@@ -577,6 +706,7 @@ fun AppNavigation(
             VerifyTaskCompletionScreen(
                 task = task,
                 evidence = evidence,
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() },
                 onVerified = { rating, reviewText ->
                     taskViewModel.verifyCompletion(taskId, rating, reviewText)
@@ -589,6 +719,14 @@ fun AppNavigation(
 
         composable(Routes.VERIFY_TASK_COMPLETION) {
             val task = requests.firstOrNull()
+            val isAssignedHelper = currentUser.id.isNotBlank() && currentUser.id == task?.assignedHelperId
+            if (task != null && isAssignedHelper) {
+                LaunchedEffect(task.id) {
+                    navController.navigate(Routes.activeTask(task.id)) {
+                        popUpTo(Routes.VERIFY_TASK_COMPLETION) { inclusive = true }
+                    }
+                }
+            }
             val evidence by taskViewModel.currentEvidence.collectAsState()
             LaunchedEffect(task?.id) {
                 if (!task?.id.isNullOrBlank()) {
@@ -598,6 +736,7 @@ fun AppNavigation(
             VerifyTaskCompletionScreen(
                 task = task,
                 evidence = evidence,
+                currentUser = currentUser,
                 onBackClick = { navController.popBackStack() },
                 onVerified = { rating, reviewText ->
                     taskViewModel.verifyCompletion(task?.id, rating, reviewText)
@@ -608,29 +747,7 @@ fun AppNavigation(
             )
         }
 
-        // 17. SOS and Safety
-        composable(Routes.SOS_AND_SAFETY) {
-            SosAndSafetyScreen(
-                onNavigate = { route -> navigateTopLevel(navController, route) },
-                onBackClick = { navController.popBackStack() },
-                onTriggerSos = { address ->
-                    coroutineScope.launch {
-                        try {
-                            NetworkClient.getService().triggerSos(
-                                TriggerSosDto(
-                                    address = address.ifBlank { currentUser.neighborhood.ifBlank { "Maplewood District" } },
-                                    alertType = "EMERGENCY_SOS"
-                                )
-                            )
-                        } catch (_: Exception) {
-                            // Safe fallback
-                        }
-                    }
-                }
-            )
-        }
-
-        // 18. Task History
+        // 17. Task History
         composable(Routes.TASK_HISTORY) {
             val historyTasks = requests
                 .filter { it.status == RequestStatus.COMPLETED || it.status == RequestStatus.CANCELLED }
@@ -653,11 +770,52 @@ fun AppNavigation(
             )
         }
 
-        // 19. Notifications
+        // 18. Notifications
         composable(Routes.NOTIFICATIONS) {
             NotificationsScreen(
                 notifications = notifications,
-                onNavigate = { route -> navigateTopLevel(navController, route) }
+                onNavigate = { route -> navigateTopLevel(navController, route) },
+                onMarkAllReadClick = { homeViewModel.markAllNotificationsAsRead() },
+                onClearAllClick = { homeViewModel.clearAllNotifications() },
+                onNotificationClick = { item ->
+                    homeViewModel.markNotificationAsRead(item.id)
+                    val reqId = item.relatedRequestId
+                    when (item.type) {
+                        NotificationType.NEW_MESSAGE -> {
+                            navController.navigate(Routes.CHAT)
+                        }
+                        NotificationType.TASK_UPDATE, NotificationType.REQUEST_ACCEPTED -> {
+                            if (!reqId.isNullOrBlank()) {
+                                val targetReq = requestViewModel.getRequest(reqId) ?: requests.firstOrNull { it.id == reqId }
+                                if (targetReq != null) {
+                                    val isReqRequester = (currentUser.id.isNotBlank() && currentUser.id == targetReq.requesterId) ||
+                                            (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(targetReq.requesterName, ignoreCase = true))
+                                    val isReqHelper = (currentUser.id.isNotBlank() && currentUser.id == targetReq.assignedHelperId) ||
+                                            (!targetReq.assignedHelperName.isNullOrBlank() && currentUser.fullName.equals(targetReq.assignedHelperName, ignoreCase = true))
+
+                                    when {
+                                        isReqRequester && targetReq.status == RequestStatus.PENDING_VERIFICATION -> {
+                                            navController.navigate(Routes.verifyTaskCompletion(reqId))
+                                        }
+                                        isReqHelper && targetReq.status == RequestStatus.IN_PROGRESS -> {
+                                            navController.navigate(Routes.activeTask(reqId))
+                                        }
+                                        else -> {
+                                            navController.navigate(Routes.helpRequestDetails(reqId))
+                                        }
+                                    }
+                                } else {
+                                    navController.navigate(Routes.helpRequestDetails(reqId))
+                                }
+                            }
+                        }
+                        else -> {
+                            if (!reqId.isNullOrBlank()) {
+                                navController.navigate(Routes.helpRequestDetails(reqId))
+                            }
+                        }
+                    }
+                }
             )
         }
 

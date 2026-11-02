@@ -7,7 +7,6 @@ use NeighborHero\Controllers\HealthController;
 use NeighborHero\Controllers\HelperController;
 use NeighborHero\Controllers\HelpRequestController;
 use NeighborHero\Controllers\NotificationController;
-use NeighborHero\Controllers\SafetyController;
 use NeighborHero\Controllers\TaskController;
 use NeighborHero\Routes\Router;
 
@@ -23,6 +22,8 @@ return function(Router $router): void {
     $router->get('/api/auth/me', [AuthController::class, 'me']);
     $router->put('/api/auth/profile', [AuthController::class, 'updateProfile']);
     $router->post('/api/auth/profile/photo', [AuthController::class, 'uploadPhoto']);
+    $router->get('/api/users/{id}', [AuthController::class, 'getUserProfile']);
+    $router->get('/api/users/{id}/avatar', [AuthController::class, 'streamAvatar']);
 
     // Help Requests
     $router->get('/api/requests', [HelpRequestController::class, 'index']);
@@ -55,10 +56,11 @@ return function(Router $router): void {
     $router->get('/api/notifications', [NotificationController::class, 'index']);
     $router->post('/api/notifications/read-all', [NotificationController::class, 'markAllRead']);
     $router->post('/api/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    $router->delete('/api/notifications', [NotificationController::class, 'clearAll']);
+    $router->post('/api/notifications/clear', [NotificationController::class, 'clearAll']);
 
-    // Safety & SOS
-    $router->post('/api/safety/sos', [SafetyController::class, 'triggerSos']);
-    $router->post('/api/safety/sos/{id}/resolve', [SafetyController::class, 'resolveSos']);
-    $router->get('/api/safety/task-history', [SafetyController::class, 'taskHistory']);
+    // Task History
+    $router->get('/api/tasks/history', [TaskController::class, 'history']);
+    $router->get('/api/safety/task-history', [TaskController::class, 'history']); // backward compatibility alias
 };
 

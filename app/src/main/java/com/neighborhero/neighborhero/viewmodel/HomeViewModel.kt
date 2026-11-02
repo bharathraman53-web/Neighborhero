@@ -70,6 +70,12 @@ class HomeViewModel(
         }
     }
 
+    fun clearAllNotifications() {
+        viewModelScope.launch {
+            notificationRepository.clearAllNotifications()
+        }
+    }
+
     fun updateUserProfile(name: String, neighborhood: String, bio: String, skills: List<String> = emptyList(), phone: String? = null) {
         userRepository.updateUserProfile(
             name = name,

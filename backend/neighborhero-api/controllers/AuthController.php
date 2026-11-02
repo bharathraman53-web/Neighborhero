@@ -203,5 +203,49 @@ class AuthController {
 
         Response::success($updated, 'Profile photo uploaded successfully');
     }
+
+    public function getUserProfile(string $id): void {
+        $user = $this->userRepository->findById($id);
+        if (!$user) {
+            Response::notFound("User '{$id}' not found.");
+            return;
+        }
+        Response::success($user);
+    }
+
+    public function streamAvatar(string $id): void {
+        $user = $this->userRepository->findById($id);
+        if (!$user || empty($user['avatar_url'])) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Avatar not found']);
+            return;
+        }
+
+        $avatarPath = $user['avatar_url'];
+        $cleanPath = ltrim($avatarPath, '/');
+        $fullPath = realpath(__DIR__ . '/../public/' . $cleanPath);
+        if (!$fullPath || !file_exists($fullPath)) {
+            // Also check directly without public prefix
+            $altPath = realpath(__DIR__ . '/../' . $cleanPath);
+            if ($altPath && file_exists($altPath)) {
+                $fullPath = $altPath;
+            } else {
+                http_response_code(404);
+                header('Content-Type: application/json');
+                echo json_encode(['status' => 'error', 'message' => 'Avatar file not found on disk']);
+                return;
+            }
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($fullPath) ?: 'image/jpeg';
+
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($fullPath));
+        header('Cache-Control: public, max-age=86400');
+        readfile($fullPath);
+        exit;
+    }
 }
 

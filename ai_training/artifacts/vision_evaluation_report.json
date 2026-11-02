@@ -1,0 +1,1180 @@
+{
+  "task": "NeighborHero Evidence Classifier Training and Export",
+  "phase": "improved_vision_retraining",
+  "classes": [
+    "groceries",
+    "pet_help",
+    "repairs",
+    "unrelated"
+  ],
+  "splits": {
+    "train_samples": 152,
+    "validation_samples": 31,
+    "test_samples": 36,
+    "total_samples": 219
+  },
+  "model_architecture": {
+    "backbone": "MobileNetV2 (ImageNet pretrained, top 30 layers fine-tuned)",
+    "weights": "imagenet",
+    "input_shape": [
+      224,
+      224,
+      3
+    ],
+    "preprocessing": "[-1, 1] via Rescaling(1/127.5, -1.0)",
+    "head": "GAP -> Dense(128, relu) -> Dropout(0.3) -> Dense(4, softmax)",
+    "optimizer": "Phase 1: Adam(1e-3), Phase 2: Adam(1e-4)",
+    "loss": "sparse_categorical_crossentropy"
+  },
+  "training_history": {
+    "loss": [
+      1.6937,
+      0.6826,
+      0.5911,
+      0.3689,
+      0.2771,
+      0.1667,
+      0.1425,
+      0.1104,
+      0.0794,
+      0.0705,
+      0.0635,
+      0.0585,
+      0.3183,
+      0.1619,
+      0.1536,
+      0.0788,
+      0.0564,
+      0.0669,
+      0.0671,
+      0.0333,
+      0.0762
+    ],
+    "val_loss": [
+      0.747,
+      0.6245,
+      0.4921,
+      0.4735,
+      0.3919,
+      0.4995,
+      0.3419,
+      0.3556,
+      0.3092,
+      0.3052,
+      0.3492,
+      0.2962,
+      0.3236,
+      0.3749,
+      0.3602,
+      0.3061,
+      0.2993,
+      0.3322,
+      0.3627,
+      0.3899,
+      0.3806
+    ],
+    "accuracy": [
+      0.3289,
+      0.75,
+      0.7829,
+      0.8553,
+      0.9013,
+      0.9605,
+      0.9605,
+      0.9737,
+      0.9868,
+      0.9803,
+      0.9934,
+      0.9803,
+      0.8882,
+      0.9474,
+      0.9539,
+      0.9868,
+      1.0,
+      0.9803,
+      0.9671,
+      1.0,
+      0.9671
+    ],
+    "val_accuracy": [
+      0.7419,
+      0.7419,
+      0.7742,
+      0.8387,
+      0.8065,
+      0.7742,
+      0.871,
+      0.8387,
+      0.8387,
+      0.8387,
+      0.871,
+      0.871,
+      0.871,
+      0.871,
+      0.8387,
+      0.8387,
+      0.8387,
+      0.871,
+      0.871,
+      0.871,
+      0.871
+    ]
+  },
+  "test_metrics": {
+    "accuracy": 0.9722,
+    "macro_f1": 0.9686,
+    "per_class": {
+      "groceries": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 8,
+        "true_positives": 8,
+        "false_positives": 0,
+        "false_negatives": 0
+      },
+      "pet_help": {
+        "precision": 0.8889,
+        "recall": 1.0,
+        "f1_score": 0.9412,
+        "support": 8,
+        "true_positives": 8,
+        "false_positives": 1,
+        "false_negatives": 0
+      },
+      "repairs": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 12,
+        "true_positives": 12,
+        "false_positives": 0,
+        "false_negatives": 0
+      },
+      "unrelated": {
+        "precision": 1.0,
+        "recall": 0.875,
+        "f1_score": 0.9333,
+        "support": 8,
+        "true_positives": 7,
+        "false_positives": 0,
+        "false_negatives": 1
+      }
+    },
+    "confusion_matrix": [
+      [
+        8,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        8,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        12,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        7
+      ]
+    ]
+  },
+  "laptop_repair_test_metrics": {
+    "total_laptop_test_images": 5,
+    "correct_repairs_count": 5,
+    "accuracy": 1.0,
+    "details": [
+      {
+        "filename": "repairs/repairs_042.jpg",
+        "predicted_category": "repairs",
+        "is_correct_repair": true,
+        "confidence": 0.9980633854866028,
+        "scores": {
+          "groceries": 0.0006,
+          "pet_help": 0.0013,
+          "repairs": 0.9981,
+          "unrelated": 0.0
+        }
+      },
+      {
+        "filename": "repairs/repairs_045.jpg",
+        "predicted_category": "repairs",
+        "is_correct_repair": true,
+        "confidence": 0.9949074387550354,
+        "scores": {
+          "groceries": 0.0047,
+          "pet_help": 0.0003,
+          "repairs": 0.9949,
+          "unrelated": 0.0
+        }
+      },
+      {
+        "filename": "repairs/repairs_050.jpg",
+        "predicted_category": "repairs",
+        "is_correct_repair": true,
+        "confidence": 0.9985299110412598,
+        "scores": {
+          "groceries": 0.0005,
+          "pet_help": 0.0001,
+          "repairs": 0.9985,
+          "unrelated": 0.0009
+        }
+      },
+      {
+        "filename": "repairs/repairs_062.jpg",
+        "predicted_category": "repairs",
+        "is_correct_repair": true,
+        "confidence": 0.9480128288269043,
+        "scores": {
+          "groceries": 0.0257,
+          "pet_help": 0.0064,
+          "repairs": 0.948,
+          "unrelated": 0.0199
+        }
+      },
+      {
+        "filename": "repairs/repairs_065.jpg",
+        "predicted_category": "repairs",
+        "is_correct_repair": true,
+        "confidence": 0.9998738765716553,
+        "scores": {
+          "groceries": 0.0,
+          "pet_help": 0.0,
+          "repairs": 0.9999,
+          "unrelated": 0.0001
+        }
+      }
+    ]
+  },
+  "artifacts": {
+    "labels_file": "C:\\Users\\SCAD LAB\\AndroidStudioProjects\\Neighborhero3\\ai_training\\artifacts\\labels.txt",
+    "keras_checkpoint": "C:\\Users\\SCAD LAB\\AndroidStudioProjects\\Neighborhero3\\ai_training\\artifacts\\best_evidence_model.keras",
+    "tflite_float32": {
+      "path": "C:\\Users\\SCAD LAB\\AndroidStudioProjects\\Neighborhero3\\ai_training\\artifacts\\evidence_classifier.tflite",
+      "size_mb": 9.11
+    },
+    "tflite_float16": {
+      "exported": true,
+      "path": "C:\\Users\\SCAD LAB\\AndroidStudioProjects\\Neighborhero3\\ai_training\\artifacts\\evidence_classifier_float16.tflite",
+      "size_mb": 4.63
+    }
+  },
+  "parity_verification": {
+    "samples_tested": 36,
+    "category_mismatches": 0,
+    "max_probability_difference": 1e-06,
+    "individual_comparisons": [
+      {
+        "filename": "groceries/groceries_002.jpg",
+        "keras_pred": "groceries",
+        "tflite_pred": "groceries",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.9998,
+          "pet_help": 0.0001,
+          "repairs": 0.0001,
+          "unrelated": 0.0
+        }
+      },
+      {
+        "filename": "groceries/groceries_007.jpg",
+        "keras_pred": "groceries",
+        "tflite_pred": "groceries",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.9997,
+          "pet_help": 0.0003,
+          "repairs": 0.0,
+          "unrelated": 0.0001
+        }
+      },
+      {
+        "filename": "groceries/groceries_008.jpg",
+        "keras_pred": "groceries",
+        "tflite_pred": "groceries",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.9996,
+          "pet_help": 0.0004,
+          "repairs": 0.0,
+          "unrelated": 0.0
+        }
+      },
+      {
+        "filename": "groceries/groceries_009.jpg",
+        "keras_pred": "groceries",
+        "tflite_pred": "groceries",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.9955,
+          "pet_help": 0.0022,
+          "repairs": 0.0006,
+          "unrelated": 0.0018
+        }
+      },
+      {
+        "filename": "groceries/groceries_015.jpg",
+        "keras_pred": "groceries",
+        "tflite_pred": "groceries",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.6118,
+          "pet_help": 0.0019,
+          "repairs": 0.3841,
+          "unrelated": 0.0022
+        }
+      },
+      {
+        "filename": "groceries/groceries_016.jpg",
+        "keras_pred": "groceries",
+        "tflite_pred": "groceries",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.9124,
+          "pet_help": 0.01,
+          "repairs": 0.0013,
+          "unrelated": 0.0763
+        }
+      },
+      {
+        "filename": "groceries/groceries_018.jpg",
+        "keras_pred": "groceries",
+        "tflite_pred": "groceries",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.9989,
+          "pet_help": 0.0008,
+          "repairs": 0.0001,
+          "unrelated": 0.0001
+        }
+      },
+      {
+        "filename": "groceries/groceries_041.jpg",
+        "keras_pred": "groceries",
+        "tflite_pred": "groceries",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.9811,
+          "pet_help": 0.0042,
+          "repairs": 0.0005,
+          "unrelated": 0.0141
+        }
+      },
+      {
+        "filename": "pet_help/pet_help_002.jpg",
+        "keras_pred": "pet_help",
+        "tflite_pred": "pet_help",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0,
+          "pet_help": 0.9999,
+          "repairs": 0.0001,
+          "unrelated": 0.0
+        }
+      },
+      {
+        "filename": "pet_help/pet_help_007.jpg",
+        "keras_pred": "pet_help",
+        "tflite_pred": "pet_help",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.001,
+          "pet_help": 0.964,
+          "repairs": 0.0066,
+          "unrelated": 0.0284
+        }
+      },
+      {
+        "filename": "pet_help/pet_help_008.jpg",
+        "keras_pred": "pet_help",
+        "tflite_pred": "pet_help",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0,
+          "pet_help": 0.996,
+          "repairs": 0.0004,
+          "unrelated": 0.0035
+        }
+      },
+      {
+        "filename": "pet_help/pet_help_009.jpg",
+        "keras_pred": "pet_help",
+        "tflite_pred": "pet_help",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0002,
+          "pet_help": 0.9891,
+          "repairs": 0.0001,
+          "unrelated": 0.0106
+        }
+      },
+      {
+        "filename": "pet_help/pet_help_015.jpg",
+        "keras_pred": "pet_help",
+        "tflite_pred": "pet_help",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0002,
+          "pet_help": 0.9825,
+          "repairs": 0.0007,
+          "unrelated": 0.0166
+        }
+      },
+      {
+        "filename": "pet_help/pet_help_016.jpg",
+        "keras_pred": "pet_help",
+        "tflite_pred": "pet_help",
+        "max_abs_diff": 1e-06,
+        "tflite_probs": {
+          "groceries": 0.0001,
+          "pet_help": 0.9027,
+          "repairs": 0.0048,
+          "unrelated": 0.0924
+        }
+      },
+      {
+        "filename": "pet_help/pet_help_018.jpg",
+        "keras_pred": "pet_help",
+        "tflite_pred": "pet_help",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0002,
+          "pet_help": 0.7804,
+          "repairs": 0.2174,
+          "unrelated": 0.002
+        }
+      },
+      {
+        "filename": "pet_help/pet_help_041.jpg",
+        "keras_pred": "pet_help",
+        "tflite_pred": "pet_help",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0134,
+          "pet_help": 0.8963,
+          "repairs": 0.0839,
+          "unrelated": 0.0065
+        }
+      },
+      {
+        "filename": "repairs/repairs_002.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0865,
+          "pet_help": 0.0053,
+          "repairs": 0.9077,
+          "unrelated": 0.0005
+        }
+      },
+      {
+        "filename": "repairs/repairs_008.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0001,
+          "pet_help": 0.0008,
+          "repairs": 0.9838,
+          "unrelated": 0.0154
+        }
+      },
+      {
+        "filename": "repairs/repairs_009.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0011,
+          "pet_help": 0.0033,
+          "repairs": 0.965,
+          "unrelated": 0.0306
+        }
+      },
+      {
+        "filename": "repairs/repairs_015.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0001,
+          "pet_help": 0.0033,
+          "repairs": 0.9963,
+          "unrelated": 0.0003
+        }
+      },
+      {
+        "filename": "repairs/repairs_016.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0001,
+          "pet_help": 0.0026,
+          "repairs": 0.9927,
+          "unrelated": 0.0047
+        }
+      },
+      {
+        "filename": "repairs/repairs_018.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0005,
+          "pet_help": 0.0004,
+          "repairs": 0.9859,
+          "unrelated": 0.0132
+        }
+      },
+      {
+        "filename": "repairs/repairs_041.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 1e-06,
+        "tflite_probs": {
+          "groceries": 0.0015,
+          "pet_help": 0.1376,
+          "repairs": 0.8325,
+          "unrelated": 0.0284
+        }
+      },
+      {
+        "filename": "repairs/repairs_042.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0006,
+          "pet_help": 0.0013,
+          "repairs": 0.9981,
+          "unrelated": 0.0
+        }
+      },
+      {
+        "filename": "repairs/repairs_045.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0047,
+          "pet_help": 0.0003,
+          "repairs": 0.9949,
+          "unrelated": 0.0
+        }
+      },
+      {
+        "filename": "repairs/repairs_050.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0005,
+          "pet_help": 0.0001,
+          "repairs": 0.9985,
+          "unrelated": 0.0009
+        }
+      },
+      {
+        "filename": "repairs/repairs_062.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0257,
+          "pet_help": 0.0064,
+          "repairs": 0.948,
+          "unrelated": 0.0199
+        }
+      },
+      {
+        "filename": "repairs/repairs_065.jpg",
+        "keras_pred": "repairs",
+        "tflite_pred": "repairs",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0,
+          "pet_help": 0.0,
+          "repairs": 0.9999,
+          "unrelated": 0.0001
+        }
+      },
+      {
+        "filename": "unrelated/unrelated_002.jpg",
+        "keras_pred": "unrelated",
+        "tflite_pred": "unrelated",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0002,
+          "pet_help": 0.0,
+          "repairs": 0.0001,
+          "unrelated": 0.9997
+        }
+      },
+      {
+        "filename": "unrelated/unrelated_007.jpg",
+        "keras_pred": "unrelated",
+        "tflite_pred": "unrelated",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0003,
+          "pet_help": 0.0007,
+          "repairs": 0.0154,
+          "unrelated": 0.9836
+        }
+      },
+      {
+        "filename": "unrelated/unrelated_008.jpg",
+        "keras_pred": "unrelated",
+        "tflite_pred": "unrelated",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0001,
+          "pet_help": 0.0001,
+          "repairs": 0.0023,
+          "unrelated": 0.9974
+        }
+      },
+      {
+        "filename": "unrelated/unrelated_009.jpg",
+        "keras_pred": "unrelated",
+        "tflite_pred": "unrelated",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.001,
+          "pet_help": 0.0009,
+          "repairs": 0.0306,
+          "unrelated": 0.9676
+        }
+      },
+      {
+        "filename": "unrelated/unrelated_015.jpg",
+        "keras_pred": "unrelated",
+        "tflite_pred": "unrelated",
+        "max_abs_diff": 1e-06,
+        "tflite_probs": {
+          "groceries": 0.032,
+          "pet_help": 0.0016,
+          "repairs": 0.1048,
+          "unrelated": 0.8617
+        }
+      },
+      {
+        "filename": "unrelated/unrelated_016.jpg",
+        "keras_pred": "unrelated",
+        "tflite_pred": "unrelated",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0361,
+          "pet_help": 0.0003,
+          "repairs": 0.0653,
+          "unrelated": 0.8982
+        }
+      },
+      {
+        "filename": "unrelated/unrelated_018.jpg",
+        "keras_pred": "unrelated",
+        "tflite_pred": "unrelated",
+        "max_abs_diff": 1e-06,
+        "tflite_probs": {
+          "groceries": 0.0009,
+          "pet_help": 0.0419,
+          "repairs": 0.0554,
+          "unrelated": 0.9018
+        }
+      },
+      {
+        "filename": "unrelated/unrelated_041.jpg",
+        "keras_pred": "pet_help",
+        "tflite_pred": "pet_help",
+        "max_abs_diff": 0.0,
+        "tflite_probs": {
+          "groceries": 0.0005,
+          "pet_help": 0.885,
+          "repairs": 0.1144,
+          "unrelated": 0.0001
+        }
+      }
+    ]
+  },
+  "test_predictions": [
+    {
+      "filename": "groceries/groceries_002.jpg",
+      "true_category": "groceries",
+      "predicted_category": "groceries",
+      "confidence": 0.9998,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.9998,
+        "pet_help": 0.0001,
+        "repairs": 0.0001,
+        "unrelated": 0.0
+      }
+    },
+    {
+      "filename": "groceries/groceries_007.jpg",
+      "true_category": "groceries",
+      "predicted_category": "groceries",
+      "confidence": 0.9997,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.9997,
+        "pet_help": 0.0003,
+        "repairs": 0.0,
+        "unrelated": 0.0001
+      }
+    },
+    {
+      "filename": "groceries/groceries_008.jpg",
+      "true_category": "groceries",
+      "predicted_category": "groceries",
+      "confidence": 0.9996,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.9996,
+        "pet_help": 0.0004,
+        "repairs": 0.0,
+        "unrelated": 0.0
+      }
+    },
+    {
+      "filename": "groceries/groceries_009.jpg",
+      "true_category": "groceries",
+      "predicted_category": "groceries",
+      "confidence": 0.9955,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.9955,
+        "pet_help": 0.0022,
+        "repairs": 0.0006,
+        "unrelated": 0.0018
+      }
+    },
+    {
+      "filename": "groceries/groceries_015.jpg",
+      "true_category": "groceries",
+      "predicted_category": "groceries",
+      "confidence": 0.6118,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.6118,
+        "pet_help": 0.0019,
+        "repairs": 0.3841,
+        "unrelated": 0.0022
+      }
+    },
+    {
+      "filename": "groceries/groceries_016.jpg",
+      "true_category": "groceries",
+      "predicted_category": "groceries",
+      "confidence": 0.9124,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.9124,
+        "pet_help": 0.01,
+        "repairs": 0.0013,
+        "unrelated": 0.0763
+      }
+    },
+    {
+      "filename": "groceries/groceries_018.jpg",
+      "true_category": "groceries",
+      "predicted_category": "groceries",
+      "confidence": 0.9989,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.9989,
+        "pet_help": 0.0008,
+        "repairs": 0.0001,
+        "unrelated": 0.0001
+      }
+    },
+    {
+      "filename": "groceries/groceries_041.jpg",
+      "true_category": "groceries",
+      "predicted_category": "groceries",
+      "confidence": 0.9811,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.9811,
+        "pet_help": 0.0042,
+        "repairs": 0.0005,
+        "unrelated": 0.0141
+      }
+    },
+    {
+      "filename": "pet_help/pet_help_002.jpg",
+      "true_category": "pet_help",
+      "predicted_category": "pet_help",
+      "confidence": 0.9999,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0,
+        "pet_help": 0.9999,
+        "repairs": 0.0001,
+        "unrelated": 0.0
+      }
+    },
+    {
+      "filename": "pet_help/pet_help_007.jpg",
+      "true_category": "pet_help",
+      "predicted_category": "pet_help",
+      "confidence": 0.964,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.001,
+        "pet_help": 0.964,
+        "repairs": 0.0066,
+        "unrelated": 0.0284
+      }
+    },
+    {
+      "filename": "pet_help/pet_help_008.jpg",
+      "true_category": "pet_help",
+      "predicted_category": "pet_help",
+      "confidence": 0.996,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0,
+        "pet_help": 0.996,
+        "repairs": 0.0004,
+        "unrelated": 0.0035
+      }
+    },
+    {
+      "filename": "pet_help/pet_help_009.jpg",
+      "true_category": "pet_help",
+      "predicted_category": "pet_help",
+      "confidence": 0.9891,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0002,
+        "pet_help": 0.9891,
+        "repairs": 0.0001,
+        "unrelated": 0.0106
+      }
+    },
+    {
+      "filename": "pet_help/pet_help_015.jpg",
+      "true_category": "pet_help",
+      "predicted_category": "pet_help",
+      "confidence": 0.9825,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0002,
+        "pet_help": 0.9825,
+        "repairs": 0.0007,
+        "unrelated": 0.0166
+      }
+    },
+    {
+      "filename": "pet_help/pet_help_016.jpg",
+      "true_category": "pet_help",
+      "predicted_category": "pet_help",
+      "confidence": 0.9027,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0001,
+        "pet_help": 0.9027,
+        "repairs": 0.0048,
+        "unrelated": 0.0924
+      }
+    },
+    {
+      "filename": "pet_help/pet_help_018.jpg",
+      "true_category": "pet_help",
+      "predicted_category": "pet_help",
+      "confidence": 0.7804,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0002,
+        "pet_help": 0.7804,
+        "repairs": 0.2174,
+        "unrelated": 0.002
+      }
+    },
+    {
+      "filename": "pet_help/pet_help_041.jpg",
+      "true_category": "pet_help",
+      "predicted_category": "pet_help",
+      "confidence": 0.8963,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0134,
+        "pet_help": 0.8963,
+        "repairs": 0.0839,
+        "unrelated": 0.0065
+      }
+    },
+    {
+      "filename": "repairs/repairs_002.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.9077,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0865,
+        "pet_help": 0.0053,
+        "repairs": 0.9077,
+        "unrelated": 0.0005
+      }
+    },
+    {
+      "filename": "repairs/repairs_008.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.9838,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0001,
+        "pet_help": 0.0008,
+        "repairs": 0.9838,
+        "unrelated": 0.0154
+      }
+    },
+    {
+      "filename": "repairs/repairs_009.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.965,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0011,
+        "pet_help": 0.0033,
+        "repairs": 0.965,
+        "unrelated": 0.0306
+      }
+    },
+    {
+      "filename": "repairs/repairs_015.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.9963,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0001,
+        "pet_help": 0.0033,
+        "repairs": 0.9963,
+        "unrelated": 0.0003
+      }
+    },
+    {
+      "filename": "repairs/repairs_016.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.9927,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0001,
+        "pet_help": 0.0026,
+        "repairs": 0.9927,
+        "unrelated": 0.0047
+      }
+    },
+    {
+      "filename": "repairs/repairs_018.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.9859,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0005,
+        "pet_help": 0.0004,
+        "repairs": 0.9859,
+        "unrelated": 0.0132
+      }
+    },
+    {
+      "filename": "repairs/repairs_041.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.8325,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0015,
+        "pet_help": 0.1376,
+        "repairs": 0.8325,
+        "unrelated": 0.0284
+      }
+    },
+    {
+      "filename": "repairs/repairs_042.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.9981,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0006,
+        "pet_help": 0.0013,
+        "repairs": 0.9981,
+        "unrelated": 0.0
+      }
+    },
+    {
+      "filename": "repairs/repairs_045.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.9949,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0047,
+        "pet_help": 0.0003,
+        "repairs": 0.9949,
+        "unrelated": 0.0
+      }
+    },
+    {
+      "filename": "repairs/repairs_050.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.9985,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0005,
+        "pet_help": 0.0001,
+        "repairs": 0.9985,
+        "unrelated": 0.0009
+      }
+    },
+    {
+      "filename": "repairs/repairs_062.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.948,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0257,
+        "pet_help": 0.0064,
+        "repairs": 0.948,
+        "unrelated": 0.0199
+      }
+    },
+    {
+      "filename": "repairs/repairs_065.jpg",
+      "true_category": "repairs",
+      "predicted_category": "repairs",
+      "confidence": 0.9999,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0,
+        "pet_help": 0.0,
+        "repairs": 0.9999,
+        "unrelated": 0.0001
+      }
+    },
+    {
+      "filename": "unrelated/unrelated_002.jpg",
+      "true_category": "unrelated",
+      "predicted_category": "unrelated",
+      "confidence": 0.9997,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0002,
+        "pet_help": 0.0,
+        "repairs": 0.0001,
+        "unrelated": 0.9997
+      }
+    },
+    {
+      "filename": "unrelated/unrelated_007.jpg",
+      "true_category": "unrelated",
+      "predicted_category": "unrelated",
+      "confidence": 0.9836,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0003,
+        "pet_help": 0.0007,
+        "repairs": 0.0154,
+        "unrelated": 0.9836
+      }
+    },
+    {
+      "filename": "unrelated/unrelated_008.jpg",
+      "true_category": "unrelated",
+      "predicted_category": "unrelated",
+      "confidence": 0.9974,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0001,
+        "pet_help": 0.0001,
+        "repairs": 0.0023,
+        "unrelated": 0.9974
+      }
+    },
+    {
+      "filename": "unrelated/unrelated_009.jpg",
+      "true_category": "unrelated",
+      "predicted_category": "unrelated",
+      "confidence": 0.9676,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.001,
+        "pet_help": 0.0009,
+        "repairs": 0.0306,
+        "unrelated": 0.9676
+      }
+    },
+    {
+      "filename": "unrelated/unrelated_015.jpg",
+      "true_category": "unrelated",
+      "predicted_category": "unrelated",
+      "confidence": 0.8617,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.032,
+        "pet_help": 0.0016,
+        "repairs": 0.1048,
+        "unrelated": 0.8617
+      }
+    },
+    {
+      "filename": "unrelated/unrelated_016.jpg",
+      "true_category": "unrelated",
+      "predicted_category": "unrelated",
+      "confidence": 0.8982,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0361,
+        "pet_help": 0.0003,
+        "repairs": 0.0653,
+        "unrelated": 0.8982
+      }
+    },
+    {
+      "filename": "unrelated/unrelated_018.jpg",
+      "true_category": "unrelated",
+      "predicted_category": "unrelated",
+      "confidence": 0.9018,
+      "is_correct": true,
+      "probabilities": {
+        "groceries": 0.0009,
+        "pet_help": 0.0419,
+        "repairs": 0.0554,
+        "unrelated": 0.9018
+      }
+    },
+    {
+      "filename": "unrelated/unrelated_041.jpg",
+      "true_category": "unrelated",
+      "predicted_category": "pet_help",
+      "confidence": 0.885,
+      "is_correct": false,
+      "probabilities": {
+        "groceries": 0.0005,
+        "pet_help": 0.885,
+        "repairs": 0.1144,
+        "unrelated": 0.0001
+      }
+    }
+  ]
+}

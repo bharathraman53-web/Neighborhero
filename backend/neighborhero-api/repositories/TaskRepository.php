@@ -23,7 +23,11 @@ class TaskRepository {
             throw new RuntimeException("Request not found", 404);
         }
 
-        // Requester or helper themselves can accept/assign depending on flow
+        // Requester cannot accept or be assigned to their own request
+        if ($req['requester_id'] === $helperId || $req['requester_id'] === $actorUserId) {
+            throw new RuntimeException("Requesters cannot accept or be assigned to their own requests", 403);
+        }
+
         if ($req['status'] !== 'OPEN') {
             throw new RuntimeException("Request is not open for assignment (Current status: {$req['status']})", 400);
         }
@@ -91,15 +95,48 @@ class TaskRepository {
         return $this->requestRepository->findById($requestId);
     }
 
+    public function validateEvidenceUpload(string $requestId, string $userId): array {
+        $req = $this->requestRepository->findById($requestId);
+        if (!$req) {
+            throw new RuntimeException("Request not found", 404);
+        }
+
+        if ($req['requester_id'] === $userId) {
+            throw new RuntimeException("Requesters cannot upload completion evidence for their own requests", 403);
+        }
+
+        if (empty($req['assigned_helper_id']) || $req['assigned_helper_id'] !== $userId) {
+            throw new RuntimeException("Only the assigned helper can upload completion evidence", 403);
+        }
+
+        if ($req['status'] === 'PENDING_VERIFICATION') {
+            throw new RuntimeException("Task completion has already been submitted and is pending verification", 409);
+        }
+
+        if ($req['status'] !== 'IN_PROGRESS') {
+            throw new RuntimeException("Cannot upload completion evidence for a task not currently in progress", 400);
+        }
+
+        return $req;
+    }
+
     public function submitCompletion(string $requestId, string $helperId, string $notes, ?string $photoUrl = null): array {
         $req = $this->requestRepository->findById($requestId);
         if (!$req) {
             throw new RuntimeException("Request not found", 404);
         }
 
-        // Authorization check: only assigned helper can submit completion
-        if (!empty($req['assigned_helper_id']) && $req['assigned_helper_id'] !== $helperId) {
+        // Authorization checks
+        if ($req['requester_id'] === $helperId) {
+            throw new RuntimeException("Requesters cannot submit completion for their own requests", 403);
+        }
+
+        if (empty($req['assigned_helper_id']) || $req['assigned_helper_id'] !== $helperId) {
             throw new RuntimeException("Only the assigned helper can submit task completion", 403);
+        }
+
+        if ($req['status'] === 'PENDING_VERIFICATION') {
+            throw new RuntimeException("Task completion has already been submitted and is pending verification", 409);
         }
 
         if ($req['status'] !== 'IN_PROGRESS') {
@@ -269,5 +306,33 @@ class TaskRepository {
         }
 
         return $evidence;
+    }
+
+    public function getTaskHistory(string $userId): array {
+        // Retrieve past completed or cancelled tasks for the user (as requester or helper)
+        $stmt = $this->pdo->prepare(
+            "SELECT r.id, r.title, r.description AS subtitle,
+                    r.created_at, r.status, r.category,
+                    COALESCE(rt.rating, 0.0) AS rating
+             FROM help_requests r
+             LEFT JOIN ratings rt ON rt.request_id = r.id
+             WHERE (r.requester_id = :uid OR r.assigned_helper_id = :uid)
+               AND r.status IN ('COMPLETED', 'CANCELLED')
+             ORDER BY r.created_at DESC"
+        );
+        $stmt->execute([':uid' => $userId]);
+        $rows = $stmt->fetchAll();
+
+        return array_map(function($r) {
+            return [
+                'id' => (string)$r['id'],
+                'title' => (string)$r['title'],
+                'subtitle' => (string)$r['subtitle'],
+                'date' => date('M d, Y', strtotime($r['created_at'])),
+                'rating' => (float)$r['rating'],
+                'status' => $r['status'] === 'COMPLETED' ? 'Completed' : 'Cancelled',
+                'category' => $r['status'] === 'COMPLETED' ? 'completed' : 'cancelled',
+            ];
+        }, $rows);
     }
 }
