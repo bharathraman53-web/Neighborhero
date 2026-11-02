@@ -1,0 +1,31 @@
+$kind: http-request
+description: Finds verified community helpers with tasks done count, ratings, and skills. Automatically populates {{helperId}}.
+url: "{{baseUrl}}/helpers"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: skill
+    value: Groceries
+    disabled: true
+    description: Filter helpers by skill name
+  - key: limit
+    value: "20"
+    disabled: false
+    description: Maximum helpers to return
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Returns helpers array and populates helperId", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.data).to.be.an("array");
+          if (jsonData.data.length > 0 && !pm.environment.get("helperId")) {
+              pm.environment.set("helperId", jsonData.data[0].id);
+          }
+      });
+    language: text/javascript
+order: 1000

@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.data.model.HelpRequest
+import com.neighborhero.neighborhero.data.model.RequestCategory
 import com.neighborhero.neighborhero.navigation.Routes
 import com.neighborhero.neighborhero.ui.components.AppTopBar
 import com.neighborhero.neighborhero.ui.components.BottomNavigationBar
@@ -28,12 +29,12 @@ fun NearbyRequestsScreen(
     onNavigate: (String) -> Unit
 ) {
     var selectedCategory by remember { mutableStateOf("All") }
-    val categories = listOf("All", "Groceries", "Repairs", "Pet Care", "Tutoring")
+    val categories = listOf("All") + RequestCategory.CANONICAL
 
     val filtered = if (selectedCategory == "All") {
         requests
     } else {
-        requests.filter { it.category == selectedCategory }
+        requests.filter { RequestCategory.matches(it.category, selectedCategory) }
     }
 
     Scaffold(

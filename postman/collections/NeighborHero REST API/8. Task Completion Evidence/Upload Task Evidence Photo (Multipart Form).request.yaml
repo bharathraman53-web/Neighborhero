@@ -1,0 +1,28 @@
+$kind: http-request
+description: Uploads a proof photo for an active task. Stored in uploads/evidence/ which is protected by .htaccess (direct web downloads return HTTP 403 Forbidden).
+url: "{{baseUrl}}/tasks/{{taskId}}/evidence/photo"
+method: POST
+headers:
+  Accept: application/json
+body:
+  type: formdata
+  content:
+    - type: file
+      key: photo
+      src: ""
+      description: Select a completion proof photo (JPEG, PNG, or WebP up to 5 MB) from your local computer. Click "Select Files" in Postman.
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 (if file attached) or 400 (if empty)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 400]);
+      });
+      if (pm.response.code === 200) {
+          var jsonData = pm.response.json();
+          pm.test("Returns photo_url inside uploads/evidence/", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data.photo_url).to.include("uploads/evidence/");
+          });
+      }
+    language: text/javascript
+order: 1000

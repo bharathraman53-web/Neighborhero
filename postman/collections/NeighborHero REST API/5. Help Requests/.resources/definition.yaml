@@ -1,0 +1,3 @@
+$kind: collection
+description: Create community help requests, list with filters, query personal posted/accepted tasks, and cancel requests.
+order: 5000

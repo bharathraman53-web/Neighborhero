@@ -1,0 +1,22 @@
+$kind: http-request
+description: Retrieves all active conversations for the authenticated user, including partner name, last message preview, timestamp, and unread counts.
+url: "{{baseUrl}}/chat/conversations"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Returns conversations array and captures conversationId", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.data).to.be.an("array");
+          if (jsonData.data.length > 0 && !pm.environment.get("conversationId")) {
+              pm.environment.set("conversationId", jsonData.data[0].id);
+          }
+      });
+    language: text/javascript
+order: 1000

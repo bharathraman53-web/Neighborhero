@@ -1,0 +1,36 @@
+$kind: http-request
+description: Fetches message thread with strict participant authorization. If an unauthorized third party requests messages from another conversation, the backend rejects with HTTP 403 Forbidden.
+url: "{{baseUrl}}/chat/messages"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: conversation_id
+    value: "{{conversationId}}"
+    disabled: false
+    description: Target conversation ID
+  - key: recipient_id
+    value: "{{helperId}}"
+    disabled: true
+    description: Target partner ID (alternative)
+  - key: since_id
+    value: ""
+    disabled: true
+    description: Fetch only messages after this ID (polling)
+  - key: limit
+    value: "50"
+    disabled: false
+    description: Max messages to return
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Returns list of messages in private conversation", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.data).to.be.an("array");
+      });
+    language: text/javascript
+order: 2000

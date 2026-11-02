@@ -1,0 +1,35 @@
+$kind: http-request
+description: Updates profile metadata including neighborhood, bio, phone number, and helper skills for the authenticated user.
+url: "{{baseUrl}}/auth/profile"
+method: PUT
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "full_name": "Jane Neighbor Updated",
+        "neighborhood": "Maplewood District West",
+        "bio": "Experienced community helper assisting neighbors with groceries and gardening.",
+        "phone": "{{testPhone}}",
+        "skills": [
+            "Groceries",
+            "Gardening",
+            "Pet Sitting"
+        ]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Profile updated successfully with returned record", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.data.full_name).to.eql("Jane Neighbor Updated");
+          pm.expect(jsonData.data.neighborhood).to.eql("Maplewood District West");
+      });
+    language: text/javascript
+order: 3000

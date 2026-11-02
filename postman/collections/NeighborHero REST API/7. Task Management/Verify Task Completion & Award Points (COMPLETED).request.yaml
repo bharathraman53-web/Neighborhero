@@ -1,0 +1,31 @@
+$kind: http-request
+description: Original requester verifies completion, rates the helper (1-5 stars), and leaves feedback. Automatically awards 150 community points to the helper. Server prevents duplicate point awards.
+url: "{{baseUrl}}/tasks/{{taskId}}/verify-completion"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "rating": 5,
+        "feedback": "Outstanding help! Arrived quickly and handled everything with great care.",
+        "tags": "Punctual, Friendly, Highly Recommended"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 400 if already completed)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 400, 404]);
+      });
+      if (pm.response.code === 200) {
+          var jsonData = pm.response.json();
+          pm.test("Task transitions to COMPLETED and awards points", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data.status).to.eql("COMPLETED");
+              pm.expect(jsonData.message).to.include("points awarded");
+          });
+      }
+    language: text/javascript
+order: 4000

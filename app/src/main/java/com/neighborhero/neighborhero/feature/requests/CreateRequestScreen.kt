@@ -3,6 +3,7 @@ package com.neighborhero.neighborhero.feature.requests
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.neighborhero.neighborhero.data.model.RequestCategory
 import com.neighborhero.neighborhero.nlp.NlpClassifier
 import com.neighborhero.neighborhero.ui.components.AppTopBar
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
@@ -41,7 +43,7 @@ fun CreateRequestScreen(
     var time by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("Maplewood District") }
 
-    val categories = listOf("Groceries", "Repairs", "Pet Care", "Tutoring")
+    val categories = RequestCategory.CANONICAL
 
     // Real-time offline NLP classification
     val nlpSuggestedCategory = remember(title, description) {
@@ -100,7 +102,9 @@ fun CreateRequestScreen(
             Text("Select Category", style = MaterialTheme.typography.labelLarge, color = OnSurface)
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 categories.forEach { cat ->

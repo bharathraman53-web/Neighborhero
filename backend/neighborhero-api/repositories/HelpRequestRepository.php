@@ -41,8 +41,13 @@ class HelpRequestRepository {
         $params = [];
 
         if ($category && $category !== 'All') {
-            $where[] = "r.category = :category";
-            $params[':category'] = $category;
+            $trimmedCategory = trim($category);
+            if (strcasecmp($trimmedCategory, 'Pet Help') === 0 || strcasecmp($trimmedCategory, 'Pet Care') === 0) {
+                $where[] = "(r.category = 'Pet Help' OR r.category = 'Pet Care')";
+            } else {
+                $where[] = "r.category = :category";
+                $params[':category'] = $trimmedCategory;
+            }
         }
 
         if ($status) {

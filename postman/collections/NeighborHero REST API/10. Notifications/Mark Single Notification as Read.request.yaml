@@ -1,0 +1,21 @@
+$kind: http-request
+description: Marks an individual notification as read.
+url: "{{baseUrl}}/notifications/{{notificationId}}/read"
+method: POST
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 404 if notificationId empty/invalid)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 404]);
+      });
+      if (pm.response.code === 200) {
+          var jsonData = pm.response.json();
+          pm.test("Notification marked as read", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data.is_read).to.be.true;
+          });
+      }
+    language: text/javascript
+order: 2000

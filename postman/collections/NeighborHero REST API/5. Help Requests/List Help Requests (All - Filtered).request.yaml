@@ -1,0 +1,41 @@
+$kind: http-request
+name: List Help Requests (All / Filtered)
+description: Retrieves public community help requests with optional category, status, and pagination filters. Automatically sets {{requestId}} and {{taskId}} if empty.
+url: "{{baseUrl}}/requests"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: category
+    value: Groceries
+    disabled: true
+    description: Filter by category (Groceries, Repairs, Pet Care, etc.)
+  - key: status
+    value: OPEN
+    disabled: true
+    description: Filter by status (OPEN, IN_PROGRESS, PENDING_VERIFICATION, COMPLETED)
+  - key: page
+    value: "1"
+    disabled: false
+    description: Page number
+  - key: limit
+    value: "20"
+    disabled: false
+    description: Items per page
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Returns list of requests and populates requestId", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.data).to.be.an("array");
+          if (jsonData.data.length > 0 && !pm.environment.get("requestId")) {
+              pm.environment.set("requestId", jsonData.data[0].id);
+              pm.environment.set("taskId", jsonData.data[0].id);
+          }
+      });
+    language: text/javascript
+order: 1000

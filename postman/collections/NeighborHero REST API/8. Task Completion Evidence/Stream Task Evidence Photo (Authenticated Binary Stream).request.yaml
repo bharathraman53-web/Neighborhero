@@ -1,0 +1,19 @@
+$kind: http-request
+description: Streams the raw evidence photo image bytes after validating the caller's Bearer token and verifying they are a participant in the task.
+url: "{{baseUrl}}/tasks/{{taskId}}/evidence/photo"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 404 if no photo uploaded / 403 if forbidden)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);
+      });
+      if (pm.response.code === 200) {
+          pm.test("Response is an image byte stream", function () {
+              pm.expect(pm.response.headers.get("Content-Type")).to.include("image/");
+          });
+      }
+    language: text/javascript
+order: 3000

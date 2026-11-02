@@ -1,0 +1,35 @@
+$kind: http-request
+description: Creates a new help request associated with the authenticated user. Automatically captures the newly created ID into {{requestId}} and {{taskId}} for subsequent lifecycle requests.
+url: "{{baseUrl}}/requests"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "title": "Need assistance moving heavy wooden cabinet",
+        "category": "Moving",
+        "description": "Need a friendly hand moving an oak cabinet to the patio. Takes about 15 minutes of lifting.",
+        "location": "Maplewood District, Apt 3B",
+        "distance": "0.3 mi away",
+        "requested_time": "Today, 5:30 PM",
+        "is_urgent": false
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 201 Created", function () {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Request created with OPEN status and captures IDs", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.data.id).to.be.a("string");
+          pm.expect(jsonData.data.status).to.eql("OPEN");
+          pm.environment.set("requestId", jsonData.data.id);
+          pm.environment.set("taskId", jsonData.data.id);
+      });
+    language: text/javascript
+order: 2000

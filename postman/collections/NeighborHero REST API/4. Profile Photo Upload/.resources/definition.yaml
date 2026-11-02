@@ -1,0 +1,3 @@
+$kind: collection
+description: Multipart image upload endpoints for user avatars with MIME integrity and size checks.
+order: 4000

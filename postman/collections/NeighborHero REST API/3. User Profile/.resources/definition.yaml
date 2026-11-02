@@ -1,0 +1,3 @@
+$kind: collection
+description: Retrieve authenticated user identity, profile metrics, points, and update contact/bio details.
+order: 3000

@@ -4,6 +4,7 @@ import com.neighborhero.neighborhero.data.local.AppDatabaseHelper
 import com.neighborhero.neighborhero.data.model.ChatMessage
 import com.neighborhero.neighborhero.data.model.NotificationItem
 import com.neighborhero.neighborhero.data.model.NotificationType
+import com.neighborhero.neighborhero.data.model.RequestCategory
 import com.neighborhero.neighborhero.data.model.RequestStatus
 import com.neighborhero.neighborhero.data.network.ApiConfig
 import com.neighborhero.neighborhero.data.repository.*
@@ -84,12 +85,12 @@ class NeighborHeroAppTest {
     }
 
     @Test
-    fun testNlpClassifier_petCareClassification() {
+    fun testNlpClassifier_petHelpClassification() {
         val category1 = nlpClassifier.classifyRequestCategory("Need someone to walk my dog this afternoon")
-        assertEquals("Pet Care", category1)
+        assertEquals(RequestCategory.PET_HELP, category1)
 
         val category2 = nlpClassifier.classifyRequestCategory("Taking care of a rescue kitten for 2 hours")
-        assertEquals("Pet Care", category2)
+        assertEquals(RequestCategory.PET_HELP, category2)
     }
 
     @Test
@@ -99,6 +100,45 @@ class NeighborHeroAppTest {
 
         val category2 = nlpClassifier.classifyRequestCategory("Science homework study session for 8th grader")
         assertEquals("Tutoring", category2)
+    }
+
+    @Test
+    fun testNlpClassifier_booksClassification() {
+        val category1 = nlpClassifier.classifyRequestCategory("Need college chemistry textbook and workbook for biology")
+        assertEquals(RequestCategory.BOOKS, category1)
+
+        val category2 = nlpClassifier.classifyRequestCategory("Looking for novel or hardcover literature book from library")
+        assertEquals(RequestCategory.BOOKS, category2)
+    }
+
+    @Test
+    fun testNlpClassifier_transportClassification() {
+        val category1 = nlpClassifier.classifyRequestCategory("Need a ride to the airport with two large luggages")
+        assertEquals(RequestCategory.TRANSPORT, category1)
+
+        val category2 = nlpClassifier.classifyRequestCategory("Hauling pickup truck lift to the train station")
+        assertEquals(RequestCategory.TRANSPORT, category2)
+    }
+
+    @Test
+    fun testNlpClassifier_otherClassification() {
+        val category1 = nlpClassifier.classifyRequestCategory("Need help with yard cleanup and lawn mowing this weekend")
+        assertEquals(RequestCategory.OTHER, category1)
+
+        val category2 = nlpClassifier.classifyRequestCategory("Moving boxes out to garage storage and basement recycling")
+        assertEquals(RequestCategory.OTHER, category2)
+    }
+
+    @Test
+    fun testCategoryTaxonomy_sixCanonicalCategories() {
+        assertEquals(6, RequestCategory.CANONICAL.size)
+        assertEquals(listOf("Groceries", "Books", "Repairs", "Transport", "Pet Help", "Other"), RequestCategory.CANONICAL)
+        assertTrue(RequestCategory.isCanonical("Books"))
+        assertFalse(RequestCategory.isCanonical("Tutoring")) // Tutoring is legacy, not canonical
+        assertTrue(RequestCategory.isSupported("Tutoring"))
+        assertTrue(RequestCategory.matches("Pet Care", "Pet Help"))
+        assertTrue(RequestCategory.matches("Pet Help", "Pet Care"))
+        assertFalse(RequestCategory.matches("Tutoring", "Books")) // Distinct, no silent mapping
     }
 
     @Test

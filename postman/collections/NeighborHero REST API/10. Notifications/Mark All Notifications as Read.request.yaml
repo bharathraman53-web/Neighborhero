@@ -1,0 +1,19 @@
+$kind: http-request
+description: Marks all unread notifications for the authenticated user as read in a single batch operation.
+url: "{{baseUrl}}/notifications/read-all"
+method: POST
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("All notifications marked as read", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.message).to.include("marked as read");
+      });
+    language: text/javascript
+order: 3000

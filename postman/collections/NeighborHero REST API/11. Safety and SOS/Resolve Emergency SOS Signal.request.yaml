@@ -1,0 +1,21 @@
+$kind: http-request
+description: Marks an active emergency alert as RESOLVED once the user is confirmed safe.
+url: "{{baseUrl}}/safety/sos/{{sosAlertId}}/resolve"
+method: POST
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 404 if invalid alert ID)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 404]);
+      });
+      if (pm.response.code === 200) {
+          var jsonData = pm.response.json();
+          pm.test("SOS signal marked as RESOLVED", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data.status).to.eql("RESOLVED");
+          });
+      }
+    language: text/javascript
+order: 2000

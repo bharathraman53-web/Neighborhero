@@ -1,0 +1,31 @@
+$kind: http-request
+description: Retrieves in-app notification alerts for the authenticated user, including task assignments, verifications, and chat alerts.
+url: "{{baseUrl}}/notifications"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: page
+    value: "1"
+    disabled: false
+    description: Page number
+  - key: limit
+    value: "30"
+    disabled: false
+    description: Page size limit
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Returns notifications and captures notificationId", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.data).to.be.an("array");
+          if (jsonData.data.length > 0 && !pm.environment.get("notificationId")) {
+              pm.environment.set("notificationId", jsonData.data[0].id);
+          }
+      });
+    language: text/javascript
+order: 1000

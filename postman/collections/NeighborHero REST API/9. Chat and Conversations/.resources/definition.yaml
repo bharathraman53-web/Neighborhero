@@ -1,0 +1,3 @@
+$kind: collection
+description: 1-to-1 private messaging, conversation isolation, real-time polling, and duplicate send deduplication.
+order: 9000

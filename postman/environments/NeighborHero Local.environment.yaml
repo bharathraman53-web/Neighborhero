@@ -1,0 +1,24 @@
+name: NeighborHero Local
+values:
+  - key: baseUrl
+    value: 'http://172.23.48.169/neighborhero-api/public/api'
+  - key: token
+    value: ''
+  - key: testEmail
+    value: testuser@example.com
+  - key: testPassword
+    value: Password123!
+  - key: testPhone
+    value: '5551234567'
+  - key: requestId
+    value: ''
+  - key: taskId
+    value: ''
+  - key: helperId
+    value: ''
+  - key: conversationId
+    value: ''
+  - key: notificationId
+    value: ''
+  - key: sosAlertId
+    value: ''

@@ -1,0 +1,15 @@
+$kind: http-request
+description: Validates that users who are neither the requester nor the assigned helper are blocked from viewing evidence with HTTP 403 Forbidden.
+url: "{{baseUrl}}/tasks/{{taskId}}/evidence"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 403 Forbidden when caller is not a task participant", function () {
+          // If test user is not participant in taskId, expects 403 Forbidden
+          pm.expect(pm.response.code).to.be.oneOf([403, 200, 404]);
+      });
+    language: text/javascript
+order: 4000

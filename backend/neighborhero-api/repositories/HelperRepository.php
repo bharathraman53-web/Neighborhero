@@ -50,8 +50,21 @@ class HelperRepository {
         $params = [];
 
         if (!empty($skill)) {
-            $where[] = "EXISTS (SELECT 1 FROM helper_skills s WHERE s.user_id = u.id AND LOWER(s.skill_name) = LOWER(:skill))";
-            $params[':skill'] = trim($skill);
+            $trimmedSkill = trim($skill);
+            $skillCandidates = [$trimmedSkill];
+            if (strcasecmp($trimmedSkill, 'Pet Help') === 0) {
+                $skillCandidates[] = 'Pet Care';
+            } elseif (strcasecmp($trimmedSkill, 'Pet Care') === 0) {
+                $skillCandidates[] = 'Pet Help';
+            }
+
+            $placeholders = [];
+            foreach ($skillCandidates as $idx => $cand) {
+                $pName = ":skill_{$idx}";
+                $placeholders[] = "LOWER(s.skill_name) = LOWER({$pName})";
+                $params[$pName] = $cand;
+            }
+            $where[] = "EXISTS (SELECT 1 FROM helper_skills s WHERE s.user_id = u.id AND (" . implode(' OR ', $placeholders) . "))";
         }
 
         $whereSql = implode(' AND ', $where);

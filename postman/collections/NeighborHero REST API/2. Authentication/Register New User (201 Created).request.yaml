@@ -1,0 +1,41 @@
+$kind: http-request
+description: Registers a new NeighborHero user. Passwords are encrypted with bcrypt and phone numbers require exactly 10 digits. On success (201), the bearer token is automatically saved to {{token}}.
+url: "{{baseUrl}}/auth/register"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "full_name": "Jane Neighbor",
+        "email": "{{testEmail}}",
+        "password": "{{testPassword}}",
+        "phone": "{{testPhone}}",
+        "neighborhood": "Maplewood District",
+        "bio": "Helpful neighbor ready to assist with groceries and gardening.",
+        "skills": [
+            "Groceries",
+            "Gardening"
+        ]
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 201 Created or 409 Conflict if already registered", function () {
+          pm.expect(pm.response.code).to.be.oneOf([201, 409]);
+      });
+      if (pm.response.code === 201) {
+          var jsonData = pm.response.json();
+          pm.test("Registration returns bearer token and user object", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data.token).to.be.a("string");
+              pm.expect(jsonData.data.user.email).to.eql(pm.environment.get("testEmail"));
+          });
+          pm.environment.set("token", jsonData.data.token);
+      }
+    language: text/javascript
+order: 1000

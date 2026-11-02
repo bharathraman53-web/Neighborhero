@@ -1,0 +1,22 @@
+$kind: http-request
+description: Retrieves individual helper profile by ID, including neighborhood, verified status, rating, completed tasks, and skill badges.
+url: "{{baseUrl}}/helpers/{{helperId}}"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 404 if helperId empty/invalid)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 404]);
+      });
+      if (pm.response.code === 200) {
+          var jsonData = pm.response.json();
+          pm.test("Returns helper profile object with skills", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data).to.have.property("name");
+              pm.expect(jsonData.data).to.have.property("skills");
+          });
+      }
+    language: text/javascript
+order: 3000

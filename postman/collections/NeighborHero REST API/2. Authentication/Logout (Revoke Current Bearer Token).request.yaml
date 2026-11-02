@@ -1,0 +1,19 @@
+$kind: http-request
+description: Revokes the active bearer token in the MySQL auth_tokens table. Subsequent requests with this token will return HTTP 401.
+url: "{{baseUrl}}/auth/logout"
+method: POST
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Logout confirms token revocation", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.message).to.include("Logged out");
+      });
+    language: text/javascript
+order: 5000

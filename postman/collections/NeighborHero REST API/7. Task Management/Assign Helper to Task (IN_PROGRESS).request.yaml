@@ -1,0 +1,28 @@
+$kind: http-request
+description: Assigns a helper to an open help request. Transitions the status to IN_PROGRESS and notifies the requester.
+url: "{{baseUrl}}/tasks/{{taskId}}/assign"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "helper_id": "{{helperId}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 400 if already assigned/completed)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 400, 404]);
+      });
+      if (pm.response.code === 200) {
+          var jsonData = pm.response.json();
+          pm.test("Task transitions to IN_PROGRESS", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data.status).to.eql("IN_PROGRESS");
+          });
+      }
+    language: text/javascript
+order: 1000

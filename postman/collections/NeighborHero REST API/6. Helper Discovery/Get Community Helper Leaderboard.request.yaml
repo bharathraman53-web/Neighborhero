@@ -1,0 +1,27 @@
+$kind: http-request
+description: Retrieves top community champions ranked by verified tasks completed and points accumulated.
+url: "{{baseUrl}}/helpers/leaderboard"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: limit
+    value: "50"
+    disabled: false
+    description: Top champions limit
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Returns leaderboard ordered by community points", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.data).to.be.an("array");
+          if (jsonData.data.length > 1) {
+              pm.expect(jsonData.data[0].points).to.be.at.least(jsonData.data[1].points);
+          }
+      });
+    language: text/javascript
+order: 2000

@@ -1,0 +1,3 @@
+$kind: collection
+description: System status and database connectivity health probe endpoints.
+order: 1000

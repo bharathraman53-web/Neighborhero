@@ -1,0 +1,3 @@
+$kind: collection
+description: "Lifecycle state transitions: helper assignment, start confirmation, completion submission, and rating verification."
+order: 7000

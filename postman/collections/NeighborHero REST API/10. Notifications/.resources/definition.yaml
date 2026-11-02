@@ -1,0 +1,3 @@
+$kind: collection
+description: User in-app notifications, unread badges, mark single notification read, and mark all read.
+order: 10000

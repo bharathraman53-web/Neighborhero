@@ -32,6 +32,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
+import com.neighborhero.neighborhero.data.model.RequestCategory
 import com.neighborhero.neighborhero.ui.components.PrimaryButton
 import com.neighborhero.neighborhero.ui.theme.*
 
@@ -81,7 +82,7 @@ fun CreateProfileScreen(
         }
     }
 
-    val allSkills = listOf("Groceries", "Repairs", "Pet Care", "Tutoring", "Moving", "Yardwork")
+    val allSkills = RequestCategory.CANONICAL + listOf("Tutoring", "Moving", "Yardwork")
 
     Surface(
         modifier = Modifier.fillMaxSize(),

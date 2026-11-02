@@ -1,0 +1,91 @@
+text,category,source
+"Need someone to pick up fresh milk and eggs from the grocery store","Groceries",synthetic
+"Can you grab a loaf of bread and some apples on your way home?","Groceries",synthetic
+"Running low on vegetables and fruit, need help buying groceries","Groceries",synthetic
+"Looking for a volunteer to pick up my weekly supermarket order","Groceries",synthetic
+"Supermarket delivery assistance needed for heavy bags","Groceries",synthetic
+"Please buy organic milk and whole wheat bread from the local market","Groceries",synthetic
+"Running short on supplies, need someone to fetch groceries","Groceries",synthetic
+"Can a neighbor pick up breakfast items from the corner store?","Groceries",synthetic
+"Grocery pickup needed for elderly resident","Groceries",synthetic
+"Need fresh produce from the farmers market","Groceries",synthetic
+"Looking for someone to grab canned goods and snacks","Groceries",synthetic
+"Urgent grocery run needed for tonight's dinner","Groceries",synthetic
+"Can someone purchase bottled water and snacks for my store?","Groceries",synthetic
+"Grocery shopping assistance required due to injury","Groceries",synthetic
+"Need pantry staples like rice, flour, and sugar picked up","Groceries",synthetic
+"Calculus 101 textbook needed for engineering college course","Books",synthetic
+"Lending library physics study guides for final exams","Books",synthetic
+"Looking to borrow a biology textbook for the semester","Books",synthetic
+"High school algebra workbook needed urgently","Books",synthetic
+"Do you have a spare chemistry reference book I can use?","Books",synthetic
+"Organic chemistry textbook needed for study group","Books",synthetic
+"Looking for literature novels for English class reading","Books",synthetic
+"Computer science programming textbook required","Books",synthetic
+"World history study notes and textbooks needed","Books",synthetic
+"Anatomy and physiology reference books wanted","Books",synthetic
+"Statistics textbook needed for college homework","Books",synthetic
+"Economics principles textbook to borrow for two weeks","Books",synthetic
+"Philosophy introductory books needed for reading club","Books",synthetic
+"Psychology research textbook requested","Books",synthetic
+"Art history hardcover textbook needed","Books",synthetic
+"Fix leaking kitchen faucet dripping constantly","Repairs",synthetic
+"Broken wooden chair leg needs gluing and nailing","Repairs",synthetic
+"Need help fixing a squeaky door hinge in the hallway","Repairs",synthetic
+"Hanging picture frames and repairing drywall anchor","Repairs",synthetic
+"Fixing a jammed window latch in the bedroom","Repairs",synthetic
+"Leaking bathroom pipe needs urgent plumbing repair","Repairs",synthetic
+"Replacing burnt out light fixtures in ceiling","Repairs",synthetic
+"Repairing a loose cabinet door hinge in the kitchen","Repairs",synthetic
+"Fixing a running toilet flush mechanism","Repairs",synthetic
+"Patching a small hole in bedroom drywall","Repairs",synthetic
+"Repairing faulty electrical wall outlet","Repairs",synthetic
+"Fixing a broken fence latch in the backyard","Repairs",synthetic
+"Mending a torn window mosquito net screen","Repairs",synthetic
+"Repairing squeaky floorboards in the hallway","Repairs",synthetic
+"Fixing a stuck sliding glass balcony door","Repairs",synthetic
+"Need ride to hospital medical appointment on Thursday","Transport",synthetic
+"Transport large box of donations across town","Transport",synthetic
+"Can someone give me a lift to the community center?","Transport",synthetic
+"Looking for transportation to the vaccination clinic","Transport",synthetic
+"Need help hauling furniture items in a pickup truck","Transport",synthetic
+"Ride sharing requested for airport drop-off","Transport",synthetic
+"Transporting musical keyboard to rehearsal studio","Transport",synthetic
+"Need a ride to the pharmacy for prescriptions","Transport",synthetic
+"Hauling heavy luggage to the train station","Transport",synthetic
+"Transporting bicycles to the local repair shop","Transport",synthetic
+"Ride needed for job interview downtown","Transport",synthetic
+"Transporting boxes of books to the community library","Transport",synthetic
+"Need a lift to the grocery wholesale market","Transport",synthetic
+"Transporting gardening soil bags in a car","Transport",synthetic
+"Ride requested for dental clinic checkup","Transport",synthetic
+"Dog walking assistance needed for Golden Retriever this weekend","Pet Help",synthetic
+"Feed my cat and change water while away on trip","Pet Help",synthetic
+"Looking for someone to walk my puppy on Tuesday evening","Pet Help",synthetic
+"Pet sitting for an affectionate rescue cat","Pet Help",synthetic
+"Dog walking service needed for afternoon exercise","Pet Help",synthetic
+"Feeding pet birds while traveling out of town","Pet Help",synthetic
+"Walking two friendly dogs in neighborhood park","Pet Help",synthetic
+"Checking in on my rabbit and feeding fresh greens","Pet Help",synthetic
+"Pet care assistance during veterinary recovery","Pet Help",synthetic
+"Dog walking help for senior Labrador","Pet Help",synthetic
+"Cat feeding and litter cleaning service needed","Pet Help",synthetic
+"Pet companion visits while owner is at work","Pet Help",synthetic
+"Walking energetic terrier around the block","Pet Help",synthetic
+"Pet sitting for hamster over the weekend","Pet Help",synthetic
+"Feeding aquarium fish and small pets","Pet Help",synthetic
+"General yard cleanup and gathering fallen leaves","Other",synthetic
+"Help moving heavy storage boxes in the garage","Other",synthetic
+"Assistance sorting recycling bins and trash","Other",synthetic
+"Watering house plants while family is on vacation","Other",synthetic
+"Help setting up folding tables for community event","Other",synthetic
+"Yard weeding and garden trimming assistance","Other",synthetic
+"Organizing basement storage racks and shelves","Other",synthetic
+"Help assembling a flat-pack bookshelf","Other",synthetic
+"Cleaning up backyard debris after storm","Other",synthetic
+"Assistance with digital device setup for senior","Other",synthetic
+"Help hanging holiday window lights","Other",synthetic
+"Sorting clothes donations for local shelter","Other",synthetic
+"General lawn mowing and grass cutting","Other",synthetic
+"Help sweeping and tidying front porch","Other",synthetic
+"Assistance packing boxes for household move","Other",synthetic

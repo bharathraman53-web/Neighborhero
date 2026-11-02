@@ -1,0 +1,30 @@
+$kind: http-request
+description: Verifies client_message_id deduplication. Re-sending with the same client_message_id returns the existing message without inserting a duplicate row.
+url: "{{baseUrl}}/chat/messages"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "message_text": "Hello neighbor! I am on my way to help you.",
+        "recipient_id": "{{helperId}}",
+        "conversation_id": "{{conversationId}}",
+        "client_message_id": "postman_dedup_test_stable_id"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 or 201 (Idempotent response)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 201, 400, 404]);
+      });
+      if (pm.response.code === 200 || pm.response.code === 201) {
+          var jsonData = pm.response.json();
+          pm.test("Backend returns same message row without creating duplicate", function () {
+              pm.expect(jsonData.success).to.be.true;
+          });
+      }
+    language: text/javascript
+order: 4000

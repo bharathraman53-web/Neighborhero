@@ -1,0 +1,18 @@
+$kind: collection
+description: |-
+  # NeighborHero REST API Postman Collection (v2.1)
+
+  Complete, verified API collection for the NeighborHero community help Android application backend (PHP 8.2 + MySQL / MariaDB on XAMPP).
+
+  ### Features
+  - **12 Organized Folders** covering all actual backend routes in `backend/neighborhero-api/routes/api.php`
+  - **Automated Authentication**: Register or log in to automatically set the Bearer token in `{{token}}`
+  - **Automatic ID Propagation**: Requests auto-populate `{{requestId}}`, `{{taskId}}`, `{{helperId}}`, `{{conversationId}}`, `{{notificationId}}`, and `{{sosAlertId}}`
+  - **Quality Assertions**: Includes validation checks, 10-digit phone enforcement, chat privacy isolation, duplicate message prevention, and task evidence authorization
+  - **Multipart Photo Uploads**: Includes both profile photo and task evidence proof uploads.
+auth:
+  - id: 0b5a32fe-26a9-4bff-97ed-fcb9aac69d73
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{token}}"

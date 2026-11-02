@@ -51,7 +51,9 @@ class HelpRequestController {
             Response::error($validator->firstError() ?: 'Validation failed', 422, $validator->errors());
         }
 
-        $allowedCategories = ['Groceries', 'Repairs', 'Pet Care', 'Tutoring', 'Yardwork', 'Moving', 'Other'];
+        $canonicalCategories = ['Groceries', 'Books', 'Repairs', 'Transport', 'Pet Help', 'Other'];
+        $legacyCategories = ['Pet Care', 'Tutoring', 'Yardwork', 'Moving'];
+        $allowedCategories = array_merge($canonicalCategories, $legacyCategories);
         $category = trim($input['category']);
         if (!in_array($category, $allowedCategories, true)) {
             $category = 'Other';

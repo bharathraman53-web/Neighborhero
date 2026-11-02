@@ -1,0 +1,3 @@
+$kind: collection
+description: Secure upload, participant-authorized metadata retrieval, and authenticated streaming of task proof photos.
+order: 8000

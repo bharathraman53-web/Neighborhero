@@ -51,6 +51,12 @@ $pdo = new PDO('sqlite::memory:', null, null, [
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
 ]);
 $pdo->exec('PRAGMA foreign_keys = ON;');
+$pdo->sqliteCreateFunction('CONCAT', function(...$args) {
+    return implode('', $args);
+});
+$pdo->sqliteCreateFunction('RAND', function() {
+    return mt_rand() / mt_getrandmax();
+});
 Database::setConnection($pdo);
 
 // Initialize SQLite Schema
@@ -331,6 +337,47 @@ assertTest($req1['requester_name'] === 'Sarah Jenkins', "Requester name resolved
 
 $openRequests = $requestRepo->listAll('Pet Care', 'OPEN');
 assertTest(count($openRequests) === 1, "Requests filterable by category and status");
+
+$openPetHelpRequests = $requestRepo->listAll('Pet Help', 'OPEN');
+assertTest(count($openPetHelpRequests) === 1, "Requests filterable by canonical 'Pet Help' returns requests created under 'Pet Care'");
+
+// Test canonical categories creation
+$reqBooks = $requestRepo->create([
+    'id' => 'req_books_1',
+    'requester_id' => 'usr_1',
+    'title' => 'Need chemistry textbook for semester',
+    'category' => 'Books',
+    'description' => 'Borrowing 2nd edition college chemistry book',
+    'location' => 'Maplewood',
+    'distance' => '0.5 mi',
+    'requested_time' => 'Tomorrow 10am',
+    'is_urgent' => false,
+]);
+assertTest($reqBooks['category'] === 'Books', "Help request created with canonical category 'Books'");
+
+$reqTransport = $requestRepo->create([
+    'id' => 'req_trans_1',
+    'requester_id' => 'usr_1',
+    'title' => 'Ride to medical clinic',
+    'category' => 'Transport',
+    'description' => 'Need a ride 3 miles to clinic and back',
+    'location' => 'Maplewood',
+    'distance' => '0.2 mi',
+    'requested_time' => 'Friday 2pm',
+    'is_urgent' => false,
+]);
+assertTest($reqTransport['category'] === 'Transport', "Help request created with canonical category 'Transport'");
+
+// Helper matching alias and distinction tests
+$pdo->exec("UPDATE users SET is_verified = 1 WHERE id IN ('usr_1', 'usr_2')");
+$petHelpers = $helperRepo->getRecommendations('Pet Help');
+assertTest(count($petHelpers) >= 1 && $petHelpers[0]['id'] === 'usr_1', "Helper recommendation: 'Pet Help' query matches helper with 'Pet Care' skill");
+
+$bookHelpers = $helperRepo->getRecommendations('Books');
+assertTest(count($bookHelpers) === 0, "Helper recommendation: 'Books' does not conflate with 'Tutoring'");
+
+$tutoringHelpers = $helperRepo->getRecommendations('Tutoring');
+assertTest(count($tutoringHelpers) >= 1 && $tutoringHelpers[0]['id'] === 'usr_2', "Helper recommendation: 'Tutoring' returns helper with distinct Tutoring skill");
 
 echo "\n--- 5. Task Lifecycle & Points Duplication Prevention Tests ---\n";
 // Assign helper (usr_2 accepts usr_1's request)

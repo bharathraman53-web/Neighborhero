@@ -1,0 +1,21 @@
+$kind: http-request
+description: Fetches full details for a single help request including requester name, rating, status, and assigned helper information.
+url: "{{baseUrl}}/requests/{{requestId}}"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 404 if invalid ID)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 404]);
+      });
+      if (pm.response.code === 200) {
+          var jsonData = pm.response.json();
+          pm.test("Returns correct help request object", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data.id).to.eql(pm.environment.get("requestId"));
+          });
+      }
+    language: text/javascript
+order: 3000

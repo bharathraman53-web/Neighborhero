@@ -1,0 +1,28 @@
+$kind: http-request
+description: Uploads a user avatar image via multipart/form-data with key "photo". The backend validates file bytes, stores the image in uploads/avatars/, and saves the path in MySQL users.avatar_url.
+url: "{{baseUrl}}/auth/profile/photo"
+method: POST
+headers:
+  Accept: application/json
+body:
+  type: formdata
+  content:
+    - type: file
+      key: photo
+      src: ""
+      description: Select an image file (JPEG, PNG, or WebP up to 5 MB) from your local computer. In Postman, hover over the VALUE column and click "Select Files".
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 (if file attached) or 400 (if empty)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 400]);
+      });
+      if (pm.response.code === 200) {
+          pm.test("Returns updated profile with avatar_url", function () {
+              var jsonData = pm.response.json();
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data.avatar_url).to.include("uploads/avatars/");
+          });
+      }
+    language: text/javascript
+order: 1000

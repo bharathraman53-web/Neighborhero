@@ -1,0 +1,22 @@
+$kind: http-request
+description: Retrieves submitted evidence notes and photo reference. Accessible strictly by the task requester and assigned helper. Non-participants receive HTTP 403 Forbidden.
+url: "{{baseUrl}}/tasks/{{taskId}}/evidence"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 403 Forbidden if non-participant)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);
+      });
+      if (pm.response.code === 200) {
+          var jsonData = pm.response.json();
+          pm.test("Evidence returns task notes and proof photo URL", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data).to.have.property("proof_photo_url");
+              pm.expect(jsonData.data).to.have.property("notes");
+          });
+      }
+    language: text/javascript
+order: 2000

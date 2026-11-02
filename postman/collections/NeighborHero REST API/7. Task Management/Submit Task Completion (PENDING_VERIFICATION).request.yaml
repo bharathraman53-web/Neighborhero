@@ -1,0 +1,29 @@
+$kind: http-request
+description: Helper submits completion notes and optional photo reference. Transitions the task status to PENDING_VERIFICATION awaiting requester sign-off.
+url: "{{baseUrl}}/tasks/{{taskId}}/submit-completion"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "notes": "Task completed successfully! All items delivered safely to the front porch.",
+        "proof_photo_url": "uploads/evidence/evidence_demo.jpg"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 400 if invalid transition)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 400, 404, 422]);
+      });
+      if (pm.response.code === 200) {
+          var jsonData = pm.response.json();
+          pm.test("Task transitions to PENDING_VERIFICATION", function () {
+              pm.expect(jsonData.success).to.be.true;
+              pm.expect(jsonData.data.status).to.eql("PENDING_VERIFICATION");
+          });
+      }
+    language: text/javascript
+order: 3000

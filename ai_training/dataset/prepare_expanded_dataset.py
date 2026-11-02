@@ -1,0 +1,381 @@
+import csv
+import os
+
+CANONICAL_CATEGORIES = [
+    "Groceries",
+    "Books",
+    "Repairs",
+    "Transport",
+    "Pet Help",
+    "Other"
+]
+
+EXAMPLES = {
+    "Groceries": [
+        # Original core examples preserved
+        "Need someone to pick up fresh milk and eggs from the grocery store",
+        "Can you grab a loaf of bread and some apples on your way home?",
+        "Running low on vegetables and fruit, need help buying groceries",
+        "Looking for a volunteer to pick up my weekly supermarket order",
+        "Supermarket delivery assistance needed for heavy bags",
+        "Please buy organic milk and whole wheat bread from the local market",
+        "Running short on supplies, need someone to fetch groceries",
+        "Can a neighbor pick up breakfast items from the corner store?",
+        "Grocery pickup needed for elderly resident",
+        "Need fresh produce from the farmers market",
+        "Looking for someone to grab canned goods and snacks",
+        "Urgent grocery run needed for tonight's dinner",
+        "Can someone purchase bottled water and snacks for my family?",
+        "Grocery shopping assistance required due to injured leg",
+        "Need pantry staples like rice, flour, and sugar picked up",
+        # Expanded realistic diverse examples
+        "Could someone pick up a carton of orange juice and butter from Trader Joe's?",
+        "Need baby formula and diapers from the grocery store today",
+        "Pick up bananas, peanut butter, and oatmeal from supermarket",
+        "Sick with flu, need chicken noodle soup and crackers dropped at doorstep",
+        "Quick run to Safeway for coffee beans and milk",
+        "Need someone to buy cereal, yogurt, and strawberries for breakfast",
+        "Can someone get me 5 pounds of potatoes and yellow onions?",
+        "Grocery pickup from Whole Foods, already ordered online",
+        "Need cat food and human groceries from the supermarket",
+        "Please pick up olive oil, pasta sauce, and spaghetti",
+        "Recovering from surgery, unable to drive to grocery store",
+        "Need a gallon of 2% milk, wheat bread, and dozen brown eggs",
+        "Can someone bring me bottled spring water and electrolytes?",
+        "Looking for someone doing a grocery run near Oakridge to grab fruit",
+        "Need fresh bell peppers, garlic, ginger, and tofu from market",
+        "Pick up frozen dinners and microwave meals for senior neighbor",
+        "Need baking supplies: yeast, chocolate chips, vanilla extract",
+        "Can you fetch cheese, crackers, and sandwich ham from grocery?",
+        "Need emergency tea, lemon, honey, and cough drops from bodega",
+        "Supermarket curbside order ready for pickup at Kroger",
+        "Need toilet paper, paper towels, and dish soap from grocery section",
+        "Can someone grab two cartons of almond milk and granola?",
+        "Need fresh tomatoes, lettuce, cucumber, and salad dressing",
+        "Pickup pre-paid grocery bags at neighborhood food co-op",
+        "Can someone pick up brown rice, black beans, and salsa?",
+        # Short / informal / colloquial / variations
+        "groceries pickup pls",
+        "need milk and bread urgently",
+        "safeway grocery run today",
+        "quick grocery trip for sick senior",
+        "fresh veggies and fruit needed",
+        "need grocceries from local market",
+        "grocries pickup from store",
+        "buy bread eggs butter",
+        "trader joes groceries run",
+        "supermakret shopping assistance"
+    ],
+    "Books": [
+        # Original core examples preserved
+        "Calculus 101 textbook needed for engineering college course",
+        "Lending library physics study guides for final exams",
+        "Looking to borrow a biology textbook for the semester",
+        "High school algebra workbook needed urgently",
+        "Do you have a spare chemistry reference book I can use?",
+        "Organic chemistry textbook needed for study group",
+        "Looking for literature novels for English class reading",
+        "Computer science programming textbook required",
+        "World history study notes and textbooks needed",
+        "Anatomy and physiology reference books wanted",
+        "Statistics textbook needed for college homework",
+        "Economics principles textbook to borrow for two weeks",
+        "Philosophy introductory books needed for reading club",
+        "Psychology research textbook requested",
+        "Art history hardcover textbook needed",
+        # Expanded realistic diverse examples
+        "Need to borrow a copy of To Kill a Mockingbird for book club",
+        "Looking for MCAT test preparation prep book and practice exams",
+        "Anyone have an introductory Python programming textbook?",
+        "Need Spanish language grammar workbook for high schooler",
+        "Return five library books to Maplewood public library before due date",
+        "Pick up reserved book on hold at neighborhood library branch",
+        "Looking for children's picture books for 5-year-old learning to read",
+        "Borrowing a microbiology laboratory manual for sophomore year",
+        "Middle school science textbook needed for reference",
+        "Does anyone have a copy of 1984 by George Orwell to lend?",
+        "Looking for SAT practice test books and math study guides",
+        "Need mechanical engineering textbook on thermodynamics",
+        "Looking for french poetry anthology book for college literature",
+        "Any neighbor have medical terminology handbook to borrow?",
+        "Looking for graphic novels or comic books for weekend reading",
+        "Need linear algebra textbook 4th edition for semester",
+        "Can I borrow GRE general test prep book for a month?",
+        "Looking for gardening encyclopedia reference book",
+        "Need modern world geography textbook for class project",
+        "Borrowing biochemistry textbook for upcoming exam",
+        "Looking for classic literature books: Jane Austen or Dickens",
+        "Need architectural drawing manual reference book",
+        "Does anyone have data structures and algorithms textbook?",
+        "Borrowing introductory sociology textbook",
+        "Need music theory workbook for piano practice",
+        # Short / informal / colloquial / variations
+        "calculus textbook needed",
+        "biology book borrow pls",
+        "return books to library",
+        "chemistry textbook borrow",
+        "borrow english novel",
+        "textbok for math course",
+        "study giude for biology exam",
+        "libary book return dropoff",
+        "sat prep book wanted",
+        "borrowing history textbook"
+    ],
+    "Repairs": [
+        # Original core examples preserved
+        "Fix leaking kitchen faucet dripping constantly",
+        "Broken wooden chair leg needs gluing and nailing",
+        "Need help fixing a squeaky door hinge in the hallway",
+        "Hanging picture frames and repairing drywall anchor",
+        "Fixing a jammed window latch in the bedroom",
+        "Leaking bathroom pipe needs urgent plumbing repair",
+        "Replacing burnt out light fixtures in ceiling",
+        "Repairing a loose cabinet door hinge in the kitchen",
+        "Fixing a running toilet flush mechanism",
+        "Patching a small hole in bedroom drywall",
+        "Repairing faulty electrical wall outlet",
+        "Fixing a broken fence latch in the backyard",
+        "Mending a torn window mosquito net screen",
+        "Repairing squeaky floorboards in the hallway",
+        "Fixing a stuck sliding glass balcony door",
+        # Expanded realistic diverse examples
+        "Bathroom sink drain is severely clogged, need plunger or auger",
+        "Front door deadbolt lock is jammed and won't turn properly",
+        "Loose stair railing needs tightening and reinforcing",
+        "Fixing water dripping from under kitchen sink trap",
+        "Repairing broken chain and flat tire on bicycle",
+        "Patching peeling plaster and drywall in laundry room",
+        "Replacing broken doorknob on bathroom door",
+        "Fence board blown down by strong wind, need nailing into post",
+        "Fixing loose floor tile in entryway with grout",
+        "Kitchen garbage disposal jammed and humming, need handy fix",
+        "Repairing wobbly dining table leg with wood glue and screws",
+        "Shower head leaking around threaded connection",
+        "Fixing cracked electrical wall plate and loose socket",
+        "Window won't stay open, broken sash cord needs fixing",
+        "Reattaching fallen window shutter outside house",
+        "Fixing squeaky ceiling fan wobbling on high speed",
+        "Repairing broken wooden gate latch in front yard",
+        "Gutters leaking at corner seam, need silicone sealant repair",
+        "Fixing loose electrical switch in hallway",
+        "Toilet tank valve continuously hissing, needs flapper replacement",
+        "Mending ripped patio chair fabric and tightening frame screws",
+        "Door rubbing against frame and sticking shut, needs planer",
+        "Repairing loose bathroom towel rack pulling out of wall",
+        "Fixing dishwasher door latch that won't engage",
+        "Patching small leak in garden hose with repair kit",
+        # Short / informal / colloquial / variations
+        "fix leaking faucet",
+        "broken door hinge repair",
+        "unclog sink drain",
+        "repair wobbly chair",
+        "toilet running constantly fix",
+        "fawcet dripping repair pls",
+        "drywal hole patch repair",
+        "pluming leak in bathroom",
+        "fence latch broken fix",
+        "handyman repair needed"
+    ],
+    "Transport": [
+        # Original core examples preserved
+        "Need ride to hospital medical appointment on Thursday",
+        "Transport large box of donations across town",
+        "Can someone give me a lift to the community center?",
+        "Looking for transportation to the vaccination clinic",
+        "Need help hauling furniture items in a pickup truck",
+        "Ride sharing requested for airport drop-off",
+        "Transporting musical keyboard to rehearsal studio",
+        "Need a ride to the pharmacy for prescriptions",
+        "Hauling heavy luggage to the train station",
+        "Transporting bicycles to the local repair shop",
+        "Ride needed for job interview downtown",
+        "Transporting boxes of supplies to the community center",
+        "Need a lift to the wholesale market",
+        "Transporting gardening soil bags in a car trunk",
+        "Ride requested for dental clinic checkup",
+        # Expanded realistic diverse examples
+        "Need a ride to the airport tomorrow morning at 6:00 AM",
+        "Can someone drive me home from the outpatient clinic after procedure?",
+        "Looking for a ride to the senior center every Tuesday",
+        "Need help transporting a dining table across town in a truck or van",
+        "Ride to the metro station during rush hour",
+        "Can someone give me a lift to the voter registration office?",
+        "Need transportation to the physical therapy rehab clinic",
+        "Pick up truck needed to haul three bags of mulch from nursery",
+        "Can someone drive my daughter to band practice after school?",
+        "Ride needed to the DMV on Friday afternoon to take driving test",
+        "Looking for carpool or lift to the downtown library for research",
+        "Need a lift to the train station with two large suitcases",
+        "Car ride needed to veterinary hospital to pick up pet",
+        "Can someone give me a ride to the auto body shop to collect my car?",
+        "Need transport for elderly neighbor to eye doctor appointment",
+        "Hauling old bicycle and broken metal parts to recycling center",
+        "Need a lift to college campus for morning lecture",
+        "Ride to the pharmacy to pick up urgent prescription refills",
+        "Can a neighbor give me a ride across the bridge to appointment?",
+        "Need assistance transporting a folded wheelchair in car trunk",
+        "Looking for a lift to the local blood donation drive",
+        "Ride requested to the courthouse for jury duty selection",
+        "Can someone drive me to the bus depot on 5th Street?",
+        "Transporting two large framed paintings to local gallery",
+        "Need a ride home from the grocery store with heavy purchases",
+        # Short / informal / colloquial / variations
+        "ride to airport 6am",
+        "lift to clinic appointment",
+        "hauling pickup truck needed",
+        "ride to train station",
+        "need car ride downtown",
+        "airpot dropoff ride",
+        "ride to doc appointment",
+        "transport large desk across town",
+        "lift to metro station",
+        "car ride to pharmacy"
+    ],
+    "Pet Help": [
+        # Original core examples preserved
+        "Dog walking assistance needed for Golden Retriever this weekend",
+        "Feed my cat and change water while away on trip",
+        "Looking for someone to walk my puppy on Tuesday evening",
+        "Pet sitting for an affectionate rescue cat",
+        "Dog walking service needed for afternoon exercise",
+        "Feeding pet birds while traveling out of town",
+        "Walking two friendly dogs in neighborhood park",
+        "Checking in on my rabbit and feeding fresh greens",
+        "Pet care assistance during veterinary recovery",
+        "Dog walking help for senior Labrador",
+        "Cat feeding and litter cleaning service needed",
+        "Pet companion visits while owner is at work",
+        "Walking energetic terrier around the block",
+        "Pet sitting for hamster over the weekend",
+        "Feeding aquarium fish and small pets",
+        # Expanded realistic diverse examples
+        "Need someone to walk my German Shepherd for 45 minutes",
+        "Cat sitter needed to drop in once daily and scoop litter",
+        "Feed my two rescue cats and brush their fur while I am out of town",
+        "Looking for dog lover to take my beagle to the dog park",
+        "Puppy potty break needed at 1:00 PM on weekdays",
+        "Administer daily ear drops and medicine to elderly dog",
+        "Check on my guinea pigs and give them fresh hay and water",
+        "Dog sitting in my home for 3 days while attending a conference",
+        "Walk energetic pitbull mix around the neighborhood loop",
+        "Need assistance bathing and grooming a medium-sized poodle",
+        "Looking for trustworthy neighbor to feed outdoor stray cats",
+        "Pet sitting for twin kittens over Thanksgiving weekend",
+        "Walk my French bulldog for 20 minutes in the morning",
+        "Look after pet turtle and check tank water temperature",
+        "Need someone to let my dog out into the fenced yard at midday",
+        "Pet sitting for parakeet cage cleaning and seed refill",
+        "Walk two friendly pugs down to the lakefront",
+        "Feed diabetic cat insulin injection and canned food at 6pm",
+        "Overnight pet sitting for anxious rescue dog",
+        "Need neighbor to check on bearded dragon lizard and mist terrarium",
+        "Play session with hyperactive puppy in backyard",
+        "Walking senior dachshund who moves at a slow pace",
+        "Brush and comb long-haired Persian cat",
+        "Feed tropical fish in 50-gallon tank once a day",
+        "Looking for someone to board my friendly Golden Retriever for 2 nights",
+        # Short / informal / colloquial / variations
+        "dog walking afternoon",
+        "cat sitting weekend pls",
+        "walk my puppy 30 mins",
+        "feed my cat sat and sun",
+        "let dog out for bathroom break",
+        "dog walkin service needed",
+        "cat siter for two days",
+        "puppy sitting this evening",
+        "walk my dog at 2pm",
+        "feed pets while on trip"
+    ],
+    "Other": [
+        # Original core examples preserved
+        "General yard cleanup and gathering fallen leaves",
+        "Help moving heavy storage boxes in the garage",
+        "Assistance sorting recycling bins and trash",
+        "Watering house plants while family is on vacation",
+        "Help setting up folding tables for community event",
+        "Yard weeding and garden trimming assistance",
+        "Organizing basement storage racks and shelves",
+        "Help assembling a flat-pack bookshelf",
+        "Cleaning up backyard debris after storm",
+        "Assistance with digital device setup for senior",
+        "Help hanging holiday window lights",
+        "Sorting clothes donations for local shelter",
+        "General lawn mowing and grass cutting",
+        "Help sweeping and tidying front porch",
+        "Assistance packing boxes for household move",
+        # Expanded realistic diverse examples
+        "Raking fallen pine needles and bagging yard waste",
+        "Help carrying a heavy couch upstairs to second floor",
+        "Setting up Wi-Fi router and connecting smart TV for elderly couple",
+        "Shoveling snow from front driveway and sidewalk after blizzard",
+        "Watering outdoor tomato plants and vegetable garden beds",
+        "Help assembling IKEA dining room table and six chairs",
+        "Moving heavy wooden wardrobe from bedroom to hallway",
+        "Trimming overgrown hedges and bushes along driveway",
+        "Organizing cluttered tools and hardware in backyard shed",
+        "Help loading rental truck with furniture boxes for moving day",
+        "Clearing fallen tree branches from lawn after heavy wind",
+        "Assistance setting up canopy tent and chairs for neighborhood block party",
+        "Help bringing patio furniture inside before winter frost",
+        "Weeding dandelion patches in front lawn",
+        "Lifting and moving heavy washing machine into laundry closet",
+        "Tech help: setting up new printer and connecting to laptop",
+        "Sweeping front walkway and power washing driveway moss",
+        "Help packing fragile kitchen dishes and glassware into boxes",
+        "Planting flower bulbs in front garden beds",
+        "Help carrying heavy mattress down the stairs to disposal",
+        "Assistance sorting old books and paper goods for neighborhood yard sale",
+        "Clearing gutters of dry leaves by hand from ladder",
+        "Help stringing outdoor string lights on backyard patio pergola",
+        "Moving heavy metal file cabinets in home office",
+        "Mowing large back lawn with push lawnmower",
+        # Short / informal / colloquial / variations
+        "yard cleanup and raking",
+        "help moving heavy couch",
+        "lawn mowing needed",
+        "assemble flat pack furniture",
+        "water house plants vacation",
+        "mow lawn front and back",
+        "yard clenup after storm",
+        "move heavy furniture boxes",
+        "shoveling snow driveway",
+        "help packing moving boxes"
+    ]
+}
+
+def main():
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    dataset_path = os.path.join(base_dir, "dataset", "request_dataset.csv")
+
+    total_count = 0
+    seen_texts = set()
+    rows = []
+
+    for cat in CANONICAL_CATEGORIES:
+        examples = EXAMPLES[cat]
+        print(f"Category '{cat}': {len(examples)} examples")
+        assert len(examples) == 50, f"Expected 50 examples for '{cat}', got {len(examples)}"
+
+        for text in examples:
+            clean_text = text.strip()
+            assert clean_text not in seen_texts, f"Duplicate text found: '{clean_text}'"
+            seen_texts.add(clean_text)
+            rows.append({
+                "text": clean_text,
+                "category": cat,
+                "source": "curated_expanded"
+            })
+            total_count += 1
+
+    print(f"\nTotal validated examples: {total_count} across {len(CANONICAL_CATEGORIES)} categories.")
+
+    with open(dataset_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["text", "category", "source"], quoting=csv.QUOTE_ALL)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    print(f"Successfully saved expanded dataset to {dataset_path}")
+
+if __name__ == "__main__":
+    main()
+

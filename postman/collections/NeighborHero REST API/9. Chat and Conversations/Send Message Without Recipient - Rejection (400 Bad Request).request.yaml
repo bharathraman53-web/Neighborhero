@@ -1,0 +1,26 @@
+$kind: http-request
+description: "Verifies chat privacy enforcement. Broad public broadcasting is prohibited: every message must target a specific recipient or conversation."
+url: "{{baseUrl}}/chat/messages"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "message_text": "Message lacking recipient_id and conversation_id"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 400 Bad Request", function () {
+          pm.response.to.have.status(400);
+      });
+      pm.test("Error message explains recipient requirement", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.false;
+          pm.expect(jsonData.message).to.include("recipient_id");
+      });
+    language: text/javascript
+order: 5000

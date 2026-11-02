@@ -1,0 +1,33 @@
+$kind: http-request
+name: "Register - Validation Error: 9-Digit Phone (422 Unprocessable)"
+description: Demonstrates strict server-side phone number validation. Returns HTTP 422 Unprocessable Entity when phone is not exactly 10 digits.
+url: "{{baseUrl}}/auth/register"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "full_name": "Invalid Phone User",
+        "email": "invalid_phone_user@example.com",
+        "password": "{{testPassword}}",
+        "phone": "555123456",
+        "neighborhood": "Maplewood District"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 422 Unprocessable Entity", function () {
+          pm.response.to.have.status(422);
+      });
+      pm.test("Validation error flags 10-digit requirement", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.false;
+          pm.expect(jsonData.message).to.include("10 digits");
+      });
+    language: text/javascript
+order: 2000

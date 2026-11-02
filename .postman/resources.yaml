@@ -2,6 +2,12 @@
 workspace:
   id: 9c9f0555-6dc6-4d19-8e5d-24124ad94395
 
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+
+cloudResources:
+  collections:
+    ../postman/collections/NeighborHero REST API: 4f3e2d1c-0b9a-4876-b543-21fedcba0987
+
 # All resources in the `postman/` folder are automatically registered in Local View.
 # Point to additional files outside the `postman/` folder to register them individually. Example:
 #localResources:

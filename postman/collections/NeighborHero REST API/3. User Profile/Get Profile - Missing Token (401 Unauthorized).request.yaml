@@ -1,0 +1,21 @@
+$kind: http-request
+description: Tests endpoint security by sending an unauthenticated request without a Bearer token. Expects HTTP 401 Unauthorized.
+url: "{{baseUrl}}/auth/me"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 401 Unauthorized", function () {
+          pm.response.to.have.status(401);
+      });
+      pm.test("Error message indicates missing or invalid token", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.false;
+          pm.expect(jsonData.message).to.include("bearer token");
+      });
+    language: text/javascript
+order: 2000

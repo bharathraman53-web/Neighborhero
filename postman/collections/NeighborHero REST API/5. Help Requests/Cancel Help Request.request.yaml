@@ -1,0 +1,14 @@
+$kind: http-request
+description: Cancels a help request. Server enforces that only the original requester can cancel an open request, and completed tasks cannot be cancelled.
+url: "{{baseUrl}}/requests/{{requestId}}/cancel"
+method: POST
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 OK (or 403 / 400 depending on task state)", function () {
+          pm.expect(pm.response.code).to.be.oneOf([200, 400, 403, 404]);
+      });
+    language: text/javascript
+order: 6000

@@ -1,0 +1,22 @@
+$kind: http-request
+description: Checks the live status of the NeighborHero REST API and validates the active MySQL database connection.
+url: "{{baseUrl}}/health"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200", function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test("Service reports healthy and database connected", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.status).to.eql("healthy");
+          pm.expect(jsonData.app).to.eql("NeighborHero API");
+          pm.expect(jsonData.database.status).to.eql("connected");
+      });
+    language: text/javascript
+order: 1000

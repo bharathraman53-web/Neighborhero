@@ -1,0 +1,30 @@
+$kind: http-request
+description: Dispatches an emergency SOS signal with optional GPS coordinates and location address. Records an active alert in MySQL sos_alerts table.
+url: "{{baseUrl}}/safety/sos"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+        "latitude": 37.7749,
+        "longitude": -122.4194,
+        "address": "Maplewood District, Block 4",
+        "alert_type": "EMERGENCY_SOS"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 201 Created", function () {
+          pm.response.to.have.status(201);
+      });
+      pm.test("Emergency SOS signal recorded with ACTIVE status", function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.success).to.be.true;
+          pm.expect(jsonData.data.status).to.eql("ACTIVE");
+          pm.environment.set("sosAlertId", jsonData.data.id);
+      });
+    language: text/javascript
+order: 1000
