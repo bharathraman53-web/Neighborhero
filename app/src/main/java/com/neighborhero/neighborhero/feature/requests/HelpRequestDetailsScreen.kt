@@ -43,7 +43,8 @@ fun HelpRequestDetailsScreen(
     currentUser: User? = null,
     onBackClick: () -> Unit,
     onAcceptClick: () -> Unit,
-    onChatClick: () -> Unit
+    onChatClick: () -> Unit,
+    onFindHelpersClick: ((String) -> Unit)? = null
 ) {
     if (request == null) {
         Scaffold(
@@ -303,9 +304,15 @@ fun HelpRequestDetailsScreen(
             if (isRequester) {
                 when (request.status) {
                     RequestStatus.OPEN -> {
-                        buttonEnabled = false
-                        buttonText = "Waiting for Helper to Offer Assistance"
-                        buttonAction = {}
+                        buttonEnabled = true
+                        buttonText = "View AI Recommended Helpers"
+                        buttonAction = {
+                            if (onFindHelpersClick != null) {
+                                onFindHelpersClick(request.id)
+                            } else {
+                                onAcceptClick()
+                            }
+                        }
                     }
                     RequestStatus.IN_PROGRESS -> {
                         buttonEnabled = true

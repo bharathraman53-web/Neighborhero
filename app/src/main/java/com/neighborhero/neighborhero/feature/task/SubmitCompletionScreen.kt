@@ -33,10 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.R
-import com.neighborhero.neighborhero.ai.AiMatchStatus
-import com.neighborhero.neighborhero.ai.EvidenceAssessmentStatus
-import com.neighborhero.neighborhero.ai.EvidenceClassificationResult
-import com.neighborhero.neighborhero.ai.ImageEvidenceClassifier
 import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.data.model.RequestStatus
 import com.neighborhero.neighborhero.data.model.User
@@ -107,28 +103,6 @@ fun SubmitCompletionScreen(
             } catch (_: Exception) {
                 null
             }
-        }
-    }
-
-    val imageClassifier = remember { ImageEvidenceClassifier(context) }
-    DisposableEffect(imageClassifier) {
-        onDispose {
-            imageClassifier.close()
-        }
-    }
-
-    var aiAssessment by remember { mutableStateOf<EvidenceClassificationResult?>(null) }
-    var isAnalyzingImage by remember { mutableStateOf(false) }
-
-    LaunchedEffect(selectedPhotoBytes, task?.category) {
-        val bytes = selectedPhotoBytes
-        if (bytes != null && bytes.isNotEmpty()) {
-            isAnalyzingImage = true
-            aiAssessment = imageClassifier.classifyEvidence(bytes, task?.category)
-            isAnalyzingImage = false
-        } else {
-            aiAssessment = null
-            isAnalyzingImage = false
         }
     }
 
@@ -404,92 +378,6 @@ fun SubmitCompletionScreen(
                         }
                     }
 
-                    // Local On-Device AI Evidence Relevance Assessment Banner
-                    if (isAnalyzingImage) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = SurfaceContainer)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = Secondary,
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = "Analyzing visual evidence locally...",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = OnSurfaceVariant
-                                )
-                            }
-                        }
-                    } else if (aiAssessment != null) {
-                        val assessment = aiAssessment!!
-                        val matchStatus = assessment.matchStatus
-                        val (badgeColor, textColor, icon) = when (matchStatus) {
-                            AiMatchStatus.MATCHED -> Triple(
-                                SecondaryContainer,
-                                OnSecondaryContainer,
-                                Icons.Default.CheckCircle
-                            )
-                            AiMatchStatus.PARTIALLY_MATCHED -> Triple(
-                                SurfaceContainerHigh,
-                                OnSurface,
-                                Icons.Default.Info
-                            )
-                            AiMatchStatus.NOT_MATCHED -> Triple(
-                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
-                                MaterialTheme.colorScheme.onErrorContainer,
-                                Icons.Default.Warning
-                            )
-                        }
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = badgeColor)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                        tint = textColor,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = matchStatus.title,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = textColor
-                                    )
-                                }
-                                Text(
-                                    text = matchStatus.advisory,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = textColor
-                                )
-                                Text(
-                                    text = "Visual AI assessment is an advisory signal for the requester, never automatic completion proof. The requester makes the final accept/reject decision.",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = textColor.copy(alpha = 0.85f)
-                                )
-                            }
-                        }
-                    }
                 }
             }
 

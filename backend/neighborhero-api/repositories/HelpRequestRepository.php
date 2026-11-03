@@ -25,6 +25,7 @@ class HelpRequestRepository {
                     r.assigned_helper_id,
                     h.full_name AS assigned_helper_name,
                     h.avatar_url AS assigned_helper_avatar,
+                    r.latitude, r.longitude,
                     r.requester_id,
                     r.created_at, r.updated_at
              FROM help_requests r
@@ -71,6 +72,7 @@ class HelpRequestRepository {
                        r.assigned_helper_id,
                        h.full_name AS assigned_helper_name,
                        h.avatar_url AS assigned_helper_avatar,
+                       r.latitude, r.longitude,
                        r.requester_id,
                        r.created_at, r.updated_at
                 FROM help_requests r
@@ -105,6 +107,7 @@ class HelpRequestRepository {
                     r.assigned_helper_id,
                     h.full_name AS assigned_helper_name,
                     h.avatar_url AS assigned_helper_avatar,
+                    r.latitude, r.longitude,
                     r.requester_id,
                     r.created_at, r.updated_at
              FROM help_requests r
@@ -130,6 +133,7 @@ class HelpRequestRepository {
                     r.assigned_helper_id,
                     h.full_name AS assigned_helper_name,
                     h.avatar_url AS assigned_helper_avatar,
+                    r.latitude, r.longitude,
                     r.requester_id,
                     r.created_at, r.updated_at
              FROM help_requests r
@@ -146,10 +150,12 @@ class HelpRequestRepository {
         $id = $data['id'] ?? ('req_' . bin2hex(random_bytes(10)));
         $assignedHelperId = !empty($data['assigned_helper_id']) ? $data['assigned_helper_id'] : null;
         $status = !empty($data['status']) ? $data['status'] : ($assignedHelperId ? 'IN_PROGRESS' : 'OPEN');
+        $latitude = isset($data['latitude']) && is_numeric($data['latitude']) ? (float)$data['latitude'] : null;
+        $longitude = isset($data['longitude']) && is_numeric($data['longitude']) ? (float)$data['longitude'] : null;
 
         $stmt = $this->pdo->prepare(
-            "INSERT INTO help_requests (id, requester_id, title, category, description, location, distance, requested_time, is_urgent, status, assigned_helper_id)
-             VALUES (:id, :requester_id, :title, :category, :description, :location, :distance, :requested_time, :is_urgent, :status, :assigned_helper_id)"
+            "INSERT INTO help_requests (id, requester_id, title, category, description, location, distance, requested_time, is_urgent, status, assigned_helper_id, latitude, longitude)
+             VALUES (:id, :requester_id, :title, :category, :description, :location, :distance, :requested_time, :is_urgent, :status, :assigned_helper_id, :latitude, :longitude)"
         );
         $stmt->execute([
             ':id' => $id,
@@ -163,6 +169,8 @@ class HelpRequestRepository {
             ':is_urgent' => !empty($data['is_urgent']) ? 1 : 0,
             ':status' => $status,
             ':assigned_helper_id' => $assignedHelperId,
+            ':latitude' => $latitude,
+            ':longitude' => $longitude,
         ]);
 
         return $this->findById($id);
@@ -247,6 +255,8 @@ class HelpRequestRepository {
             'assigned_helper_id' => $row['assigned_helper_id'] ? (string)$row['assigned_helper_id'] : null,
             'assigned_helper_name' => $row['assigned_helper_name'] ? (string)$row['assigned_helper_name'] : null,
             'assigned_helper_avatar' => !empty($row['assigned_helper_avatar']) ? (string)$row['assigned_helper_avatar'] : null,
+            'latitude' => isset($row['latitude']) && is_numeric($row['latitude']) ? (float)$row['latitude'] : null,
+            'longitude' => isset($row['longitude']) && is_numeric($row['longitude']) ? (float)$row['longitude'] : null,
             'requester_id' => (string)$row['requester_id'],
             'created_at' => (string)$row['created_at'],
         ];

@@ -47,7 +47,9 @@ class HelpRequestViewModel(
         time: String,
         location: String,
         assignedHelperId: String? = null,
-        assignedHelperName: String? = null
+        assignedHelperName: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
     ): String {
         val currentUser = RepositoryProvider.userRepository.currentUser.value
         val newId = "req_${System.currentTimeMillis()}"
@@ -68,7 +70,9 @@ class HelpRequestViewModel(
             assignedHelperId = assignedHelperId,
             assignedHelperName = assignedHelperName,
             requesterId = currentUser.id.ifBlank { null },
-            requesterAvatarUrl = currentUser.avatarUrl.ifBlank { null }
+            requesterAvatarUrl = currentUser.avatarUrl.ifBlank { null },
+            latitude = latitude,
+            longitude = longitude
         )
         repository.addRequest(newReq)
 
@@ -81,7 +85,9 @@ class HelpRequestViewModel(
                 time = time,
                 location = location,
                 tempId = newId,
-                assignedHelperId = assignedHelperId
+                assignedHelperId = assignedHelperId,
+                latitude = latitude,
+                longitude = longitude
             )
         }
 

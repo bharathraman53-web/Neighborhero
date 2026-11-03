@@ -14,5 +14,9 @@ data class HelperProfile(
     val skills: List<String>,
     val isVerified: Boolean = true,
     val isAvailableToday: Boolean = true,
-    val avatarUrl: String = ""
+    val avatarUrl: String = "",
+    val matchScore: Float = 0f,
+    val matchPercentage: Int = 0,
+    val matchingReasons: List<String> = emptyList(),
+    val activeTasks: Int = 0
 )

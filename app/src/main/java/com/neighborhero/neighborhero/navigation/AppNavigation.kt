@@ -71,6 +71,7 @@ fun AppNavigation(
     val currentUser by homeViewModel.currentUser.collectAsState()
     val requests by requestViewModel.requests.collectAsState()
     val helpers by helperViewModel.helpers.collectAsState()
+    val recommendedHelpers by helperViewModel.recommendedHelpers.collectAsState()
     val chatMessages by chatViewModel.messages.collectAsState()
     val notifications by homeViewModel.notifications.collectAsState()
     val coroutineScope = rememberCoroutineScope()
@@ -266,6 +267,9 @@ fun AppNavigation(
                             )
                         }
                     }
+                },
+                onFindHelpersClick = { reqId ->
+                    navController.navigate(Routes.recommendedHelpers(reqId))
                 }
             )
         }
@@ -277,6 +281,9 @@ fun AppNavigation(
                     request = req,
                     currentUser = currentUser,
                     onBackClick = { navController.popBackStack() },
+                    onFindHelpersClick = { reqId ->
+                        navController.navigate(Routes.recommendedHelpers(reqId))
+                    },
                     onAcceptClick = {
                         val isReqOwner = (currentUser.id.isNotBlank() && currentUser.id == req.requesterId) ||
                                 (currentUser.fullName.isNotBlank() && currentUser.fullName.equals(req.requesterName, ignoreCase = true))
@@ -347,7 +354,7 @@ fun AppNavigation(
                 targetHelperId = targetHelperId,
                 targetHelperName = targetHelperName,
                 onBackClick = { navController.popBackStack() },
-                onSubmitRequest = { title, cat, desc, time, loc ->
+                onSubmitRequest = { title, cat, desc, time, loc, lat, lng ->
                     requestViewModel.createRequest(
                         title = title,
                         category = cat,
@@ -355,7 +362,9 @@ fun AppNavigation(
                         time = time,
                         location = loc,
                         assignedHelperId = targetHelperId,
-                        assignedHelperName = targetHelperName
+                        assignedHelperName = targetHelperName,
+                        latitude = lat,
+                        longitude = lng
                     )
                     navController.navigate(Routes.NEARBY_REQUESTS) {
                         popUpTo(Routes.HOME)
@@ -367,8 +376,16 @@ fun AppNavigation(
         composable(Routes.CREATE_REQUEST) {
             CreateRequestScreen(
                 onBackClick = { navController.popBackStack() },
-                onSubmitRequest = { title, cat, desc, time, loc ->
-                    requestViewModel.createRequest(title, cat, desc, time, loc)
+                onSubmitRequest = { title, cat, desc, time, loc, lat, lng ->
+                    requestViewModel.createRequest(
+                        title = title,
+                        category = cat,
+                        description = desc,
+                        time = time,
+                        location = loc,
+                        latitude = lat,
+                        longitude = lng
+                    )
                     navController.navigate(Routes.NEARBY_REQUESTS) {
                         popUpTo(Routes.HOME)
                     }
@@ -376,10 +393,44 @@ fun AppNavigation(
             )
         }
 
-        // 10. Recommended Helpers
-        composable(Routes.RECOMMENDED_HELPERS) {
+        // 10. Recommended Helpers (with or without requestId param)
+        composable(
+            route = Routes.RECOMMENDED_HELPERS_PARAM,
+            arguments = listOf(
+                navArgument("requestId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val reqId = backStackEntry.arguments?.getString("requestId")
+            val targetReq = reqId?.let { id -> requestViewModel.getRequest(id) ?: requests.find { it.id == id } }
+
+            LaunchedEffect(reqId) {
+                if (!reqId.isNullOrBlank()) {
+                    helperViewModel.loadRecommendationsForRequest(reqId)
+                } else {
+                    helperViewModel.loadRecommendations()
+                }
+            }
+
             RecommendedHelpersScreen(
-                helpers = helpers,
+                helpers = if (recommendedHelpers.isNotEmpty()) recommendedHelpers else helpers,
+                requestTitle = targetReq?.title,
+                requestCategory = targetReq?.category,
+                onBackClick = if (!reqId.isNullOrBlank()) { { navController.popBackStack() } } else null,
+                onHelperClick = { helper -> navController.navigate(Routes.helperProfile(helper.id)) },
+                onNavigate = { route -> navigateTopLevel(navController, route) }
+            )
+        }
+
+        composable(Routes.RECOMMENDED_HELPERS) {
+            LaunchedEffect(Unit) {
+                helperViewModel.loadRecommendations()
+            }
+            RecommendedHelpersScreen(
+                helpers = if (recommendedHelpers.isNotEmpty()) recommendedHelpers else helpers,
                 onHelperClick = { helper -> navController.navigate(Routes.helperProfile(helper.id)) },
                 onNavigate = { route -> navigateTopLevel(navController, route) }
             )

@@ -30,10 +30,12 @@ return function(Router $router): void {
     $router->get('/api/requests/my/posted', [HelpRequestController::class, 'myPosted']);
     $router->get('/api/requests/my/accepted', [HelpRequestController::class, 'myAccepted']);
     $router->get('/api/requests/{id}', [HelpRequestController::class, 'show']);
+    $router->get('/api/requests/{id}/recommended-helpers', [HelperController::class, 'recommendationsForRequest']);
     $router->post('/api/requests', [HelpRequestController::class, 'store']);
     $router->post('/api/requests/{id}/cancel', [HelpRequestController::class, 'cancel']);
 
-    // Helper Discovery & Leaderboard
+    // Helper Discovery, AI Matching & Leaderboard
+    $router->get('/api/helpers/recommendations', [HelperController::class, 'recommendations']);
     $router->get('/api/helpers/leaderboard', [HelperController::class, 'leaderboard']);
     $router->get('/api/helpers', [HelperController::class, 'index']);
     $router->get('/api/helpers/{id}', [HelperController::class, 'show']);

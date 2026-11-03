@@ -164,7 +164,9 @@ class HelpRequestRepository(
         time: String,
         location: String,
         tempId: String? = null,
-        assignedHelperId: String? = null
+        assignedHelperId: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
     ): Result<HelpRequest> {
         _isLoading.value = true
         _errorMessage.value = null
@@ -175,7 +177,9 @@ class HelpRequestRepository(
                 description = description,
                 location = location,
                 requestedTime = time.ifBlank { "Due Today, 4:00 PM" },
-                assignedHelperId = assignedHelperId
+                assignedHelperId = assignedHelperId,
+                latitude = latitude,
+                longitude = longitude
             )
             val response = apiService.createRequest(dto)
             if (response.isSuccessful && response.body()?.success == true) {
@@ -245,7 +249,9 @@ class HelpRequestRepository(
             requesterId = dto.requesterId,
             requesterPhone = dto.requesterPhone,
             requesterAvatarUrl = dto.requesterAvatar,
-            assignedHelperAvatarUrl = dto.assignedHelperAvatar
+            assignedHelperAvatarUrl = dto.assignedHelperAvatar,
+            latitude = dto.latitude,
+            longitude = dto.longitude
         )
     }
 }

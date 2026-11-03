@@ -2,6 +2,7 @@ package com.neighborhero.neighborhero
 
 import com.neighborhero.neighborhero.data.local.AppDatabaseHelper
 import com.neighborhero.neighborhero.data.model.ChatMessage
+import com.neighborhero.neighborhero.data.model.HelperProfile
 import com.neighborhero.neighborhero.data.model.NotificationItem
 import com.neighborhero.neighborhero.data.model.NotificationType
 import com.neighborhero.neighborhero.data.model.RequestCategory
@@ -542,5 +543,150 @@ class NeighborHeroAppTest {
         val currentUser = userRepository.currentUser.value
         val updated = currentUser.copy(avatarUrl = "uploads/avatars/avatar_abc123.jpg")
         assertEquals("uploads/avatars/avatar_abc123.jpg", updated.avatarUrl)
+    }
+
+    // --- Intelligent AI Helper Matching Tests ---
+    @Test
+    fun testHelperProfile_matchingFieldsAndExplainability() {
+        val helper = HelperProfile(
+            id = "hlp_dave",
+            name = "Dave Miller",
+            title = "Neighborhood Hero",
+            neighborhood = "Maplewood",
+            distance = "0.4 miles away",
+            rating = 4.9f,
+            reviewCount = 18,
+            tasksDone = 12,
+            onTimePercentage = 99,
+            bio = "Handyman and electronics enthusiast.",
+            skills = listOf("Repairs", "Heavy Lifting"),
+            isVerified = true,
+            isAvailableToday = true,
+            avatarUrl = "uploads/avatars/dave.jpg",
+            matchScore = 0.9425f,
+            matchPercentage = 94,
+            matchingReasons = listOf(
+                "Skills match your request (Repairs)",
+                "Located near your task (0.4 miles away in Maplewood)",
+                "Available at your preferred time",
+                "Highly rated by previous requesters (4.9 ★)"
+            ),
+            activeTasks = 0
+        )
+
+        assertEquals(94, helper.matchPercentage)
+        assertTrue(Math.abs(helper.matchScore - 0.9425f) < 0.001f)
+        assertEquals(4, helper.matchingReasons.size)
+        assertTrue(helper.matchingReasons[0].contains("Skills match"))
+        assertTrue(helper.matchingReasons[1].contains("0.4 miles away"))
+        assertEquals(0, helper.activeTasks)
+    }
+
+    @Test
+    fun testHelperProfileDto_matchingSerializationAndMapping() {
+        val dto = com.neighborhero.neighborhero.data.network.dto.HelperProfileDto(
+            id = "hlp_101",
+            name = "Elena Rostova",
+            title = "Neighborhood Hero",
+            neighborhood = "Riverside",
+            distance = "2.8 miles away",
+            rating = 4.8f,
+            reviewCount = 10,
+            tasksDone = 8,
+            onTimePercentage = 96,
+            bio = "Community volunteer.",
+            skills = listOf("Groceries", "Pet Care"),
+            isVerified = true,
+            isAvailableToday = true,
+            avatarUrl = "uploads/avatars/elena.jpg",
+            avatar_url = null,
+            points = 250,
+            matchScore = 0.825f,
+            matchPercentage = 83,
+            matchingReasons = listOf("Located in your local area", "Available at your preferred time"),
+            activeTasks = 1
+        )
+
+        assertEquals("hlp_101", dto.id)
+        assertTrue(Math.abs((dto.matchScore ?: 0f) - 0.825f) < 0.001f)
+        assertEquals(83, dto.matchPercentage)
+        assertEquals(1, dto.activeTasks)
+        assertEquals(2, dto.matchingReasons?.size)
+        assertEquals("uploads/avatars/elena.jpg", dto.resolvedAvatarUrl)
+    }
+
+    // --- Location & GPS Coordinates Tests ---
+    @Test
+    fun testHelpRequest_withLatitudeAndLongitude() {
+        val request = com.neighborhero.neighborhero.data.model.HelpRequest(
+            id = "req_test_gps",
+            title = "Need help moving boxes",
+            category = "Heavy Lifting",
+            description = "3 medium boxes",
+            requesterName = "Alice",
+            requesterRating = 5.0f,
+            requesterTaskCount = 3,
+            location = "Maplewood",
+            distance = "0.2 mi away",
+            requestedTime = "Today 2 PM",
+            latitude = 37.774929,
+            longitude = -122.419416
+        )
+
+        assertNotNull(request.latitude)
+        assertNotNull(request.longitude)
+        assertEquals(37.774929, request.latitude!!, 0.0001)
+        assertEquals(-122.419416, request.longitude!!, 0.0001)
+    }
+
+    @Test
+    fun testCreateHelpRequestDto_withCoordinates() {
+        val dto = com.neighborhero.neighborhero.data.network.dto.CreateHelpRequestDto(
+            title = "Leaky pipe repair",
+            category = "Repairs",
+            description = "Under bathroom sink",
+            location = "Maplewood District",
+            latitude = 37.7749,
+            longitude = -122.4194
+        )
+
+        assertEquals("Leaky pipe repair", dto.title)
+        assertEquals(37.7749, dto.latitude!!, 0.0001)
+        assertEquals(-122.4194, dto.longitude!!, 0.0001)
+    }
+
+    @Test
+    fun testHelpRequestViewModel_createRequestWithCoordinates() {
+        val vm = HelpRequestViewModel(helpRequestRepository)
+        val newId = vm.createRequest(
+            title = "Garden assistance",
+            category = "Gardening",
+            description = "Trim bushes",
+            time = "Tomorrow 10 AM",
+            location = "Maplewood",
+            latitude = 37.7750,
+            longitude = -122.4190
+        )
+
+        assertNotNull(newId)
+        val created = vm.getRequest(newId)
+        assertNotNull(created)
+        assertEquals(37.7750, created?.latitude!!, 0.0001)
+        assertEquals(-122.4190, created?.longitude!!, 0.0001)
+    }
+
+    @Test
+    fun testLocationHelper_userLocationResultDataClass() {
+        val loc = com.neighborhero.neighborhero.util.UserLocationResult(
+            latitude = 37.7749,
+            longitude = -122.4194,
+            addressSummary = "Maplewood, San Francisco",
+            isPrecise = true
+        )
+
+        assertEquals(37.7749, loc.latitude, 0.0001)
+        assertEquals(-122.4194, loc.longitude, 0.0001)
+        assertEquals("Maplewood, San Francisco", loc.addressSummary)
+        assertTrue(loc.isPrecise)
     }
 }

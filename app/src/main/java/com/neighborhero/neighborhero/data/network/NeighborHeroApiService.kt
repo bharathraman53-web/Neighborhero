@@ -62,6 +62,21 @@ interface NeighborHeroApiService {
         @Query("limit") limit: Int = 20
     ): Response<ApiResponse<List<HelperProfileDto>>>
 
+    @GET("helpers/recommendations")
+    suspend fun getHelperRecommendations(
+        @Query("request_id") requestId: String? = null,
+        @Query("category") category: String? = null,
+        @Query("location") location: String? = null,
+        @Query("requested_time") requestedTime: String? = null,
+        @Query("limit") limit: Int = 10
+    ): Response<ApiResponse<List<HelperProfileDto>>>
+
+    @GET("requests/{id}/recommended-helpers")
+    suspend fun getRecommendedHelpersForRequest(
+        @Path("id") requestId: String,
+        @Query("limit") limit: Int = 10
+    ): Response<ApiResponse<List<HelperProfileDto>>>
+
     @GET("helpers/{id}")
     suspend fun getHelperById(@Path("id") id: String): Response<ApiResponse<HelperProfileDto>>
 

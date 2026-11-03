@@ -67,6 +67,9 @@ class HelperRepository(
     )
     val helpers: StateFlow<List<HelperProfile>> = _helpers.asStateFlow()
 
+    private val _recommendedHelpers = MutableStateFlow<List<HelperProfile>>(emptyList())
+    val recommendedHelpers: StateFlow<List<HelperProfile>> = _recommendedHelpers.asStateFlow()
+
     private val _leaderboard = MutableStateFlow<List<HelperProfile>>(emptyList())
     val leaderboard: StateFlow<List<HelperProfile>> = _leaderboard.asStateFlow()
 
@@ -95,6 +98,52 @@ class HelperRepository(
             if (cached.isNotEmpty()) {
                 _helpers.value = cached
             }
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    suspend fun fetchRecommendationsForRequest(requestId: String): Result<List<HelperProfile>> {
+        _isLoading.value = true
+        return try {
+            val response = apiService.getRecommendedHelpersForRequest(requestId)
+            if (response.isSuccessful && response.body()?.success == true) {
+                val dtos = response.body()!!.data ?: emptyList()
+                val mapped = dtos.map { mapDtoToDomain(it) }
+                _recommendedHelpers.value = mapped
+                Result.success(mapped)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Failed to fetch recommended helpers"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        } finally {
+            _isLoading.value = false
+        }
+    }
+
+    suspend fun fetchRecommendations(
+        category: String? = null,
+        location: String? = null,
+        requestedTime: String? = null
+    ): Result<List<HelperProfile>> {
+        _isLoading.value = true
+        return try {
+            val response = apiService.getHelperRecommendations(
+                category = category,
+                location = location,
+                requestedTime = requestedTime
+            )
+            if (response.isSuccessful && response.body()?.success == true) {
+                val dtos = response.body()!!.data ?: emptyList()
+                val mapped = dtos.map { mapDtoToDomain(it) }
+                _recommendedHelpers.value = mapped
+                Result.success(mapped)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Failed to fetch recommendations"))
+            }
+        } catch (e: Exception) {
             Result.failure(e)
         } finally {
             _isLoading.value = false
@@ -132,7 +181,11 @@ class HelperRepository(
             skills = dto.skills,
             isVerified = dto.isVerified,
             isAvailableToday = dto.isAvailableToday,
-            avatarUrl = dto.resolvedAvatarUrl
+            avatarUrl = dto.resolvedAvatarUrl,
+            matchScore = dto.matchScore ?: 0f,
+            matchPercentage = dto.matchPercentage ?: 0,
+            matchingReasons = dto.matchingReasons ?: emptyList(),
+            activeTasks = dto.activeTasks ?: 0
         )
     }
 }

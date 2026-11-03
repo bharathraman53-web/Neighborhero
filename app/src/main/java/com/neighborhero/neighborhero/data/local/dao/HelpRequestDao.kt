@@ -24,6 +24,8 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
         const val COL_ASSIGNED_HELPER_ID = "assigned_helper_id"
         const val COL_ASSIGNED_HELPER_NAME = "assigned_helper_name"
         const val COL_REQUESTER_ID = "requester_id"
+        const val COL_LATITUDE = "latitude"
+        const val COL_LONGITUDE = "longitude"
 
         const val CREATE_TABLE = """
             CREATE TABLE IF NOT EXISTS $TABLE_NAME (
@@ -41,7 +43,9 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
                 $COL_STATUS TEXT NOT NULL,
                 $COL_ASSIGNED_HELPER_ID TEXT,
                 $COL_ASSIGNED_HELPER_NAME TEXT,
-                $COL_REQUESTER_ID TEXT
+                $COL_REQUESTER_ID TEXT,
+                $COL_LATITUDE REAL,
+                $COL_LONGITUDE REAL
             )
         """
     }
@@ -64,6 +68,8 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
             put(COL_ASSIGNED_HELPER_ID, request.assignedHelperId)
             put(COL_ASSIGNED_HELPER_NAME, request.assignedHelperName)
             put(COL_REQUESTER_ID, request.requesterId)
+            put(COL_LATITUDE, request.latitude)
+            put(COL_LONGITUDE, request.longitude)
         }
         db.insertWithOnConflict(TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
@@ -109,7 +115,9 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
                         status = status,
                         assignedHelperId = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_ID)),
                         assignedHelperName = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_NAME)),
-                        requesterId = c.getColumnIndex(COL_REQUESTER_ID).takeIf { it >= 0 }?.let { c.getString(it) }
+                        requesterId = c.getColumnIndex(COL_REQUESTER_ID).takeIf { it >= 0 }?.let { c.getString(it) },
+                        latitude = c.getColumnIndex(COL_LATITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) },
+                        longitude = c.getColumnIndex(COL_LONGITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) }
                     )
                 )
             }
@@ -143,7 +151,9 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
                     status = status,
                     assignedHelperId = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_ID)),
                     assignedHelperName = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_NAME)),
-                    requesterId = c.getColumnIndex(COL_REQUESTER_ID).takeIf { it >= 0 }?.let { c.getString(it) }
+                    requesterId = c.getColumnIndex(COL_REQUESTER_ID).takeIf { it >= 0 }?.let { c.getString(it) },
+                    latitude = c.getColumnIndex(COL_LATITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) },
+                    longitude = c.getColumnIndex(COL_LONGITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) }
                 )
             }
         }

@@ -10,7 +10,9 @@ data class CreateHelpRequestDto(
     @SerializedName("distance") val distance: String? = "0.4 mi away",
     @SerializedName("requested_time") val requestedTime: String? = null,
     @SerializedName("is_urgent") val isUrgent: Boolean = false,
-    @SerializedName("assigned_helper_id") val assignedHelperId: String? = null
+    @SerializedName("assigned_helper_id") val assignedHelperId: String? = null,
+    @SerializedName("latitude") val latitude: Double? = null,
+    @SerializedName("longitude") val longitude: Double? = null
 )
 
 data class HelpRequestDto(
@@ -32,6 +34,8 @@ data class HelpRequestDto(
     @SerializedName("assigned_helper_avatar") val assignedHelperAvatar: String? = null,
     @SerializedName("requester_id") val requesterId: String? = null,
     @SerializedName("requester_phone") val requesterPhone: String? = null,
-    @SerializedName("created_at") val createdAt: String? = null
+    @SerializedName("created_at") val createdAt: String? = null,
+    @SerializedName("latitude") val latitude: Double? = null,
+    @SerializedName("longitude") val longitude: Double? = null
 )
 

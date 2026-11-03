@@ -18,7 +18,11 @@ data class HelperProfileDto(
     @SerializedName("isAvailableToday") val isAvailableToday: Boolean = true,
     @SerializedName("avatarUrl") val avatarUrl: String? = null,
     @SerializedName("avatar_url") val avatar_url: String? = null,
-    @SerializedName("points") val points: Int = 0
+    @SerializedName("points") val points: Int = 0,
+    @SerializedName("match_score") val matchScore: Float? = null,
+    @SerializedName("match_percentage") val matchPercentage: Int? = null,
+    @SerializedName("matching_reasons") val matchingReasons: List<String>? = null,
+    @SerializedName("active_tasks") val activeTasks: Int? = null
 ) {
     val resolvedAvatarUrl: String
         get() = avatarUrl?.takeIf { it.isNotBlank() } ?: avatar_url?.takeIf { it.isNotBlank() } ?: ""

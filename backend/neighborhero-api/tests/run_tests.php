@@ -73,6 +73,13 @@ $pdo->exec("
         points INT NOT NULL DEFAULT 0,
         completed_tasks_count INT NOT NULL DEFAULT 0,
         rating REAL NOT NULL DEFAULT 5.00,
+        latitude REAL NULL,
+        longitude REAL NULL,
+        is_available_today INT NOT NULL DEFAULT 1,
+        available_days VARCHAR(255) NOT NULL DEFAULT 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+        available_time_slots VARCHAR(255) NOT NULL DEFAULT 'Morning,Afternoon,Evening',
+        cancellation_count INT NOT NULL DEFAULT 0,
+        avg_response_minutes INT NOT NULL DEFAULT 15,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -104,6 +111,16 @@ $pdo->exec("
         UNIQUE(user_id, skill_name)
     );
 
+    CREATE TABLE helper_availability (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        day_of_week VARCHAR(16) NOT NULL,
+        start_time VARCHAR(8) NOT NULL DEFAULT '08:00',
+        end_time VARCHAR(8) NOT NULL DEFAULT '20:00',
+        is_active INT NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE help_requests (
         id VARCHAR(64) PRIMARY KEY,
         requester_id VARCHAR(64) NOT NULL,
@@ -116,6 +133,9 @@ $pdo->exec("
         is_urgent INT NOT NULL DEFAULT 0,
         status VARCHAR(32) NOT NULL DEFAULT 'OPEN',
         assigned_helper_id VARCHAR(64) NULL,
+        latitude REAL NULL,
+        longitude REAL NULL,
+        preferred_time_slot VARCHAR(64) NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -402,6 +422,29 @@ assertTest($helperWithAvatar['avatarUrl'] === 'uploads/avatars/helper_bob.jpg', 
 $recHelpers = $helperRepo->getRecommendations('Tutoring');
 assertTest(count($recHelpers) >= 1 && $recHelpers[0]['avatar_url'] === 'uploads/avatars/helper_bob.jpg', "HelperRepository::getRecommendations exposes avatar_url");
 assertTest(count($recHelpers) >= 1 && $recHelpers[0]['avatarUrl'] === 'uploads/avatars/helper_bob.jpg', "HelperRepository::getRecommendations exposes camelCase avatarUrl");
+
+// GPS Coordinates Persistence Tests
+$reqGps = $requestRepo->create([
+    'id' => 'req_gps_test',
+    'requester_id' => 'usr_1',
+    'title' => 'GPS tagged request in Maplewood',
+    'category' => 'Repairs',
+    'description' => 'Accurate location repair',
+    'location' => 'Maplewood District',
+    'distance' => '0.2 mi',
+    'requested_time' => 'Today 3pm',
+    'is_urgent' => false,
+    'latitude' => 37.774921,
+    'longitude' => -122.419415,
+]);
+assertTest($reqGps['latitude'] !== null && abs($reqGps['latitude'] - 37.774921) < 0.0001, "Help request stores and returns accurate latitude");
+assertTest($reqGps['longitude'] !== null && abs($reqGps['longitude'] - -122.419415) < 0.0001, "Help request stores and returns accurate longitude");
+
+// Profile coordinates update test
+$userRepo->updateProfile('usr_1', ['latitude' => 37.775010, 'longitude' => -122.419520]);
+$u1WithGps = $userRepo->findById('usr_1');
+assertTest($u1WithGps['latitude'] !== null && abs($u1WithGps['latitude'] - 37.775010) < 0.0001, "User profile stores and returns accurate latitude");
+assertTest($u1WithGps['longitude'] !== null && abs($u1WithGps['longitude'] - -122.419520) < 0.0001, "User profile stores and returns accurate longitude");
 
 // Direct request notification creation
 $notifRepo->create([
@@ -737,6 +780,199 @@ echo "\n--- 8. Real Task History Tests ---\n";
 $history = $taskRepo->getTaskHistory('usr_1');
 assertTest(count($history) >= 1, "Completed task visible in user real task history");
 assertTest($history[0]['status'] === 'Completed', "Task history derived from real database status");
+
+echo "\n--- 9. Intelligent AI Helper Matching Engine Tests ---\n";
+$matchingEngine = new \NeighborHero\Services\HelperMatchingEngine($pdo);
+
+// Setup distinct test helpers with known profiles for matching verification
+// Helper 10 (Dave): Repairs expert, Maplewood (near), available today, 5.0 rating, 0 active tasks
+$userRepo->create([
+    'id' => 'hlp_dave',
+    'full_name' => 'Dave Miller',
+    'email' => 'dave@example.com',
+    'phone' => '5551112233',
+    'password_hash' => $passHash,
+    'neighborhood' => 'Maplewood',
+    'skills' => ['Repairs'],
+]);
+$pdo->exec("UPDATE users SET is_verified = 1, rating = 5.0, completed_tasks_count = 12, is_available_today = 1 WHERE id = 'hlp_dave'");
+
+// Helper 11 (Elena): Repairs expert, Riverside (further away), available today, 5.0 rating, 0 active tasks
+$userRepo->create([
+    'id' => 'hlp_elena',
+    'full_name' => 'Elena Rostova',
+    'email' => 'elena@example.com',
+    'phone' => '5552223344',
+    'password_hash' => $passHash,
+    'neighborhood' => 'Riverside',
+    'skills' => ['Repairs'],
+]);
+$pdo->exec("UPDATE users SET is_verified = 1, rating = 5.0, completed_tasks_count = 12, is_available_today = 1 WHERE id = 'hlp_elena'");
+
+// Helper 12 (Frank): Repairs expert, Maplewood (near), but UNAVAILABLE today (day off)
+$userRepo->create([
+    'id' => 'hlp_frank',
+    'full_name' => 'Frank Wright',
+    'email' => 'frank@example.com',
+    'phone' => '5553334455',
+    'password_hash' => $passHash,
+    'neighborhood' => 'Maplewood',
+    'skills' => ['Repairs'],
+]);
+$pdo->exec("UPDATE users SET is_verified = 1, rating = 5.0, completed_tasks_count = 10, is_available_today = 0 WHERE id = 'hlp_frank'");
+
+// Helper 13 (Grace): Nearby in Maplewood, but ONLY has 'Groceries' skill (lacks Repairs)
+$userRepo->create([
+    'id' => 'hlp_grace',
+    'full_name' => 'Grace Hopper',
+    'email' => 'grace@example.com',
+    'phone' => '5554445566',
+    'password_hash' => $passHash,
+    'neighborhood' => 'Maplewood',
+    'skills' => ['Groceries'],
+]);
+$pdo->exec("UPDATE users SET is_verified = 1, rating = 5.0, completed_tasks_count = 15, is_available_today = 1 WHERE id = 'hlp_grace'");
+
+// Helper 14 (Hank): New helper, 0 reviews, 0 completed tasks, Repairs skill in Maplewood
+$userRepo->create([
+    'id' => 'hlp_hank',
+    'full_name' => 'Hank Newbie',
+    'email' => 'hank@example.com',
+    'phone' => '5555556677',
+    'password_hash' => $passHash,
+    'neighborhood' => 'Maplewood',
+    'skills' => ['Repairs'],
+]);
+$pdo->exec("UPDATE users SET is_verified = 1, rating = 5.0, completed_tasks_count = 0, is_available_today = 1 WHERE id = 'hlp_hank'");
+
+// Helper 15 (Ivy): Overloaded helper with 3 active tasks currently
+$userRepo->create([
+    'id' => 'hlp_ivy',
+    'full_name' => 'Ivy Busy',
+    'email' => 'ivy@example.com',
+    'phone' => '5556667788',
+    'password_hash' => $passHash,
+    'neighborhood' => 'Maplewood',
+    'skills' => ['Repairs'],
+]);
+$pdo->exec("UPDATE users SET is_verified = 1, rating = 5.0, completed_tasks_count = 15, is_available_today = 1 WHERE id = 'hlp_ivy'");
+// Assign 3 active in-progress tasks to Ivy
+for ($i = 1; $i <= 3; $i++) {
+    $pdo->exec("INSERT INTO help_requests (id, requester_id, title, category, description, location, requested_time, status, assigned_helper_id)
+                VALUES ('req_busy_{$i}', 'usr_1', 'Busy task {$i}', 'Repairs', 'Work in progress', 'Maplewood', 'Today', 'IN_PROGRESS', 'hlp_ivy')");
+}
+
+// 1. Skill Filtering Test: Nearby helper lacking the required skill must be excluded
+$repairsContext = [
+    'category' => 'Repairs',
+    'location' => 'Maplewood',
+    'requested_time' => 'Today 2pm',
+    'requester_id' => 'usr_1',
+];
+$repairsMatches = $matchingEngine->matchHelpers($repairsContext, [], 10);
+$graceFound = false;
+foreach ($repairsMatches as $m) {
+    if ($m['id'] === 'hlp_grace') $graceFound = true;
+}
+assertTest(!$graceFound, "Nearby helper lacking required skill (Grace) is excluded from Repairs recommendations");
+
+// 2. Distance Ranking Test: Equally skilled Dave (Maplewood ~0.4mi) ranks higher than Elena (Riverside ~2.8mi)
+$daveRank = null;
+$elenaRank = null;
+foreach ($repairsMatches as $idx => $m) {
+    if ($m['id'] === 'hlp_dave') $daveRank = $idx;
+    if ($m['id'] === 'hlp_elena') $elenaRank = $idx;
+}
+assertTest($daveRank !== null && $elenaRank !== null && $daveRank < $elenaRank, "Closer helper (Dave, Maplewood) ranks higher than distant helper (Elena, Riverside)");
+
+// 3. Availability Test: Unavailable helper (Frank, day off) ranks lower than available helper (Dave)
+$frankRank = null;
+foreach ($repairsMatches as $idx => $m) {
+    if ($m['id'] === 'hlp_frank') $frankRank = $idx;
+}
+assertTest($frankRank === null || $daveRank < $frankRank, "Available helper (Dave) ranks higher than unavailable helper (Frank, day off)");
+
+// 4. Workload Balancing Test: Overloaded helper with 3 active tasks (Ivy) has lower workload score than free helper (Dave)
+$daveMatch = null;
+$ivyMatch = null;
+foreach ($repairsMatches as $m) {
+    if ($m['id'] === 'hlp_dave') $daveMatch = $m;
+    if ($m['id'] === 'hlp_ivy') $ivyMatch = $m;
+}
+assertTest($daveMatch !== null && $ivyMatch !== null, "Both Dave and Ivy evaluated in candidate set");
+assertTest($daveMatch['score_breakdown']['workload'] > $ivyMatch['score_breakdown']['workload'], "Free helper (Dave, 0 tasks) receives higher workload score than overloaded helper (Ivy, 3 tasks)");
+assertTest($daveMatch['match_score'] > $ivyMatch['match_score'], "Workload penalty appropriately lowers overloaded helper overall rank");
+
+// 5. New Helper Inclusivity Test: New helper with 0 reviews (Hank) receives fair Bayesian baseline and is recommended
+$hankMatch = null;
+foreach ($repairsMatches as $m) {
+    if ($m['id'] === 'hlp_hank') $hankMatch = $m;
+}
+assertTest($hankMatch !== null, "New helper with no ratings (Hank) is included in recommendations (not excluded)");
+assertTest($hankMatch['match_percentage'] >= 70, "New helper receives fair starter compatibility score (>= 70%)");
+
+// 6. Explainable Reasons Test: Matching engine provides human-readable reasons for recommendations
+assertTest(!empty($daveMatch['matching_reasons']), "Matching engine generates explainable reasons");
+$hasSkillReason = false;
+$hasLocReason = false;
+foreach ($daveMatch['matching_reasons'] as $r) {
+    if (str_contains($r, 'Skills match') || str_contains($r, 'Repairs')) $hasSkillReason = true;
+    if (str_contains($r, 'Located') || str_contains($r, 'Maplewood')) $hasLocReason = true;
+}
+assertTest($hasSkillReason, "Generated reasons include skill match explanation");
+assertTest($hasLocReason, "Generated reasons include location proximity explanation");
+
+// 7. Request-Specific Recommendations Test via HelperRepository & Controller
+$reqMatch = $requestRepo->create([
+    'id' => 'req_match_test',
+    'requester_id' => 'usr_1',
+    'title' => 'Broken kitchen cabinet door latch',
+    'category' => 'Repairs',
+    'description' => 'Screws came loose from wood frame.',
+    'location' => 'Maplewood',
+    'requested_time' => 'Today 3pm',
+]);
+$reqRecommendations = $helperRepo->getRecommendationsForRequest('req_match_test', [], 5);
+assertTest(count($reqRecommendations) >= 1, "HelperRepository::getRecommendationsForRequest returns ranked helpers for request");
+assertTest($reqRecommendations[0]['id'] === 'hlp_dave', "Top recommended helper for kitchen repair in Maplewood is Dave Miller");
+assertTest($reqRecommendations[0]['match_percentage'] >= 90, "Top recommended helper achieves strong compatibility score (>= 90%)");
+
+// 8. GPS Coordinates-Based Intelligent Matching & Centroid Fallback
+$reqWithGps = $requestRepo->create([
+    'id' => 'req_gps_match_test',
+    'requester_id' => 'usr_1',
+    'title' => 'Emergency water leak repair under sink',
+    'category' => 'Repairs',
+    'description' => 'Need wrench assistance with p-trap leak.',
+    'location' => 'Maplewood',
+    'requested_time' => 'Today ASAP',
+    'latitude' => 37.7752,
+    'longitude' => -122.4190,
+]);
+$gpsRecs = $helperRepo->getRecommendationsForRequest('req_gps_match_test', [], 5);
+assertTest(count($gpsRecs) >= 1, "Matching engine provides recommendations for GPS-located request");
+assertTest(isset($gpsRecs[0]['distance_miles']), "GPS matching calculates distance_miles using Haversine formula");
+assertTest(isset($gpsRecs[0]['distance']), "GPS matching formats human-readable distance (e.g. '0.2 mi away')");
+
+// Test missing coordinates fallback without error
+$reqNoGps = $requestRepo->create([
+    'id' => 'req_nogps_match_test',
+    'requester_id' => 'usr_1',
+    'title' => 'Help fixing garden fence gate',
+    'category' => 'Repairs',
+    'description' => 'Fence latch needs realignment.',
+    'location' => 'Oakridge',
+    'requested_time' => 'Weekend',
+    'latitude' => null,
+    'longitude' => null,
+]);
+$noGpsRecs = $helperRepo->getRecommendationsForRequest('req_nogps_match_test', [], 5);
+assertTest(!empty($noGpsRecs), "Matching engine safely falls back to neighborhood centroid when request coordinates are null");
+
+// Verify exact coordinates are not leaked in public helper output
+$firstRec = $gpsRecs[0];
+assertTest(!isset($firstRec['latitude']) && !isset($firstRec['longitude']), "Public helper recommendation output does not expose exact helper coordinates");
+
 
 echo "\n==================================================\n";
 echo "Total Tests Run: " . ($passed + $failed) . "\n";

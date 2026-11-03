@@ -60,6 +60,8 @@ class HelpRequestController {
         }
 
         $assignedHelperId = !empty($input['assigned_helper_id']) ? trim((string)$input['assigned_helper_id']) : (!empty($input['target_helper_id']) ? trim((string)$input['target_helper_id']) : null);
+        $latitude = isset($input['latitude']) && is_numeric($input['latitude']) ? (float)$input['latitude'] : null;
+        $longitude = isset($input['longitude']) && is_numeric($input['longitude']) ? (float)$input['longitude'] : null;
 
         $created = $this->repository->create([
             'requester_id' => $user['id'],
@@ -71,6 +73,8 @@ class HelpRequestController {
             'requested_time' => !empty($input['requested_time']) ? trim($input['requested_time']) : 'Due Today, 4:00 PM',
             'is_urgent' => !empty($input['is_urgent']),
             'assigned_helper_id' => $assignedHelperId,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
         ]);
 
         if ($assignedHelperId) {

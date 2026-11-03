@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
@@ -14,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.neighborhero.neighborhero.data.model.HelperProfile
 import com.neighborhero.neighborhero.ui.theme.*
@@ -33,6 +36,51 @@ fun HelperCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // AI Compatibility Badge if match score is present
+            if (helper.matchPercentage > 0) {
+                val badgeContainer = if (helper.matchPercentage >= 85) PrimaryContainer else SecondaryContainer
+                val badgeOn = if (helper.matchPercentage >= 85) OnPrimaryContainer else OnSecondaryContainer
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = badgeContainer
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = badgeOn,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${helper.matchPercentage}% Compatibility Match",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = badgeOn
+                            )
+                        }
+                    }
+                    if (helper.activeTasks == 0) {
+                        Text(
+                            text = "Available Now",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Secondary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -104,16 +152,46 @@ fun HelperCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (helper.bio.isNotBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = helper.bio,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurfaceVariant,
+                    maxLines = 2
+                )
+            }
 
-            Text(
-                text = helper.bio,
-                style = MaterialTheme.typography.bodyMedium,
-                color = OnSurfaceVariant,
-                maxLines = 2
-            )
+            // Explainable Matching Reasons (if available)
+            if (helper.matchingReasons.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(SurfaceContainerLow, RoundedCornerShape(10.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    helper.matchingReasons.take(2).forEach { reason ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Primary,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = reason,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = OnSurface
+                            )
+                        }
+                    }
+                }
+            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 helper.skills.take(3).forEach { skill ->

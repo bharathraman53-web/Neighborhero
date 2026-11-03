@@ -14,6 +14,7 @@ class HelperViewModel(
     private val repository: HelperRepository = RepositoryProvider.helperRepository
 ) : ViewModel() {
     val helpers: StateFlow<List<HelperProfile>> = repository.helpers
+    val recommendedHelpers: StateFlow<List<HelperProfile>> = repository.recommendedHelpers
     val leaderboard: StateFlow<List<HelperProfile>> = repository.leaderboard
     val isLoading: StateFlow<Boolean> = repository.isLoading
 
@@ -28,6 +29,18 @@ class HelperViewModel(
     fun refreshHelpers(skill: String? = null) {
         viewModelScope.launch {
             repository.fetchHelpers(skill)
+        }
+    }
+
+    fun loadRecommendationsForRequest(requestId: String) {
+        viewModelScope.launch {
+            repository.fetchRecommendationsForRequest(requestId)
+        }
+    }
+
+    fun loadRecommendations(category: String? = null, location: String? = null, requestedTime: String? = null) {
+        viewModelScope.launch {
+            repository.fetchRecommendations(category, location, requestedTime)
         }
     }
 

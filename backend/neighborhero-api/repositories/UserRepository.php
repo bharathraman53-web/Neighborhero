@@ -15,6 +15,7 @@ class UserRepository {
     public function findById(string $id): ?array {
         $stmt = $this->pdo->prepare(
             "SELECT id, full_name, email, phone, neighborhood, bio, avatar_url,
+                    latitude, longitude,
                     is_verified, points, completed_tasks_count, rating, created_at, updated_at
              FROM users WHERE id = :id LIMIT 1"
         );
@@ -27,6 +28,8 @@ class UserRepository {
         $user['points'] = (int)$user['points'];
         $user['completed_tasks_count'] = (int)$user['completed_tasks_count'];
         $user['rating'] = (float)$user['rating'];
+        $user['latitude'] = $user['latitude'] !== null ? (float)$user['latitude'] : null;
+        $user['longitude'] = $user['longitude'] !== null ? (float)$user['longitude'] : null;
         return $user;
     }
 
@@ -99,6 +102,14 @@ class UserRepository {
         if (array_key_exists('avatar_url', $data)) {
             $fields[] = "avatar_url = :avatar_url";
             $params[':avatar_url'] = $data['avatar_url'];
+        }
+        if (array_key_exists('latitude', $data)) {
+            $fields[] = "latitude = :latitude";
+            $params[':latitude'] = is_numeric($data['latitude']) ? (float)$data['latitude'] : null;
+        }
+        if (array_key_exists('longitude', $data)) {
+            $fields[] = "longitude = :longitude";
+            $params[':longitude'] = is_numeric($data['longitude']) ? (float)$data['longitude'] : null;
         }
 
         if (!empty($fields)) {

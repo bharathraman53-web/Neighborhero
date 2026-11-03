@@ -27,6 +27,13 @@ CREATE TABLE IF NOT EXISTS users (
     points INT NOT NULL DEFAULT 0,
     completed_tasks_count INT NOT NULL DEFAULT 0,
     rating DECIMAL(3, 2) NOT NULL DEFAULT 5.00,
+    latitude DECIMAL(10, 7) NULL,
+    longitude DECIMAL(10, 7) NULL,
+    is_available_today TINYINT(1) NOT NULL DEFAULT 1,
+    available_days VARCHAR(255) NOT NULL DEFAULT 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+    available_time_slots VARCHAR(255) NOT NULL DEFAULT 'Morning,Afternoon,Evening',
+    cancellation_count INT NOT NULL DEFAULT 0,
+    avg_response_minutes INT NOT NULL DEFAULT 15,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_users_email (email),
@@ -81,6 +88,23 @@ CREATE TABLE IF NOT EXISTS helper_skills (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------------------------
+-- 4b. HELPER AVAILABILITY TABLE
+-- Configurable schedule days, times, and status for intelligent matching.
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS helper_availability (
+    id VARCHAR(64) NOT NULL PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    day_of_week VARCHAR(16) NOT NULL,
+    start_time VARCHAR(8) NOT NULL DEFAULT '08:00',
+    end_time VARCHAR(8) NOT NULL DEFAULT '20:00',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_avail_user (user_id),
+    INDEX idx_avail_day (day_of_week),
+    CONSTRAINT fk_avail_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------------------------
 -- 5. HELP REQUESTS TABLE
 -- Real community help postings created by requesters.
 -- ------------------------------------------------------------------------------
@@ -96,6 +120,9 @@ CREATE TABLE IF NOT EXISTS help_requests (
     is_urgent TINYINT(1) NOT NULL DEFAULT 0,
     status ENUM('OPEN', 'IN_PROGRESS', 'PENDING_VERIFICATION', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'OPEN',
     assigned_helper_id VARCHAR(64) NULL,
+    latitude DECIMAL(10, 7) NULL,
+    longitude DECIMAL(10, 7) NULL,
+    preferred_time_slot VARCHAR(64) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_requests_status (status),

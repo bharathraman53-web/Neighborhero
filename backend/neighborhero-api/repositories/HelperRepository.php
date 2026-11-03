@@ -3,15 +3,19 @@ declare(strict_types=1);
 
 namespace NeighborHero\Repositories;
 
+use NeighborHero\Services\HelperMatchingEngine;
+use NeighborHero\Services\UserRepository;
 use PDO;
 
 class HelperRepository {
     private PDO $pdo;
-    private UserRepository $userRepository;
+    private UserRepository|\NeighborHero\Repositories\UserRepository $userRepository;
+    private HelperMatchingEngine $matchingEngine;
 
     public function __construct(PDO $pdo) {
         $this->pdo = $pdo;
-        $this->userRepository = new UserRepository($pdo);
+        $this->userRepository = new \NeighborHero\Repositories\UserRepository($pdo);
+        $this->matchingEngine = new HelperMatchingEngine($pdo);
     }
 
     public function findById(string $helperId): ?array {
@@ -25,8 +29,9 @@ class HelperRepository {
                     99 AS onTimePercentage,
                     COALESCE(u.bio, '') AS bio,
                     u.is_verified AS isVerified,
-                    1 AS isAvailableToday,
-                    COALESCE(u.avatar_url, '') AS avatarUrl
+                    COALESCE(u.is_available_today, 1) AS isAvailableToday,
+                    COALESCE(u.avatar_url, '') AS avatarUrl,
+                    u.points
              FROM users u
              WHERE u.id = :id
              LIMIT 1"
@@ -43,67 +48,47 @@ class HelperRepository {
         $row['isVerified'] = (bool)$row['isVerified'];
         $row['isAvailableToday'] = (bool)$row['isAvailableToday'];
         $row['avatar_url'] = $row['avatarUrl'];
+        $row['points'] = (int)($row['points'] ?? 0);
         return $row;
     }
 
-    public function getRecommendations(?string $skill = null, int $limit = 10): array {
-        $where = ["u.is_verified = 1"];
-        $params = [];
+    /**
+     * Retrieves AI-ranked helper recommendations using the multi-parameter matching engine.
+     */
+    public function getRecommendations(
+        ?string $skill = null,
+        int $limit = 10,
+        ?string $location = null,
+        ?string $requestedTime = null,
+        ?string $requesterId = null
+    ): array {
+        $context = [
+            'category'       => $skill ?? 'Other',
+            'location'       => $location ?? 'Maplewood',
+            'requested_time' => $requestedTime ?? 'Today',
+            'requester_id'   => $requesterId,
+        ];
 
-        if (!empty($skill)) {
-            $trimmedSkill = trim($skill);
-            $skillCandidates = [$trimmedSkill];
-            if (strcasecmp($trimmedSkill, 'Pet Help') === 0) {
-                $skillCandidates[] = 'Pet Care';
-            } elseif (strcasecmp($trimmedSkill, 'Pet Care') === 0) {
-                $skillCandidates[] = 'Pet Help';
-            }
+        $matched = $this->matchingEngine->matchHelpers($context, [], $limit);
 
-            $placeholders = [];
-            foreach ($skillCandidates as $idx => $cand) {
-                $pName = ":skill_{$idx}";
-                $placeholders[] = "LOWER(s.skill_name) = LOWER({$pName})";
-                $params[$pName] = $cand;
-            }
-            $where[] = "EXISTS (SELECT 1 FROM helper_skills s WHERE s.user_id = u.id AND (" . implode(' OR ', $placeholders) . "))";
+        // Ensure backward compatibility fields (camelCase + snake_case)
+        foreach ($matched as &$h) {
+            $h['avatar_url'] = $h['avatarUrl'] ?? '';
+            $h['isAvailableToday'] = (bool)($h['is_available_today'] ?? $h['isAvailableToday'] ?? true);
         }
 
-        $whereSql = implode(' AND ', $where);
-        $sql = "SELECT u.id, u.full_name AS name, 'Neighborhood Hero' AS title,
-                       COALESCE(u.neighborhood, 'Greenwood') AS neighborhood,
-                       CONCAT(ROUND(0.3 + (RAND() * 1.2), 1), ' miles away') AS distance,
-                       u.rating,
-                       (u.completed_tasks_count * 3) AS reviewCount,
-                       u.completed_tasks_count AS tasksDone,
-                       99 AS onTimePercentage,
-                       COALESCE(u.bio, '') AS bio,
-                       u.is_verified AS isVerified,
-                       1 AS isAvailableToday,
-                       COALESCE(u.avatar_url, '') AS avatarUrl
-                FROM users u
-                WHERE {$whereSql}
-                ORDER BY u.rating DESC, u.completed_tasks_count DESC
-                LIMIT :limit";
+        return $matched;
+    }
 
-        $stmt = $this->pdo->prepare($sql);
-        foreach ($params as $k => $v) {
-            $stmt->bindValue($k, $v);
+    /**
+     * Retrieves AI-ranked helpers for an existing help request.
+     */
+    public function getRecommendationsForRequest(string $requestId, array $preferences = [], int $limit = 10): array {
+        $matched = $this->matchingEngine->matchForRequest($requestId, $preferences, $limit);
+        foreach ($matched as &$h) {
+            $h['avatar_url'] = $h['avatarUrl'] ?? '';
+            $h['isAvailableToday'] = (bool)($h['is_available_today'] ?? $h['isAvailableToday'] ?? true);
         }
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->execute();
-        $helpers = $stmt->fetchAll();
-
-        foreach ($helpers as &$h) {
-            $h['skills'] = $this->userRepository->getSkills($h['id']);
-            $h['rating'] = (float)$h['rating'];
-            $h['reviewCount'] = (int)$h['reviewCount'];
-            $h['tasksDone'] = (int)$h['tasksDone'];
-            $h['onTimePercentage'] = (int)$h['onTimePercentage'];
-            $h['isVerified'] = (bool)$h['isVerified'];
-            $h['isAvailableToday'] = (bool)$h['isAvailableToday'];
-            $h['avatar_url'] = $h['avatarUrl'];
-        }
-        return $helpers;
+        return $matched;
     }
 }
-

@@ -15,6 +15,7 @@ object Routes {
     const val CREATE_REQUEST = "create_request"
     const val CREATE_REQUEST_PARAM = "create_request?targetHelperId={targetHelperId}&targetHelperName={targetHelperName}"
     const val RECOMMENDED_HELPERS = "recommended_helpers"
+    const val RECOMMENDED_HELPERS_PARAM = "recommended_helpers?requestId={requestId}"
     const val HELPER_PROFILE = "helper_profile"
     const val HELPER_PROFILE_PARAM = "helper_profile/{helperId}"
     const val CHAT = "chat"
@@ -38,6 +39,7 @@ object Routes {
 
     fun helpRequestDetails(requestId: String) = "help_request_details/$requestId"
     fun helperProfile(helperId: String) = "helper_profile/$helperId"
+    fun recommendedHelpers(requestId: String? = null) = if (requestId.isNullOrBlank()) RECOMMENDED_HELPERS else "$RECOMMENDED_HELPERS?requestId=$requestId"
     fun confirmTaskStart(taskId: String) = "confirm_task_start/$taskId"
     fun activeTask(taskId: String) = "active_task/$taskId"
     fun submitCompletion(taskId: String) = "submit_completion/$taskId"
