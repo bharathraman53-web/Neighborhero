@@ -1,7 +1,9 @@
 package com.neighborhero.neighborhero.feature.requests
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -26,16 +28,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.data.model.RequestStatus
 import com.neighborhero.neighborhero.data.model.User
-import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.BlackPillButton
+import com.neighborhero.neighborhero.ui.components.GlassCard
+import com.neighborhero.neighborhero.ui.components.GlassFocusCard
+import com.neighborhero.neighborhero.ui.components.GlassTopBar
 import com.neighborhero.neighborhero.ui.components.NetworkImage
-import com.neighborhero.neighborhero.ui.components.PrimaryButton
-import com.neighborhero.neighborhero.ui.theme.*
+import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
+import com.neighborhero.neighborhero.ui.components.GlassTheme
 
 @Composable
 fun HelpRequestDetailsScreen(
@@ -47,33 +52,35 @@ fun HelpRequestDetailsScreen(
     onFindHelpersClick: ((String) -> Unit)? = null
 ) {
     if (request == null) {
-        Scaffold(
-            topBar = { AppTopBar(title = "Help Request Details", onBackClick = onBackClick) }
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
+        WaterScreenBackground {
+            Scaffold(
+                containerColor = Color.Transparent,
+                topBar = { GlassTopBar(title = "Help Request Details", onBackClick = onBackClick) }
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Outline, modifier = Modifier.size(36.dp))
-                        Text("Request Not Found", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = OnSurface)
-                        Text("This request may have been completed, cancelled, or is no longer available.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                        PrimaryButton(onClick = onBackClick) {
-                            Text("Back to Dashboard")
+                    GlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = GlassTheme.textMuted, modifier = Modifier.size(36.dp))
+                            Text("Request Not Found", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = GlassTheme.textPrimary)
+                            Text(
+                                "This request may have been completed, cancelled, or is no longer available.",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                color = GlassTheme.textSecondary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            BlackPillButton(text = "Back to Dashboard", onClick = onBackClick)
                         }
                     }
                 }
@@ -90,325 +97,375 @@ fun HelpRequestDetailsScreen(
         (currentUser.id.isNotBlank() && currentUser.id == request.assignedHelperId) ||
         (!request.assignedHelperName.isNullOrBlank() && currentUser.fullName.equals(request.assignedHelperName, ignoreCase = true))
     )
-    Scaffold(
-        topBar = { AppTopBar(title = "Help Request Details", onBackClick = onBackClick) }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (isRequester) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = PrimaryFixed,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+
+    WaterScreenBackground {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = { GlassTopBar(title = "Help Request Details", onBackClick = onBackClick) }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(2.dp))
+
+                if (isRequester) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = GlassTheme.statusBadgeBg,
+                        border = BorderStroke(1.dp, GlassTheme.statusBadgeText.copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = OnPrimaryFixed, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "You posted this request. You can track progress and verify completion once finished.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = OnPrimaryFixed
-                        )
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = GlassTheme.statusBadgeText, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "You posted this request. You can track progress and verify completion once finished.",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                                color = GlassTheme.statusBadgeText
+                            )
+                        }
                     }
                 }
-            }
 
-            // Status & Urgency Header Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                // Status & Urgency Header Frosted Card
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    alpha = 0.82f,
+                    elevation = 6.dp
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = GlassTheme.categoryBadgeBg,
+                                border = BorderStroke(1.dp, GlassTheme.categoryBadgeText.copy(alpha = 0.35f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.ShoppingBasket, contentDescription = null, tint = GlassTheme.categoryBadgeText, modifier = Modifier.size(13.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = request.category,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                                        color = GlassTheme.categoryBadgeText
+                                    )
+                                }
+                            }
+
+                            if (request.isUrgent) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = GlassTheme.warningBadgeBg,
+                                    border = BorderStroke(1.dp, GlassTheme.warningBadgeText.copy(alpha = 0.35f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.Error, contentDescription = null, tint = GlassTheme.warningBadgeText, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Urgent", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold), color = GlassTheme.warningBadgeText)
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = request.title,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontSize = 21.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.4).sp
+                            ),
+                            color = GlassTheme.textPrimary
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = GlassTheme.accent, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (request.distance.isNotBlank()) "${request.location} (${request.distance})" else request.location,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                color = GlassTheme.textSecondary
+                            )
+                        }
+                    }
+                }
+
+                // Time Sensitive Callout Frosted Card
+                GlassFocusCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(GlassTheme.accent.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Schedule, contentDescription = null, tint = GlassTheme.accent, modifier = Modifier.size(20.dp))
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column {
+                            Text(
+                                "REQUESTED TIME",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = GlassTheme.textMuted
+                            )
+                            Text(
+                                text = request.requestedTime,
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = GlassTheme.textPrimary
+                            )
+                        }
+                    }
+                }
+
+                // Requester Profile Card
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    alpha = 0.82f
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
-                            Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.ShoppingBasket, contentDescription = null, tint = OnSecondaryContainer, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(request.category, style = MaterialTheme.typography.labelMedium, color = OnSecondaryContainer)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val avatarRes = when {
+                                request.requesterName.contains("Martha", ignoreCase = true) -> R.drawable.img_elderly_martha
+                                request.requesterName.contains("Marcus", ignoreCase = true) -> R.drawable.img_contact_marcus
+                                request.requesterName.contains("Sarah", ignoreCase = true) -> R.drawable.img_contact_sarah
+                                request.requesterName.contains("Eleanor", ignoreCase = true) -> R.drawable.img_eleanor_vance
+                                else -> null
                             }
-                        }
 
-                        if (request.isUrgent) {
-                            Surface(shape = RoundedCornerShape(12.dp), color = ErrorContainer) {
-                                Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Error, contentDescription = null, tint = OnErrorContainer, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Urgent", style = MaterialTheme.typography.labelMedium, color = OnErrorContainer)
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(request.title, style = MaterialTheme.typography.headlineMedium, color = OnSurface, fontWeight = FontWeight.Bold)
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = Secondary, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("${request.location} (${request.distance})", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
-                    }
-                }
-            }
-
-            // Time Sensitive Callout Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = PrimaryFixed)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(Primary.copy(alpha = 0.1f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Schedule, contentDescription = null, tint = Primary)
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column {
-                        Text("REQUESTED TIME", style = MaterialTheme.typography.labelSmall, color = OnPrimaryFixedVariant)
-                        Text(request.requestedTime, style = MaterialTheme.typography.headlineSmall, color = OnPrimaryFixed, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            // Requester Profile Card with dynamic image resolution
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        val avatarRes = when {
-                            request.requesterName.contains("Martha", ignoreCase = true) -> R.drawable.img_elderly_martha
-                            request.requesterName.contains("Marcus", ignoreCase = true) -> R.drawable.img_contact_marcus
-                            request.requesterName.contains("Sarah", ignoreCase = true) -> R.drawable.img_contact_sarah
-                            request.requesterName.contains("Eleanor", ignoreCase = true) -> R.drawable.img_eleanor_vance
-                            else -> null
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(SecondaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (!request.requesterAvatarUrl.isNullOrBlank()) {
-                                NetworkImage(
-                                    url = request.requesterAvatarUrl,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentDescription = request.requesterName
-                                ) {
-                                    if (avatarRes != null) {
-                                        Image(
-                                            painter = painterResource(id = avatarRes),
-                                            contentDescription = request.requesterName,
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                    } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .border(1.5.dp, GlassTheme.cardBorder, CircleShape)
+                                    .background(GlassTheme.chipBackground),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (!request.requesterAvatarUrl.isNullOrBlank()) {
+                                    NetworkImage(
+                                        url = request.requesterAvatarUrl,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentDescription = request.requesterName
+                                    ) {
                                         Text(
-                                            text = request.requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = OnSecondaryContainer,
-                                            fontWeight = FontWeight.Bold
+                                            text = request.requesterName.take(1).uppercase().ifEmpty { "R" },
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = GlassTheme.textPrimary
                                         )
                                     }
+                                } else if (avatarRes != null) {
+                                    Image(
+                                        painter = painterResource(id = avatarRes),
+                                        contentDescription = request.requesterName,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(
+                                        text = request.requesterName.take(1).uppercase().ifEmpty { "R" },
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = GlassTheme.textPrimary
+                                    )
                                 }
-                            } else if (avatarRes != null) {
-                                Image(
-                                    painter = painterResource(id = avatarRes),
-                                    contentDescription = request.requesterName,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Text(
-                                    text = request.requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = OnSecondaryContainer,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = request.requesterName,
+                                        style = MaterialTheme.typography.headlineSmall.copy(
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = GlassTheme.textPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(Icons.Default.Verified, contentDescription = "Verified", tint = GlassTheme.accent, modifier = Modifier.size(15.dp))
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(13.dp))
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "${request.requesterRating} (${request.requesterTaskCount} community tasks)",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                        color = GlassTheme.textSecondary
+                                    )
+                                }
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(request.requesterName, style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.SemiBold)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(Icons.Default.Verified, contentDescription = "Verified", tint = Secondary, modifier = Modifier.size(16.dp))
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB800), modifier = Modifier.size(14.dp))
-                                Text(" ${request.requesterRating} (${request.requesterTaskCount} community tasks)", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
-                            }
+                        IconButton(
+                            onClick = onChatClick,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(GlassTheme.cardBackground)
+                                .border(BorderStroke(1.dp, GlassTheme.cardBorder), CircleShape)
+                        ) {
+                            Icon(Icons.Default.ChatBubble, contentDescription = "Chat", tint = GlassTheme.textPrimary, modifier = Modifier.size(18.dp))
                         }
                     }
+                }
 
-                    IconButton(onClick = onChatClick) {
-                        Icon(Icons.Default.ChatBubble, contentDescription = "Chat", tint = OnSurfaceVariant)
+                // Request Details Box
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    alpha = 0.82f
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Request Details",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = GlassTheme.textPrimary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = request.description,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp, lineHeight = 20.sp),
+                            color = GlassTheme.textSecondary
+                        )
                     }
                 }
-            }
 
-            // Request Details Box
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Request Details", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(request.description, style = MaterialTheme.typography.bodyLarge, color = OnSurfaceVariant)
-                }
-            }
+                val buttonEnabled: Boolean
+                val buttonText: String
+                val buttonAction: () -> Unit
 
-            val buttonEnabled: Boolean
-            val buttonText: String
-            val buttonAction: () -> Unit
-
-            if (isRequester) {
-                when (request.status) {
-                    RequestStatus.OPEN -> {
-                        buttonEnabled = true
-                        buttonText = "View AI Recommended Helpers"
-                        buttonAction = {
-                            if (onFindHelpersClick != null) {
-                                onFindHelpersClick(request.id)
-                            } else {
-                                onAcceptClick()
-                            }
-                        }
-                    }
-                    RequestStatus.IN_PROGRESS -> {
-                        buttonEnabled = true
-                        buttonText = "Helper Working on Task — View Progress"
-                        buttonAction = onAcceptClick
-                    }
-                    RequestStatus.PENDING_VERIFICATION -> {
-                        buttonEnabled = true
-                        buttonText = "Review & Verify Completion"
-                        buttonAction = onAcceptClick
-                    }
-                    RequestStatus.COMPLETED -> {
-                        buttonEnabled = false
-                        buttonText = "Task Completed"
-                        buttonAction = {}
-                    }
-                    RequestStatus.CANCELLED -> {
-                        buttonEnabled = false
-                        buttonText = "Request Cancelled"
-                        buttonAction = {}
-                    }
-                }
-            } else {
-                when (request.status) {
-                    RequestStatus.OPEN -> {
-                        buttonEnabled = true
-                        buttonText = "Offer Help / Accept Request"
-                        buttonAction = onAcceptClick
-                    }
-                    RequestStatus.IN_PROGRESS -> {
-                        if (isAssignedHelper) {
+                if (isRequester) {
+                    when (request.status) {
+                        RequestStatus.OPEN -> {
                             buttonEnabled = true
-                            buttonText = "Continue Active Task"
+                            buttonText = "View AI Recommended Helpers"
+                            buttonAction = {
+                                if (onFindHelpersClick != null) {
+                                    onFindHelpersClick(request.id)
+                                } else {
+                                    onAcceptClick()
+                                }
+                            }
+                        }
+                        RequestStatus.IN_PROGRESS -> {
+                            buttonEnabled = true
+                            buttonText = "Helper Working on Task — View Progress"
                             buttonAction = onAcceptClick
-                        } else {
+                        }
+                        RequestStatus.PENDING_VERIFICATION -> {
+                            buttonEnabled = true
+                            buttonText = "Review & Verify Completion"
+                            buttonAction = onAcceptClick
+                        }
+                        RequestStatus.COMPLETED -> {
                             buttonEnabled = false
-                            buttonText = "In Progress (Another helper assigned)"
+                            buttonText = "Task Completed"
+                            buttonAction = {}
+                        }
+                        RequestStatus.CANCELLED -> {
+                            buttonEnabled = false
+                            buttonText = "Request Cancelled"
                             buttonAction = {}
                         }
                     }
-                    RequestStatus.PENDING_VERIFICATION -> {
-                        if (isAssignedHelper) {
+                } else {
+                    when (request.status) {
+                        RequestStatus.OPEN -> {
                             buttonEnabled = true
-                            buttonText = "Completion Submitted (Pending Review)"
+                            buttonText = "Offer Help / Accept Request"
                             buttonAction = onAcceptClick
-                        } else {
+                        }
+                        RequestStatus.IN_PROGRESS -> {
+                            if (isAssignedHelper) {
+                                buttonEnabled = true
+                                buttonText = "Continue Active Task"
+                                buttonAction = onAcceptClick
+                            } else {
+                                buttonEnabled = false
+                                buttonText = "In Progress (Another helper assigned)"
+                                buttonAction = {}
+                            }
+                        }
+                        RequestStatus.PENDING_VERIFICATION -> {
+                            if (isAssignedHelper) {
+                                buttonEnabled = true
+                                buttonText = "Completion Submitted (Pending Review)"
+                                buttonAction = onAcceptClick
+                            } else {
+                                buttonEnabled = false
+                                buttonText = "Pending Requester Verification"
+                                buttonAction = {}
+                            }
+                        }
+                        RequestStatus.COMPLETED -> {
                             buttonEnabled = false
-                            buttonText = "Pending Requester Verification"
+                            buttonText = "Task Completed"
+                            buttonAction = {}
+                        }
+                        RequestStatus.CANCELLED -> {
+                            buttonEnabled = false
+                            buttonText = "Request Cancelled"
                             buttonAction = {}
                         }
                     }
-                    RequestStatus.COMPLETED -> {
-                        buttonEnabled = false
-                        buttonText = "Task Completed"
-                        buttonAction = {}
-                    }
-                    RequestStatus.CANCELLED -> {
-                        buttonEnabled = false
-                        buttonText = "Request Cancelled"
-                        buttonAction = {}
-                    }
                 }
-            }
 
-            PrimaryButton(onClick = buttonAction, enabled = buttonEnabled) {
-                Icon(Icons.Default.Handshake, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(buttonText, style = MaterialTheme.typography.labelLarge)
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Solid Pitch-Black Primary Pill Action Button
+                BlackPillButton(
+                    text = buttonText,
+                    onClick = buttonAction,
+                    enabled = buttonEnabled,
+                    isFullWidth = true,
+                    icon = Icons.Default.Handshake
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun HelpRequestDetailsScreenPreview() {
-    val sampleRequest = HelpRequest(
-        id = "req_1",
-        title = "Weekly Groceries Pickup",
-        category = "Groceries",
-        description = "Recovering from knee surgery and unable to drive. Need someone to pick up pre-paid groceries from Maplewood Co-op.",
-        requesterName = "Martha W.",
-        requesterRating = 4.9f,
-        requesterTaskCount = 42,
-        location = "Maplewood District",
-        distance = "0.3 mi away",
-        requestedTime = "Due Today, 4:00 PM",
-        isUrgent = true,
-        status = RequestStatus.OPEN
-    )
-    NeighborheroTheme {
-        HelpRequestDetailsScreen(
-            request = sampleRequest,
-            onBackClick = {},
-            onAcceptClick = {},
-            onChatClick = {}
-        )
     }
 }

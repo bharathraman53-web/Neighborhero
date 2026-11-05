@@ -1,6 +1,8 @@
 package com.neighborhero.neighborhero.feature.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,15 +23,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.neighborhero.neighborhero.ui.components.PrimaryButton
-import com.neighborhero.neighborhero.ui.theme.*
+import androidx.compose.ui.unit.sp
+import com.neighborhero.neighborhero.ui.components.BlackPillButton
+import com.neighborhero.neighborhero.ui.components.GlassCard
+import com.neighborhero.neighborhero.ui.components.GlassTextField
+import com.neighborhero.neighborhero.ui.components.GlassTheme
+import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 
 @Composable
 fun CreateAccountScreen(
@@ -47,29 +54,30 @@ fun CreateAccountScreen(
     var agreeTerms by remember { mutableStateOf(false) }
     var localValidationErr by remember { mutableStateOf<String?>(null) }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Surface
-    ) {
+    WaterScreenBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Icon & Title
+            // Header Emblem & Title (Oceanic Teal Gradient Top)
             Box(
                 modifier = Modifier
                     .size(64.dp)
-                    .background(PrimaryFixed, CircleShape),
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.22f))
+                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.40f)), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = null,
-                    tint = OnPrimaryFixed,
-                    modifier = Modifier.size(36.dp)
+                    tint = Color.White,
+                    modifier = Modifier.size(34.dp)
                 )
             }
 
@@ -77,41 +85,48 @@ fun CreateAccountScreen(
 
             Text(
                 text = "Join NeighborHero",
-                style = MaterialTheme.typography.headlineLarge,
-                color = OnSurface
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp
+                ),
+                color = Color.White
             )
 
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = "Connect with verified helpers, lend a hand, and make your community safer together.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = OnSurfaceVariant
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = Color.White.copy(alpha = 0.88f),
+                modifier = Modifier.widthIn(max = 300.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Registration Card Container (Surface Level 1)
-            Card(
+            // Registration Frosted Glass Card Container
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                shape = RoundedCornerShape(28.dp),
+                alpha = 0.82f,
+                elevation = 8.dp
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     val displayError = localValidationErr ?: errorMessage
                     if (!displayError.isNullOrBlank()) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.errorContainer
+                            color = Color(0xFFFFE4E6),
+                            border = BorderStroke(1.dp, Color(0xFFFDA4AF)),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = displayError,
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFE11D48),
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 modifier = Modifier.padding(12.dp)
                             )
                         }
@@ -119,45 +134,40 @@ fun CreateAccountScreen(
 
                     // Full Name
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Full Name", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
-                        TextField(
+                        Text(
+                            "Full Name",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = GlassTheme.textPrimary
+                        )
+                        GlassTextField(
                             value = fullName,
                             onValueChange = { fullName = it },
-                            placeholder = { Text("e.g. Sarah Jenkins") },
-                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Outline) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = SurfaceContainerLow,
-                                unfocusedContainerColor = SurfaceContainerLow,
-                                disabledContainerColor = SurfaceContainerLow,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent
-                            )
+                            placeholder = "e.g. Sarah Jenkins",
+                            leadingIcon = Icons.Default.Person,
+                            singleLine = true
                         )
                     }
 
                     // Email Address
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Email Address", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
-                        TextField(
+                        Text(
+                            "Email Address",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = GlassTheme.textPrimary
+                        )
+                        GlassTextField(
                             value = email,
                             onValueChange = { email = it },
-                            placeholder = { Text("sarah@example.com") },
-                            leadingIcon = { Icon(Icons.Default.Mail, contentDescription = null, tint = Outline) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            placeholder = "sarah@example.com",
+                            leadingIcon = Icons.Default.Mail,
                             singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = SurfaceContainerLow,
-                                unfocusedContainerColor = SurfaceContainerLow,
-                                disabledContainerColor = SurfaceContainerLow,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent
-                            )
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
                         )
                     }
 
@@ -168,86 +178,77 @@ fun CreateAccountScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Mobile Number (10 digits)", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
-                            Text("${phone.length}/10", style = MaterialTheme.typography.labelSmall, color = if (phone.length == 10) Secondary else Outline)
-                        }
-                        TextField(
-                            value = phone,
-                            onValueChange = { input ->
-                                phone = input.filter { it.isDigit() }.take(10)
-                            },
-                            placeholder = { Text("10-digit mobile number") },
-                            leadingIcon = { Icon(Icons.Default.Call, contentDescription = null, tint = Outline) },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Next
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = SurfaceContainerLow,
-                                unfocusedContainerColor = SurfaceContainerLow,
-                                disabledContainerColor = SurfaceContainerLow,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent
+                            Text(
+                                "Mobile Number (10 digits)",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = GlassTheme.textPrimary
                             )
+                            Text(
+                                "${phone.length}/10",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (phone.length == 10) GlassTheme.accent else GlassTheme.textMuted
+                            )
+                        }
+                        GlassTextField(
+                            value = phone,
+                            onValueChange = { input -> phone = input.filter { it.isDigit() }.take(10) },
+                            placeholder = "10-digit mobile number",
+                            leadingIcon = Icons.Default.Call,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
                         )
                     }
 
                     // Create Password
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Create Password", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
-                        TextField(
+                        Text(
+                            "Create Password",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = GlassTheme.textPrimary
+                        )
+                        GlassTextField(
                             value = password,
                             onValueChange = { password = it },
-                            placeholder = { Text("At least 6 characters") },
-                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Outline) },
+                            placeholder = "At least 6 characters",
+                            leadingIcon = Icons.Default.Lock,
+                            singleLine = true,
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingIcon = {
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                     Icon(
                                         imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                         contentDescription = null,
-                                        tint = Outline
+                                        tint = GlassTheme.textMuted,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
-                            },
-                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = SurfaceContainerLow,
-                                unfocusedContainerColor = SurfaceContainerLow,
-                                disabledContainerColor = SurfaceContainerLow,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent
-                            )
+                            }
                         )
                     }
 
                     // Confirm Password
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Confirm Password", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
-                        TextField(
+                        Text(
+                            "Confirm Password",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = GlassTheme.textPrimary
+                        )
+                        GlassTextField(
                             value = confirmPassword,
                             onValueChange = { confirmPassword = it },
-                            placeholder = { Text("Re-enter your password") },
-                            leadingIcon = { Icon(Icons.Default.LockReset, contentDescription = null, tint = Outline) },
-                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            placeholder = "Re-enter your password",
+                            leadingIcon = Icons.Default.LockReset,
                             singleLine = true,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = SurfaceContainerLow,
-                                unfocusedContainerColor = SurfaceContainerLow,
-                                disabledContainerColor = SurfaceContainerLow,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent
-                            )
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation()
                         )
                     }
 
@@ -259,76 +260,80 @@ fun CreateAccountScreen(
                         Checkbox(
                             checked = agreeTerms,
                             onCheckedChange = { agreeTerms = it },
-                            colors = CheckboxDefaults.colors(checkedColor = Secondary)
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = GlassTheme.pillButtonBg,
+                                checkmarkColor = GlassTheme.pillButtonText,
+                                uncheckedColor = GlassTheme.textMuted
+                            )
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "I agree to NeighborHero's Guidelines & Terms.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = OnSurfaceVariant
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                            color = GlassTheme.textSecondary
                         )
                     }
 
-                    // Sign Up Button
-                    PrimaryButton(onClick = {
-                        if (fullName.isBlank() || email.isBlank() || password.isBlank()) {
-                            localValidationErr = "Please complete all required fields."
-                            return@PrimaryButton
-                        }
-                        if (phone.length != 10) {
-                            localValidationErr = "Phone number must be exactly 10 digits."
-                            return@PrimaryButton
-                        }
-                        if (password != confirmPassword) {
-                            localValidationErr = "Passwords do not match."
-                            return@PrimaryButton
-                        }
-                        if (password.length < 6) {
-                            localValidationErr = "Password must be at least 6 characters."
-                            return@PrimaryButton
-                        }
-                        if (!agreeTerms) {
-                            localValidationErr = "Please agree to NeighborHero's Guidelines & Terms to continue."
-                            return@PrimaryButton
-                        }
-                        localValidationErr = null
-                        if (onSignUpSubmit != null) {
-                            onSignUpSubmit(fullName.trim(), email.trim(), phone.trim(), password)
-                        } else {
-                            onSignUpSuccess()
-                        }
-                    }) {
-                        Text("Sign Up as NeighborHero", style = MaterialTheme.typography.labelLarge)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
-                    }
+                    // Sign Up Pitch-Black Pill Button
+                    BlackPillButton(
+                        text = "Sign Up as NeighborHero",
+                        onClick = {
+                            if (fullName.isBlank() || email.isBlank() || password.isBlank()) {
+                                localValidationErr = "Please complete all required fields."
+                                return@BlackPillButton
+                            }
+                            if (phone.length != 10) {
+                                localValidationErr = "Phone number must be exactly 10 digits."
+                                return@BlackPillButton
+                            }
+                            if (password != confirmPassword) {
+                                localValidationErr = "Passwords do not match."
+                                return@BlackPillButton
+                            }
+                            if (password.length < 6) {
+                                localValidationErr = "Password must be at least 6 characters."
+                                return@BlackPillButton
+                            }
+                            if (!agreeTerms) {
+                                localValidationErr = "Please agree to NeighborHero's Guidelines & Terms to continue."
+                                return@BlackPillButton
+                            }
+                            localValidationErr = null
+                            if (onSignUpSubmit != null) {
+                                onSignUpSubmit(fullName.trim(), email.trim(), phone.trim(), password)
+                            } else {
+                                onSignUpSuccess()
+                            }
+                        },
+                        isFullWidth = true,
+                        icon = Icons.AutoMirrored.Filled.ArrowForward
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Footer Link
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 12.dp)
+            ) {
                 Text(
                     text = "Already have an account? ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = OnSurfaceVariant
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    color = GlassTheme.textSecondary
                 )
                 TextButton(onClick = onLoginClick) {
-                    Text("Log In", style = MaterialTheme.typography.labelLarge, color = Secondary)
+                    Text(
+                        text = "Log In",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = GlassTheme.accent
+                    )
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun CreateAccountScreenPreview() {
-    NeighborheroTheme {
-        CreateAccountScreen(
-            onSignUpSuccess = {},
-            onLoginClick = {}
-        )
     }
 }

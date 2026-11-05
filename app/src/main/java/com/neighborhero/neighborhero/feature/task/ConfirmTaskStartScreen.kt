@@ -2,8 +2,11 @@ package com.neighborhero.neighborhero.feature.task
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,17 +21,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.HelpRequest
-import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.BlackPillButton
+import com.neighborhero.neighborhero.ui.components.GlassCard
+import com.neighborhero.neighborhero.ui.components.GlassFocusCard
+import com.neighborhero.neighborhero.ui.components.GlassTopBar
 import com.neighborhero.neighborhero.ui.components.NetworkImage
-import com.neighborhero.neighborhero.ui.components.PrimaryButton
+import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
@@ -50,75 +59,127 @@ fun ConfirmTaskStartScreen(
     val location = task?.location ?: "Community Location"
     val distance = task?.distance ?: "Nearby"
 
-    Scaffold(
-        topBar = { AppTopBar(title = "Confirm Start", onBackClick = onBackClick) }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Status Greeting Banner
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+    WaterScreenBackground {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                GlassTopBar(
+                    title = "Confirm Start",
+                    onBackClick = onBackClick
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Ready Greeting Banner
+                    GlassFocusCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(PrimaryFixed, CircleShape),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Primary)
-                        }
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(GlassTheme.accent.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.VerifiedUser,
+                                    contentDescription = null,
+                                    tint = GlassTheme.accent,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(14.dp))
 
-                        Column {
-                            Text("Ready to begin?", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
-                            Text("Let's ensure everything is set for a safe visit.", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                            Column {
+                                Text(
+                                    "Ready to begin?",
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = GlassTheme.textPrimary
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    "Let's ensure everything is set for a safe visit.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = GlassTheme.textSecondary
+                                )
+                            }
                         }
                     }
-                }
 
-                // Task Summary Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    // Task Summary Card
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        alpha = 0.88f
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
-                                Text(category, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = OnSecondaryContainer)
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = GlassTheme.categoryBadgeBg,
+                                border = BorderStroke(1.dp, GlassTheme.categoryBadgeText.copy(alpha = 0.35f))
+                            ) {
+                                Text(
+                                    category,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = GlassTheme.categoryBadgeText
+                                )
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("Agreed Time", style = MaterialTheme.typography.labelSmall, color = OnSurfaceVariant)
-                                Text(time, style = MaterialTheme.typography.headlineSmall, color = Secondary, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "Agreed Time",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    color = GlassTheme.textMuted
+                                )
+                                Text(
+                                    time,
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = GlassTheme.textPrimary
+                                )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                        Text(title, style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.Bold)
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = GlassTheme.textPrimary
+                        )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        HorizontalDivider(color = SurfaceContainerHigh)
+                        HorizontalDivider(color = GlassTheme.cardBorder, thickness = 0.8.dp)
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -127,7 +188,10 @@ fun ConfirmTaskStartScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 val avatarRes = when {
                                     requesterName.contains("Martha", ignoreCase = true) -> R.drawable.img_elderly_martha
                                     requesterName.contains("Marcus", ignoreCase = true) -> R.drawable.img_contact_marcus
@@ -138,9 +202,9 @@ fun ConfirmTaskStartScreen(
 
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
+                                        .size(42.dp)
                                         .clip(CircleShape)
-                                        .background(SurfaceContainerHigh),
+                                        .background(GlassTheme.accent.copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (!task?.requesterAvatarUrl.isNullOrBlank()) {
@@ -159,9 +223,8 @@ fun ConfirmTaskStartScreen(
                                             } else {
                                                 Text(
                                                     text = requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    color = OnSurface,
-                                                    fontWeight = FontWeight.Bold
+                                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                                    color = GlassTheme.accent
                                                 )
                                             }
                                         }
@@ -175,96 +238,181 @@ fun ConfirmTaskStartScreen(
                                     } else {
                                         Text(
                                             text = requesterName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = OnSurface,
-                                            fontWeight = FontWeight.Bold
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = GlassTheme.accent
                                         )
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
 
                                 Column {
-                                    Text(requesterName, style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                                    Text("$location ($distance)", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                                    Text(
+                                        requesterName,
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = GlassTheme.textPrimary
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        "$location ($distance)",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                        color = GlassTheme.textMuted
+                                    )
                                 }
                             }
 
                             val context = LocalContext.current
                             val phoneToDial = task?.requesterPhone?.takeIf { it.isNotBlank() } ?: "5551234567"
-                            IconButton(
-                                onClick = {
-                                    try {
-                                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneToDial"))
-                                        context.startActivity(intent)
-                                    } catch (_: Exception) {}
-                                },
+                            Surface(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .background(PrimaryFixed, CircleShape)
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .clickable {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneToDial"))
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {}
+                                    },
+                                shape = CircleShape,
+                                color = GlassTheme.chipBackground,
+                                border = BorderStroke(1.dp, GlassTheme.chipBorder)
                             ) {
-                                Icon(Icons.Default.Call, contentDescription = "Call", tint = Primary, modifier = Modifier.size(18.dp))
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Call,
+                                        contentDescription = "Call",
+                                        tint = GlassTheme.accent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                // Pre-Task Safety Checklist
-                Text("Pre-Task Safety Checklist", style = MaterialTheme.typography.headlineSmall, color = OnSurface, fontWeight = FontWeight.SemiBold)
+                    // Pre-Task Safety Checklist
+                    Text(
+                        "Pre-Task Safety Checklist",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = GlassTheme.textPrimary
+                    )
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        alpha = 0.88f
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = check1, onCheckedChange = { check1 = it }, colors = CheckboxDefaults.colors(checkedColor = Primary))
+                            Checkbox(
+                                checked = check1,
+                                onCheckedChange = { check1 = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = GlassTheme.accent,
+                                    uncheckedColor = GlassTheme.textMuted
+                                )
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("Verify Community ID", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                                Text("Ensure your SafeNeighbour badge is visible upon arrival.", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                                Text(
+                                    "Verify Community ID",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = GlassTheme.textPrimary
+                                )
+                                Text(
+                                    "Ensure your SafeNeighbour badge is visible upon arrival.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = GlassTheme.textSecondary
+                                )
                             }
                         }
 
-                        HorizontalDivider(color = SurfaceContainerLow)
+                        HorizontalDivider(
+                            color = GlassTheme.cardBorder,
+                            thickness = 0.8.dp,
+                            modifier = Modifier.padding(vertical = 10.dp)
+                        )
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = check2, onCheckedChange = { check2 = it }, colors = CheckboxDefaults.colors(checkedColor = Primary))
+                            Checkbox(
+                                checked = check2,
+                                onCheckedChange = { check2 = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = GlassTheme.accent,
+                                    uncheckedColor = GlassTheme.textMuted
+                                )
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("Review Task Instructions", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                                Text("Double-check dietary requirements or drop-off notes.", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                                Text(
+                                    "Review Task Instructions",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = GlassTheme.textPrimary
+                                )
+                                Text(
+                                    "Double-check dietary requirements or drop-off notes.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = GlassTheme.textSecondary
+                                )
                             }
                         }
 
-                        HorizontalDivider(color = SurfaceContainerLow)
+                        HorizontalDivider(
+                            color = GlassTheme.cardBorder,
+                            thickness = 0.8.dp,
+                            modifier = Modifier.padding(vertical = 10.dp)
+                        )
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = check3, onCheckedChange = { check3 = it }, colors = CheckboxDefaults.colors(checkedColor = Primary))
+                            Checkbox(
+                                checked = check3,
+                                onCheckedChange = { check3 = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = GlassTheme.accent,
+                                    uncheckedColor = GlassTheme.textMuted
+                                )
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("Emergency Contact Ready", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                                Text("Confirm support hotline is accessible in case of delays.", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                                Text(
+                                    "Emergency Contact Ready",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = GlassTheme.textPrimary
+                                )
+                                Text(
+                                    "Confirm support hotline is accessible in case of delays.",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    color = GlassTheme.textSecondary
+                                )
                             }
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            PrimaryButton(
-                onClick = onStartConfirmed,
-                enabled = allChecked
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Confirm & Start Task", style = MaterialTheme.typography.labelLarge)
+                Box(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                    BlackPillButton(
+                        text = "Confirm & Start Task",
+                        icon = Icons.Default.PlayArrow,
+                        onClick = onStartConfirmed,
+                        enabled = allChecked,
+                        isFullWidth = true
+                    )
+                }
             }
         }
     }

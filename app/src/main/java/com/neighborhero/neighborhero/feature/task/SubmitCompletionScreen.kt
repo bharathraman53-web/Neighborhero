@@ -5,25 +5,28 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Eco
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.TaskAlt
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -32,12 +35,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.data.model.RequestStatus
 import com.neighborhero.neighborhero.data.model.User
-import com.neighborhero.neighborhero.ui.components.AppTopBar
-import com.neighborhero.neighborhero.ui.components.PrimaryButton
+import com.neighborhero.neighborhero.ui.components.BlackPillButton
+import com.neighborhero.neighborhero.ui.components.GlassCard
+import com.neighborhero.neighborhero.ui.components.GlassFocusCard
+import com.neighborhero.neighborhero.ui.components.GlassTopBar
+import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
@@ -106,328 +113,483 @@ fun SubmitCompletionScreen(
         }
     }
 
-    if (isRequester) {
-        Scaffold(
-            topBar = { AppTopBar(title = "Task Status", onBackClick = onBackClick) }
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = null,
-                    tint = Primary,
-                    modifier = Modifier.size(64.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Awaiting Helper Completion",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OnSurface
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Your assigned helper is currently completing this task. Once they submit evidence, you will be notified to review and verify their work.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = OnSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                PrimaryButton(
-                    onClick = onBackClick
+    WaterScreenBackground {
+        if (isRequester) {
+            Scaffold(
+                containerColor = Color.Transparent,
+                topBar = { GlassTopBar(title = "Task Status", onBackClick = onBackClick) }
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Back to Active Task", style = MaterialTheme.typography.labelLarge)
-                }
-            }
-        }
-        return
-    }
-
-    if (!isAssignedHelper) {
-        Scaffold(
-            topBar = { AppTopBar(title = "Restricted Access", onBackClick = onBackClick) }
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = null,
-                    tint = Primary,
-                    modifier = Modifier.size(64.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Assigned Helper Only",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = OnSurface
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Only the assigned helper (${task?.assignedHelperName ?: "helper"}) can upload evidence and submit completion for this request.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = OnSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                PrimaryButton(
-                    onClick = onBackClick
-                ) {
-                    Text("Return", style = MaterialTheme.typography.labelLarge)
-                }
-            }
-        }
-        return
-    }
-
-    Scaffold(
-        topBar = { AppTopBar(title = "Submit Completion", onBackClick = onBackClick) }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                if (isAlreadySubmitted) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.fillMaxWidth()
+                    GlassFocusCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp)
                     ) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .background(GlassTheme.accent.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Schedule,
+                                    contentDescription = null,
+                                    tint = GlassTheme.accent,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
                             Text(
-                                text = "Task completion has already been submitted and is currently pending verification.",
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                style = MaterialTheme.typography.bodySmall
+                                text = "Awaiting Helper Completion",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = GlassTheme.textPrimary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Your assigned helper is currently completing this task. Once they submit evidence, you will be notified to review and verify their work.",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp
+                                ),
+                                color = GlassTheme.textSecondary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
+                            BlackPillButton(
+                                text = "Back to Active Task",
+                                onClick = onBackClick,
+                                isFullWidth = true
                             )
                         }
                     }
                 }
+            }
+            return@WaterScreenBackground
+        }
 
-                if (!errorMessage.isNullOrBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = errorMessage ?: "",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(12.dp)
-                        )
-                    }
-                }
-
-                // Celebration Header Banner
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
+        if (!isAssignedHelper) {
+            Scaffold(
+                containerColor = Color.Transparent,
+                topBar = { GlassTopBar(title = "Restricted Access", onBackClick = onBackClick) }
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.TaskAlt, contentDescription = null, tint = Secondary, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Almost Done!", style = MaterialTheme.typography.headlineMedium, color = OnSurface, fontWeight = FontWeight.Bold)
-                        Text("You're submitting completion for $taskTitle.", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant)
-                    }
-                }
-
-                // Points Badge Pill
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainer)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Eco, contentDescription = null, tint = Secondary)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Neighbor Aid Award", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                        }
-                        Surface(shape = RoundedCornerShape(12.dp), color = SecondaryContainer) {
-                            Text("Earn 150 pts", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = OnSecondaryContainer)
-                        }
-                    }
-                }
-
-                // Completion Notes
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Completion Notes", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                        Text("Required", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
-                    }
-                    TextField(
-                        value = notes,
-                        onValueChange = { if (it.length <= 250) notes = it },
+                    GlassFocusCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        minLines = 3,
-                        enabled = !isSubmitting,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = SurfaceContainerLow,
-                            unfocusedContainerColor = SurfaceContainerLow,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent
-                        )
-                    )
-                    Text("${notes.length}/250", modifier = Modifier.align(Alignment.End), style = MaterialTheme.typography.bodySmall, color = Outline)
-                }
-
-                // Proof Photo Upload Box
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        shape = RoundedCornerShape(24.dp)
                     ) {
-                        Text("Proof Photo", style = MaterialTheme.typography.labelLarge, color = OnSurface, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = if (selectedPhotoBytes != null) "Photo selected" else "Optional",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Secondary
-                        )
-                    }
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                            .clickable(enabled = !isSubmitting) {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceContainerLow)
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            if (previewBitmap != null) {
-                                Image(
-                                    bitmap = previewBitmap,
-                                    contentDescription = "Selected proof photo of task",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Image(
-                                    painter = painterResource(id = R.drawable.img_proof_garden),
-                                    contentDescription = "Proof photo of task",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .background(GlassTheme.warningBadgeBg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = GlassTheme.warningBadgeText,
+                                    modifier = Modifier.size(32.dp)
                                 )
                             }
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = "Assigned Helper Only",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = GlassTheme.textPrimary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Only the assigned helper (${task?.assignedHelperName ?: "helper"}) can upload evidence and submit completion for this request.",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                color = GlassTheme.textSecondary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
+                            BlackPillButton(
+                                text = "Return",
+                                onClick = onBackClick,
+                                isFullWidth = true
+                            )
+                        }
+                    }
+                }
+            }
+            return@WaterScreenBackground
+        }
 
-                            Surface(
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                GlassTopBar(
+                    title = "Submit Completion",
+                    onBackClick = onBackClick
+                )
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    if (isAlreadySubmitted) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = GlassTheme.statusBadgeBg,
+                            border = BorderStroke(1.dp, GlassTheme.statusBadgeText.copy(alpha = 0.35f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, contentDescription = null, tint = GlassTheme.statusBadgeText)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Task completion has already been submitted and is currently pending verification.",
+                                    color = GlassTheme.statusBadgeText,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
+                                )
+                            }
+                        }
+                    }
+
+                    if (!errorMessage.isNullOrBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = GlassTheme.warningBadgeBg,
+                            border = BorderStroke(1.dp, GlassTheme.warningBadgeText.copy(alpha = 0.35f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = errorMessage ?: "",
+                                color = GlassTheme.warningBadgeText,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                                modifier = Modifier.padding(14.dp)
+                            )
+                        }
+                    }
+
+                    // Celebration Header Banner
+                    GlassFocusCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
                                 modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(12.dp)
-                                    .clickable(enabled = !isSubmitting) {
-                                        photoPickerLauncher.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    },
-                                shape = RoundedCornerShape(20.dp),
-                                color = Color.Black.copy(alpha = 0.65f)
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(GlassTheme.statusBadgeBg),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Icon(
+                                    Icons.Default.TaskAlt,
+                                    contentDescription = null,
+                                    tint = GlassTheme.statusBadgeText,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                "Almost Done!",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = GlassTheme.textPrimary
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "You're submitting completion for $taskTitle.",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                color = GlassTheme.textSecondary
+                            )
+                        }
+                    }
+
+                    // Points Badge Pill
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        alpha = 0.85f
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Eco,
+                                    contentDescription = null,
+                                    tint = GlassTheme.statusBadgeText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "Neighbor Aid Award",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = GlassTheme.textPrimary
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = GlassTheme.statusBadgeBg,
+                                border = BorderStroke(1.dp, GlassTheme.statusBadgeText.copy(alpha = 0.35f))
+                            ) {
+                                Text(
+                                    "Earn 150 pts",
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    ),
+                                    color = GlassTheme.statusBadgeText
+                                )
+                            }
+                        }
+                    }
+
+                    // Completion Notes Section
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        alpha = 0.88f
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Completion Notes",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = GlassTheme.textPrimary
+                            )
+                            Text(
+                                "Required",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                color = GlassTheme.accent
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedTextField(
+                            value = notes,
+                            onValueChange = { if (it.length <= 250) notes = it },
+                            placeholder = {
+                                Text(
+                                    "Describe the completed task and any notes for the requester...",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                    color = GlassTheme.textMuted
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            minLines = 3,
+                            enabled = !isSubmitting,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = GlassTheme.cardBackground,
+                                unfocusedContainerColor = GlassTheme.cardBackground,
+                                focusedTextColor = GlassTheme.textPrimary,
+                                unfocusedTextColor = GlassTheme.textPrimary,
+                                focusedBorderColor = GlassTheme.accent,
+                                unfocusedBorderColor = GlassTheme.cardBorder
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            "${notes.length}/250",
+                            modifier = Modifier.align(Alignment.End),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                            color = GlassTheme.textMuted
+                        )
+                    }
+
+                    // Proof Photo Upload Section
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        alpha = 0.88f
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Proof Photo",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = GlassTheme.textPrimary
+                            )
+                            Text(
+                                text = if (selectedPhotoBytes != null) "Photo selected" else "Optional",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = if (selectedPhotoBytes != null) GlassTheme.statusBadgeText else GlassTheme.textMuted
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(18.dp))
+                                .clickable(enabled = !isSubmitting) {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                },
+                            shape = RoundedCornerShape(18.dp),
+                            color = GlassTheme.chipBackground,
+                            border = BorderStroke(1.dp, GlassTheme.chipBorder)
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                if (previewBitmap != null) {
+                                    Image(
+                                        bitmap = previewBitmap,
+                                        contentDescription = "Selected proof photo of task",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.img_proof_garden),
+                                        contentDescription = "Proof photo of task",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+
+                                Surface(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(12.dp)
+                                        .clickable(enabled = !isSubmitting) {
+                                            photoPickerLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        },
+                                    shape = RoundedCornerShape(50),
+                                    color = GlassTheme.pillButtonBg,
+                                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CameraAlt,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (selectedPhotoBytes != null) "Change Photo" else "Select Photo",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CameraAlt,
+                                            contentDescription = null,
+                                            tint = GlassTheme.pillButtonText,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = if (selectedPhotoBytes != null) "Change Photo" else "Select Photo",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = GlassTheme.pillButtonText
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            val canSubmit = !isSubmitting && !isRequester && !isAlreadySubmitted
+                val canSubmit = !isSubmitting && !isRequester && !isAlreadySubmitted
 
-            PrimaryButton(
-                onClick = {
-                    if (!canSubmit) return@PrimaryButton
-                    if (notes.isBlank()) {
-                        errorMessage = "Please enter completion notes describing the finished work."
-                        return@PrimaryButton
-                    }
-                    errorMessage = null
-                    isSubmitting = true
-
-                    if (onSubmitSuccessWithPhoto != null) {
-                        onSubmitSuccessWithPhoto(
-                            notes.trim(),
-                            selectedPhotoBytes,
-                            selectedPhotoMime,
-                            selectedPhotoName
-                        ) { success, err ->
-                            isSubmitting = false
-                            if (!success) {
-                                errorMessage = err ?: "Task completion submission failed."
+                Box(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                    BlackPillButton(
+                        text = when {
+                            isSubmitting -> "Submitting..."
+                            isRequester -> "Requesters Cannot Submit Completion"
+                            isAlreadySubmitted -> "Completion Already Submitted"
+                            else -> "Submit Task Completion"
+                        },
+                        icon = if (!isSubmitting) Icons.Default.CheckCircle else null,
+                        onClick = {
+                            if (!canSubmit) return@BlackPillButton
+                            if (notes.isBlank()) {
+                                errorMessage = "Please enter completion notes describing the finished work."
+                                return@BlackPillButton
                             }
-                        }
-                    } else {
-                        onSubmitSuccess(notes.trim())
-                        isSubmitting = false
-                    }
-                },
-                enabled = canSubmit
-            ) {
-                if (isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = OnPrimary,
-                        strokeWidth = 2.dp
+                            errorMessage = null
+                            isSubmitting = true
+
+                            if (onSubmitSuccessWithPhoto != null) {
+                                onSubmitSuccessWithPhoto(
+                                    notes.trim(),
+                                    selectedPhotoBytes,
+                                    selectedPhotoMime,
+                                    selectedPhotoName
+                                ) { success, err ->
+                                    isSubmitting = false
+                                    if (!success) {
+                                        errorMessage = err ?: "Task completion submission failed."
+                                    }
+                                }
+                            } else {
+                                onSubmitSuccess(notes.trim())
+                                isSubmitting = false
+                            }
+                        },
+                        enabled = canSubmit,
+                        isFullWidth = true
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Submitting...", style = MaterialTheme.typography.labelLarge)
-                } else if (isRequester) {
-                    Text("Requesters Cannot Submit Completion", style = MaterialTheme.typography.labelLarge)
-                } else if (isAlreadySubmitted) {
-                    Text("Completion Already Submitted", style = MaterialTheme.typography.labelLarge)
-                } else {
-                    Text("Submit Task Completion", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

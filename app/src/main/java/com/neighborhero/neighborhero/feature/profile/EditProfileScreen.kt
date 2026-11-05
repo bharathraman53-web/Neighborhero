@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +27,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -33,10 +36,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.neighborhero.neighborhero.data.model.User
-import com.neighborhero.neighborhero.ui.components.AppTopBar
+import com.neighborhero.neighborhero.ui.components.BlackPillButton
+import com.neighborhero.neighborhero.ui.components.GlassCard
+import com.neighborhero.neighborhero.ui.components.GlassFocusCard
+import com.neighborhero.neighborhero.ui.components.GlassTopBar
 import com.neighborhero.neighborhero.ui.components.NetworkImage
-import com.neighborhero.neighborhero.ui.components.PrimaryButton
+import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 import com.neighborhero.neighborhero.ui.theme.*
 
 @Composable
@@ -98,236 +105,293 @@ fun EditProfileScreen(
         }
     }
 
-    Scaffold(
-        topBar = { AppTopBar(title = "Edit Profile", onBackClick = onBackClick) }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Error banner if any
-            if (!validationError.isNullOrBlank()) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = validationError ?: "",
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-            }
-
-            // Profile Photo Picker Section
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 8.dp)
-                    .size(108.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .clip(CircleShape)
-                        .border(3.dp, Primary, CircleShape)
-                        .background(SurfaceContainerHigh)
-                        .clickable(enabled = !isSaving) {
-                            photoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (previewBitmap != null) {
-                        Image(
-                            bitmap = previewBitmap,
-                            contentDescription = "Selected profile photo",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else if (user.avatarUrl.isNotBlank()) {
-                        NetworkImage(
-                            url = user.avatarUrl,
-                            modifier = Modifier.fillMaxSize(),
-                            contentDescription = "Profile photo"
-                        ) {
-                            Text(
-                                text = user.fullName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = Primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    } else {
-                        Text(
-                            text = user.fullName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = Primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                // Camera Action Badge
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .align(Alignment.BottomEnd)
-                        .clip(CircleShape)
-                        .background(Primary)
-                        .clickable(enabled = !isSaving) {
-                            photoPickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Change photo",
-                        tint = OnPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            TextButton(
-                onClick = {
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-                enabled = !isSaving
-            ) {
-                Text(
-                    text = if (selectedPhotoBytes != null) "Change Selected Photo" else "Upload Profile Photo",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Secondary
-                )
-            }
-
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Full Name") },
-                leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = Outline) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                enabled = !isSaving
-            )
-
-            // Phone (10 digits)
+    WaterScreenBackground {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = { GlassTopBar(title = "Edit Profile", onBackClick = onBackClick) }
+        ) { innerPadding ->
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { input ->
-                        phone = input.filter { it.isDigit() }.take(10)
-                    },
-                    label = { Text("Phone Number (10 digits)") },
-                    placeholder = { Text("10-digit mobile number") },
-                    leadingIcon = { Icon(Icons.Default.Call, contentDescription = null, tint = Outline) },
-                    trailingIcon = {
+                // Error banner
+                if (!validationError.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = GlassTheme.warningBadgeBg,
+                        border = BorderStroke(1.dp, GlassTheme.warningBadgeText.copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
-                            text = "${phone.length}/10",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (phone.length == 10) Secondary else Outline,
-                            modifier = Modifier.padding(end = 12.dp)
+                            text = validationError ?: "",
+                            color = GlassTheme.warningBadgeText,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            modifier = Modifier.padding(14.dp)
                         )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next
-                    ),
+                    }
+                }
+
+                // Profile Photo Card
+                GlassFocusCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    enabled = !isSaving
-                )
-            }
+                    shape = RoundedCornerShape(26.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(108.dp)
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape)
+                                    .border(3.dp, GlassTheme.accent, CircleShape)
+                                    .background(GlassTheme.accent.copy(alpha = 0.15f))
+                                    .clickable(enabled = !isSaving) {
+                                        photoPickerLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (previewBitmap != null) {
+                                    Image(
+                                        bitmap = previewBitmap,
+                                        contentDescription = "Selected profile photo",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else if (user.avatarUrl.isNotBlank()) {
+                                    NetworkImage(
+                                        url = user.avatarUrl,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentDescription = "Profile photo"
+                                    ) {
+                                        Text(
+                                            text = user.fullName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                                            color = GlassTheme.accent
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        text = user.fullName.split(" ").mapNotNull { it.firstOrNull() }.joinToString(""),
+                                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = GlassTheme.accent
+                                    )
+                                }
+                            }
 
-            OutlinedTextField(
-                value = neighborhood,
-                onValueChange = { neighborhood = it },
-                label = { Text("Neighborhood") },
-                leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = Outline) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                enabled = !isSaving
-            )
-
-            OutlinedTextField(
-                value = bio,
-                onValueChange = { bio = it },
-                label = { Text("Bio") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                minLines = 4,
-                enabled = !isSaving
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            PrimaryButton(
-                onClick = {
-                    if (name.isBlank()) {
-                        validationError = "Full Name cannot be empty."
-                        return@PrimaryButton
-                    }
-                    if (phone.isNotEmpty() && phone.length != 10) {
-                        validationError = "Phone number must be exactly 10 digits."
-                        return@PrimaryButton
-                    }
-                    validationError = null
-                    isSaving = true
-
-                    val photo = selectedPhotoBytes
-                    if (onSaveWithPhoto != null) {
-                        onSaveWithPhoto(
-                            name.trim(),
-                            neighborhood.trim(),
-                            bio.trim(),
-                            phone,
-                            photo,
-                            selectedPhotoMime,
-                            selectedPhotoName
-                        ) { success, errorMsg ->
-                            isSaving = false
-                            if (!success) {
-                                validationError = errorMsg ?: "Failed to save profile changes."
+                            // Camera Action Badge
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .align(Alignment.BottomEnd)
+                                    .clip(CircleShape)
+                                    .background(GlassTheme.pillButtonBg)
+                                    .border(2.dp, Color.White, CircleShape)
+                                    .clickable(enabled = !isSaving) {
+                                        photoPickerLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = "Change photo",
+                                    tint = GlassTheme.pillButtonText,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                         }
-                    } else if (onSaveSuccessWithPhone != null) {
-                        onSaveSuccessWithPhone(name.trim(), neighborhood.trim(), bio.trim(), phone)
-                        isSaving = false
-                    } else {
-                        onSaveSuccess(name.trim(), neighborhood.trim(), bio.trim())
-                        isSaving = false
+
+                        TextButton(
+                            onClick = {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            enabled = !isSaving
+                        ) {
+                            Text(
+                                text = if (selectedPhotoBytes != null) "Change Selected Photo" else "Upload Profile Photo",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = GlassTheme.accent
+                            )
+                        }
                     }
-                },
-                enabled = !isSaving
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = OnPrimary,
-                        strokeWidth = 2.dp
+                }
+
+                // Profile Fields Card
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    alpha = 0.88f
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text(
+                            "Account Details",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = GlassTheme.textPrimary
+                        )
+
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text("Full Name") },
+                            leadingIcon = { Icon(Icons.Default.Badge, contentDescription = null, tint = GlassTheme.accent) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            enabled = !isSaving,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = GlassTheme.cardBackground,
+                                unfocusedContainerColor = GlassTheme.cardBackground,
+                                focusedTextColor = GlassTheme.textPrimary,
+                                unfocusedTextColor = GlassTheme.textPrimary,
+                                focusedBorderColor = GlassTheme.accent,
+                                unfocusedBorderColor = GlassTheme.cardBorder
+                            )
+                        )
+
+                        // Phone (10 digits)
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = phone,
+                                onValueChange = { input ->
+                                    phone = input.filter { it.isDigit() }.take(10)
+                                },
+                                label = { Text("Phone Number (10 digits)") },
+                                placeholder = { Text("10-digit mobile number") },
+                                leadingIcon = { Icon(Icons.Default.Call, contentDescription = null, tint = GlassTheme.accent) },
+                                trailingIcon = {
+                                    Text(
+                                        text = "${phone.length}/10",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                        color = if (phone.length == 10) GlassTheme.statusBadgeText else GlassTheme.textMuted,
+                                        modifier = Modifier.padding(end = 12.dp)
+                                    )
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Next
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                singleLine = true,
+                                enabled = !isSaving,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = GlassTheme.cardBackground,
+                                    unfocusedContainerColor = GlassTheme.cardBackground,
+                                    focusedTextColor = GlassTheme.textPrimary,
+                                    unfocusedTextColor = GlassTheme.textPrimary,
+                                    focusedBorderColor = GlassTheme.accent,
+                                    unfocusedBorderColor = GlassTheme.cardBorder
+                                )
+                            )
+                        }
+
+                        OutlinedTextField(
+                            value = neighborhood,
+                            onValueChange = { neighborhood = it },
+                            label = { Text("Neighborhood") },
+                            leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = GlassTheme.accent) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            enabled = !isSaving,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = GlassTheme.cardBackground,
+                                unfocusedContainerColor = GlassTheme.cardBackground,
+                                focusedTextColor = GlassTheme.textPrimary,
+                                unfocusedTextColor = GlassTheme.textPrimary,
+                                focusedBorderColor = GlassTheme.accent,
+                                unfocusedBorderColor = GlassTheme.cardBorder
+                            )
+                        )
+
+                        OutlinedTextField(
+                            value = bio,
+                            onValueChange = { bio = it },
+                            label = { Text("Bio") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            minLines = 4,
+                            enabled = !isSaving,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = GlassTheme.cardBackground,
+                                unfocusedContainerColor = GlassTheme.cardBackground,
+                                focusedTextColor = GlassTheme.textPrimary,
+                                unfocusedTextColor = GlassTheme.textPrimary,
+                                focusedBorderColor = GlassTheme.accent,
+                                unfocusedBorderColor = GlassTheme.cardBorder
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                    BlackPillButton(
+                        text = if (isSaving) "Saving..." else "Save Changes",
+                        icon = if (!isSaving) Icons.Default.Check else null,
+                        onClick = {
+                            if (name.isBlank()) {
+                                validationError = "Full Name cannot be empty."
+                                return@BlackPillButton
+                            }
+                            if (phone.isNotEmpty() && phone.length != 10) {
+                                validationError = "Phone number must be exactly 10 digits."
+                                return@BlackPillButton
+                            }
+                            validationError = null
+                            isSaving = true
+
+                            val photo = selectedPhotoBytes
+                            if (onSaveWithPhoto != null) {
+                                onSaveWithPhoto(
+                                    name.trim(),
+                                    neighborhood.trim(),
+                                    bio.trim(),
+                                    phone,
+                                    photo,
+                                    selectedPhotoMime,
+                                    selectedPhotoName
+                                ) { success, errorMsg ->
+                                    isSaving = false
+                                    if (!success) {
+                                        validationError = errorMsg ?: "Failed to save profile changes."
+                                    }
+                                }
+                            } else if (onSaveSuccessWithPhone != null) {
+                                onSaveSuccessWithPhone(name.trim(), neighborhood.trim(), bio.trim(), phone)
+                                isSaving = false
+                            } else {
+                                onSaveSuccess(name.trim(), neighborhood.trim(), bio.trim())
+                                isSaving = false
+                            }
+                        },
+                        enabled = !isSaving,
+                        isFullWidth = true
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Saving...", style = MaterialTheme.typography.labelLarge)
-                } else {
-                    Icon(Icons.Default.Check, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save Changes", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

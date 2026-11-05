@@ -1,5 +1,6 @@
 package com.neighborhero.neighborhero.feature.auth
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -14,14 +15,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.neighborhero.neighborhero.R
-import com.neighborhero.neighborhero.ui.components.PrimaryButton
-import com.neighborhero.neighborhero.ui.theme.*
+import com.neighborhero.neighborhero.ui.components.BlackPillButton
+import com.neighborhero.neighborhero.ui.components.GlassTheme
+import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 
 @Composable
 fun CommunityOnboardingScreen(
@@ -30,28 +35,31 @@ fun CommunityOnboardingScreen(
 ) {
     var step by remember { mutableIntStateOf(1) }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Surface
-    ) {
+    WaterScreenBackground {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top Skip Action
+            // Top Skip Action (over ocean gradient)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = onSkipClick) {
-                    Text("Skip", color = OnSurfaceVariant, style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        text = "Skip",
+                        color = Color.White.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
 
-            // Step Indicator
+            // Step Indicator (capsule dots)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -60,29 +68,30 @@ fun CommunityOnboardingScreen(
                     val isCurrent = (index + 1) == step
                     Box(
                         modifier = Modifier
-                            .height(8.dp)
-                            .width(if (isCurrent) 32.dp else 8.dp)
+                            .height(6.dp)
+                            .width(if (isCurrent) 28.dp else 8.dp)
                             .background(
-                                color = if (isCurrent) Primary else SurfaceVariant,
-                                shape = RoundedCornerShape(4.dp)
+                                color = if (isCurrent) Color.White else Color.White.copy(alpha = 0.40f),
+                                shape = RoundedCornerShape(3.dp)
                             )
                     )
                 }
             }
 
-            // Main Illustration Container with Actual Image & Floating Badges
-            Card(
+            // Main Illustration Container with Frosted Floating Badges
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = PrimaryFixed.copy(alpha = 0.3f))
+                    .aspectRatio(1.05f)
+                    .shadow(8.dp, RoundedCornerShape(26.dp), spotColor = Color(0x222C4663)),
+                shape = RoundedCornerShape(26.dp),
+                color = Color.White.copy(alpha = 0.70f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.90f))
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Actual Onboarding Street Illustration
                     Image(
                         painter = painterResource(id = R.drawable.img_onboarding_hero),
                         contentDescription = "Community onboarding illustration",
@@ -90,13 +99,14 @@ fun CommunityOnboardingScreen(
                         contentScale = ContentScale.Crop
                     )
 
-                    // Top-Left Floating Badge ("Grocery run")
+                    // Top-Left Floating Badge
                     Surface(
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .padding(16.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Surface.copy(alpha = 0.92f),
+                            .padding(14.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        color = GlassTheme.cardBackground,
+                        border = BorderStroke(1.dp, GlassTheme.cardBorder),
                         shadowElevation = 4.dp
                     ) {
                         Row(
@@ -106,31 +116,32 @@ fun CommunityOnboardingScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .background(Secondary, CircleShape),
+                                    .size(30.dp)
+                                    .background(GlassTheme.accentSoft, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Favorite,
                                     contentDescription = null,
-                                    tint = OnSecondary,
+                                    tint = GlassTheme.accent,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
                             Column {
-                                Text("Grocery run", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = OnSurface)
-                                Text("Completed 2m ago", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                                Text("Grocery run", style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp), fontWeight = FontWeight.Bold, color = GlassTheme.textPrimary)
+                                Text("Completed 2m ago", style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp), color = GlassTheme.textMuted)
                             }
                         }
                     }
 
-                    // Bottom-Right Floating Badge ("Trusted Helper")
+                    // Bottom-Right Floating Badge
                     Surface(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .padding(16.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = Surface.copy(alpha = 0.92f),
+                            .padding(14.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        color = GlassTheme.cardBackground,
+                        border = BorderStroke(1.dp, GlassTheme.cardBorder),
                         shadowElevation = 4.dp
                     ) {
                         Row(
@@ -140,52 +151,69 @@ fun CommunityOnboardingScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .background(Primary, CircleShape),
+                                    .size(30.dp)
+                                    .background(Color(0xFF0F766E).copy(alpha = 0.20f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Handshake,
                                     contentDescription = null,
-                                    tint = OnPrimary,
+                                    tint = if (GlassTheme.isDark) Color(0xFF2DD4BF) else Color(0xFF0F766E),
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
                             Column {
-                                Text("Trusted Helper", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = OnSurface)
-                                Text("Verified Neighbor", style = MaterialTheme.typography.bodySmall, color = OnSurfaceVariant)
+                                Text("Trusted Helper", style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp), fontWeight = FontWeight.Bold, color = GlassTheme.textPrimary)
+                                Text("Verified Neighbor", style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp), color = GlassTheme.textMuted)
                             }
                         }
                     }
                 }
             }
 
-            // Headline & Description
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(horizontal = 8.dp)
+            // Headline & Description (Frosted Glass Container)
+            Surface(
+                shape = RoundedCornerShape(22.dp),
+                color = GlassTheme.cardBackground,
+                border = BorderStroke(1.dp, GlassTheme.cardBorder),
+                shadowElevation = 4.dp,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = when (step) {
-                        1 -> "Neighbors helping neighbors, effortlessly."
-                        2 -> "Request local assistance anytime."
-                        else -> "Build a safer, friendlier neighborhood."
-                    },
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = OnSurface
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(18.dp)
+                ) {
+                    Text(
+                        text = when (step) {
+                            1 -> "Neighbors helping neighbors, effortlessly."
+                            2 -> "Request local assistance anytime."
+                            else -> "Build a safer, friendlier neighborhood."
+                        },
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.4).sp
+                        ),
+                        color = GlassTheme.textPrimary,
+                        textAlign = TextAlign.Center
+                    )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = when (step) {
-                        1 -> "Connect with trusted people right down your street for quick errands, borrowed tools, and friendly local support."
-                        2 -> "Post a request for groceries, repairs, pet sitting, or tutoring and let verified local heroes lend a hand."
-                        else -> "Join over 1,200 active neighbors making local communities warmer, safer, and better connected."
-                    },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = OnSurfaceVariant
-                )
+                    Text(
+                        text = when (step) {
+                            1 -> "Connect with trusted people right down your street for quick errands, borrowed tools, and friendly local support."
+                            2 -> "Post a request for groceries, repairs, pet sitting, or tutoring and let verified local heroes lend a hand."
+                            else -> "Join over 1,200 active neighbors making local communities warmer, safer, and better connected."
+                        },
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 13.sp,
+                            lineHeight = 18.sp
+                        ),
+                        color = GlassTheme.textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             // Action Buttons & Verification Footer
@@ -193,19 +221,14 @@ fun CommunityOnboardingScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                PrimaryButton(
+                BlackPillButton(
+                    text = if (step < 3) "Continue" else "Get Started",
                     onClick = {
                         if (step < 3) step += 1 else onContinueClick()
-                    }
-                ) {
-                    Text(if (step < 3) "Continue" else "Get Started", style = MaterialTheme.typography.labelLarge)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+                    },
+                    isFullWidth = true,
+                    icon = Icons.AutoMirrored.Filled.ArrowForward
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -213,28 +236,17 @@ fun CommunityOnboardingScreen(
                     Icon(
                         imageVector = Icons.Default.VerifiedUser,
                         contentDescription = null,
-                        tint = Secondary,
-                        modifier = Modifier.size(16.dp)
+                        tint = GlassTheme.accent,
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Secure & community-verified",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = OnSurfaceVariant
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = GlassTheme.textMuted
                     )
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun CommunityOnboardingScreenPreview() {
-    NeighborheroTheme {
-        CommunityOnboardingScreen(
-            onContinueClick = {},
-            onSkipClick = {}
-        )
     }
 }

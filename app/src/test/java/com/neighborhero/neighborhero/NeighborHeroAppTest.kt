@@ -689,4 +689,35 @@ class NeighborHeroAppTest {
         assertEquals("Maplewood, San Francisco", loc.addressSummary)
         assertTrue(loc.isPrecise)
     }
+
+    // --- Theme & Mode Switching Tests ---
+    @Test
+    fun testAppThemeMode_fromKeyParsingAndFallbacks() {
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.NORMAL, com.neighborhero.neighborhero.ui.theme.AppThemeMode.fromKey("normal"))
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.NORMAL, com.neighborhero.neighborhero.ui.theme.AppThemeMode.fromKey("NORMAL"))
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.NORMAL, com.neighborhero.neighborhero.ui.theme.AppThemeMode.fromKey("light")) // legacy alias
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.DARK, com.neighborhero.neighborhero.ui.theme.AppThemeMode.fromKey("dark"))
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.DARK, com.neighborhero.neighborhero.ui.theme.AppThemeMode.fromKey("DARK"))
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.NORMAL, com.neighborhero.neighborhero.ui.theme.AppThemeMode.fromKey("system"))
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.NORMAL, com.neighborhero.neighborhero.ui.theme.AppThemeMode.fromKey(null))
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.NORMAL, com.neighborhero.neighborhero.ui.theme.AppThemeMode.fromKey("invalid_mode"))
+    }
+
+    @Test
+    fun testThemeManager_setThemeModeUpdatesStateFlowImmediately() {
+        com.neighborhero.neighborhero.ui.theme.ThemeManager.setThemeMode(com.neighborhero.neighborhero.ui.theme.AppThemeMode.DARK)
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.DARK, com.neighborhero.neighborhero.ui.theme.ThemeManager.themeMode.value)
+
+        com.neighborhero.neighborhero.ui.theme.ThemeManager.setThemeMode(com.neighborhero.neighborhero.ui.theme.AppThemeMode.NORMAL)
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.NORMAL, com.neighborhero.neighborhero.ui.theme.ThemeManager.themeMode.value)
+    }
+
+    @Test
+    fun testSessionManager_logoutDoesNotAffectThemeManagerPrefs() {
+        // Theme selection is stored in dedicated neighborhero_theme_prefs, independent from user session
+        com.neighborhero.neighborhero.ui.theme.ThemeManager.setThemeMode(com.neighborhero.neighborhero.ui.theme.AppThemeMode.DARK)
+        userRepository.clearLocalUserSession()
+        // Theme mode remains DARK even after user session purge
+        assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.DARK, com.neighborhero.neighborhero.ui.theme.ThemeManager.themeMode.value)
+    }
 }
