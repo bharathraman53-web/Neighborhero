@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class HelpRequestRepository(
     private val apiService: NeighborHeroApiService = NetworkClient.getService(),
     private val cacheDao: HelpRequestDao? = null,
-    seedForTests: Boolean = false
+    private val seedForTests: Boolean = false
 ) {
     private val testSeedRequests = listOf(
         HelpRequest(
@@ -126,6 +126,9 @@ class HelpRequestRepository(
     }
 
     suspend fun fetchRequests(category: String? = null, status: String? = null): Result<List<HelpRequest>> {
+        if (seedForTests) {
+            return Result.success(_requests.value)
+        }
         _isLoading.value = true
         _errorMessage.value = null
         return try {

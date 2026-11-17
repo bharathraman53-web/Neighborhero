@@ -92,14 +92,15 @@ fun NearbyRequestsScreen(
                                     ),
                                     color = if (isSelected) GlassTheme.chipSelectedText else GlassTheme.chipText
                                 )
-                                if (isSelected) {
                                     Spacer(modifier = Modifier.height(3.dp))
                                     Box(
                                         modifier = Modifier
                                             .size(3.dp)
-                                            .background(GlassTheme.chipSelectedText, CircleShape)
+                                            .background(
+                                                if (isSelected) GlassTheme.chipSelectedText else Color.Transparent,
+                                                CircleShape
+                                            )
                                     )
-                                }
                             }
                         }
                     }

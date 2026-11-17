@@ -3,6 +3,7 @@ package com.neighborhero.neighborhero.navigation
 import java.net.URLEncoder
 
 object Routes {
+    const val SPLASH = "splash"
     const val WELCOME = "welcome"
     const val COMMUNITY_ONBOARDING = "community_onboarding"
     const val LOGIN = "login"

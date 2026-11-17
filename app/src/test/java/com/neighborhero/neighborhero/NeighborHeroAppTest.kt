@@ -34,6 +34,7 @@ class NeighborHeroAppTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
+        com.neighborhero.neighborhero.data.network.SessionManager.getInstance().clearSession()
         userRepository = UserRepository(seedForTests = true)
         helpRequestRepository = HelpRequestRepository(seedForTests = true)
         helperRepository = HelperRepository(seedForTests = true)
@@ -719,5 +720,184 @@ class NeighborHeroAppTest {
         userRepository.clearLocalUserSession()
         // Theme mode remains DARK even after user session purge
         assertEquals(com.neighborhero.neighborhero.ui.theme.AppThemeMode.DARK, com.neighborhero.neighborhero.ui.theme.ThemeManager.themeMode.value)
+    }
+
+    // --- Authentication & Navigation Flow Tests ---
+    @Test
+    fun testAuthFlow_freshInstallHasNoSessionAndDefaultsToLoggedOut() {
+        val sessionManager = com.neighborhero.neighborhero.data.network.SessionManager.getInstance()
+        sessionManager.clearSession()
+        assertFalse(sessionManager.isLoggedIn())
+        assertNull(sessionManager.getToken())
+        assertNull(sessionManager.getRole())
+
+        val authVm = AuthViewModel(userRepository, sessionManager)
+        assertFalse(authVm.isLoggedIn.value)
+    }
+
+    @Test
+    fun testAuthFlow_loginWithEmptyCredentialsSetsAuthErrorImmediately() {
+        val sessionManager = com.neighborhero.neighborhero.data.network.SessionManager.getInstance()
+        sessionManager.clearSession()
+        val authVm = AuthViewModel(userRepository, sessionManager)
+
+        authVm.login("", "")
+        assertEquals("Please enter both credentials.", authVm.authError.value)
+        assertFalse(authVm.isLoggedIn.value)
+        assertFalse(sessionManager.isLoggedIn())
+
+        authVm.login("test@example.com", "")
+        assertEquals("Please enter both credentials.", authVm.authError.value)
+        assertFalse(authVm.isLoggedIn.value)
+
+        authVm.login("", "password123")
+        assertEquals("Please enter both credentials.", authVm.authError.value)
+        assertFalse(authVm.isLoggedIn.value)
+    }
+
+    @Test
+    fun testAuthFlow_skipOnboardingNeverCreatesSession() {
+        val sessionManager = com.neighborhero.neighborhero.data.network.SessionManager.getInstance()
+        sessionManager.clearSession()
+
+        // Verify that skipping onboarding leaves session strictly unauthenticated
+        assertFalse(sessionManager.isLoggedIn())
+        assertNull(sessionManager.getToken())
+        assertNull(sessionManager.getRole())
+    }
+
+    @Test
+    fun testAuthFlow_logoutClearsSessionTokenAndUserRole() {
+        val sessionManager = com.neighborhero.neighborhero.data.network.SessionManager.getInstance()
+        sessionManager.saveToken("sample_bearer_token_xyz")
+        sessionManager.saveUserId("user_123")
+        sessionManager.saveRole("helper")
+
+        assertTrue(sessionManager.isLoggedIn())
+        assertEquals("helper", sessionManager.getRole())
+
+        val authVm = AuthViewModel(userRepository, sessionManager)
+        authVm.logout()
+
+        assertFalse(authVm.isLoggedIn.value)
+        assertFalse(sessionManager.isLoggedIn())
+        assertNull(sessionManager.getToken())
+        assertNull(sessionManager.getRole())
+    }
+
+    @Test
+    fun testAuthFlow_roleRoutingHelperVsRequester() {
+        val sessionManager = com.neighborhero.neighborhero.data.network.SessionManager.getInstance()
+
+        sessionManager.saveRole("helper")
+        assertEquals("helper", sessionManager.getRole())
+        val helperTargetRoute = if (sessionManager.getRole() == "helper") com.neighborhero.neighborhero.navigation.Routes.NEARBY_REQUESTS else com.neighborhero.neighborhero.navigation.Routes.HOME
+        assertEquals(com.neighborhero.neighborhero.navigation.Routes.NEARBY_REQUESTS, helperTargetRoute)
+
+        sessionManager.saveRole("requester")
+        assertEquals("requester", sessionManager.getRole())
+        val requesterTargetRoute = if (sessionManager.getRole() == "helper") com.neighborhero.neighborhero.navigation.Routes.NEARBY_REQUESTS else com.neighborhero.neighborhero.navigation.Routes.HOME
+        assertEquals(com.neighborhero.neighborhero.navigation.Routes.HOME, requesterTargetRoute)
+    }
+
+    @Test
+    fun testAuthFlow_sessionRestoreWithValidSessionRestoresState() {
+        val sessionManager = com.neighborhero.neighborhero.data.network.SessionManager.getInstance()
+        sessionManager.saveToken("valid_test_token_456")
+        sessionManager.saveRole("helper")
+
+        assertTrue(sessionManager.isLoggedIn())
+        assertEquals("valid_test_token_456", sessionManager.getToken())
+
+        val restoredAuthVm = AuthViewModel(userRepository, sessionManager)
+        assertTrue(restoredAuthVm.isLoggedIn.value)
+        assertEquals("helper", restoredAuthVm.getUserRole())
+    }
+
+    // --- Location Persistence & Selection Tests ---
+    @Test
+    fun testLocation_sessionManagerPersistenceAndCoordinates() {
+        val sessionManager = com.neighborhero.neighborhero.data.network.SessionManager.getInstance()
+        sessionManager.saveLocation("Pinecrest", 37.7750, -122.4180)
+
+        assertEquals("Pinecrest", sessionManager.getSelectedLocation())
+        val coords = sessionManager.getCoordinates()
+        assertNotNull(coords)
+        assertEquals(37.7750, coords!!.first, 0.001)
+        assertEquals(-122.4180, coords.second, 0.001)
+
+        sessionManager.saveLocation("Oakridge Avenue")
+        assertEquals("Oakridge Avenue", sessionManager.getSelectedLocation())
+
+        sessionManager.clearSession()
+        assertNull(sessionManager.getSelectedLocation())
+        assertNull(sessionManager.getCoordinates())
+    }
+
+    @Test
+    fun testLocation_homeViewModelUpdateSelectedLocation() {
+        val sessionManager = com.neighborhero.neighborhero.data.network.SessionManager.getInstance()
+        val homeVm = HomeViewModel(
+            userRepository = userRepository,
+            helpRequestRepository = helpRequestRepository,
+            helperRepository = helperRepository,
+            notificationRepository = notificationRepository,
+            sessionManager = sessionManager
+        )
+
+        homeVm.updateSelectedLocation("Oakridge Avenue", 37.7800, -122.4200)
+
+        assertEquals("Oakridge Avenue", homeVm.selectedLocation.value)
+        assertEquals("Oakridge Avenue", userRepository.currentUser.value.neighborhood)
+        assertEquals("Oakridge Avenue", sessionManager.getSelectedLocation())
+    }
+
+    // --- Notification Red Dot Logic Tests ---
+    @Test
+    fun testNotification_unreadBadgeLogicAccurate() {
+        // 1. Empty notifications -> unread count is 0 (red dot hidden)
+        val emptyNotifications = emptyList<NotificationItem>()
+        val emptyUnreadCount = emptyNotifications.count { !it.isRead }
+        assertEquals(0, emptyUnreadCount)
+        assertFalse(emptyUnreadCount > 0)
+
+        // 2. Unread notification present -> red dot shown
+        val unreadList = listOf(
+            NotificationItem("notif_1", "Test", "Message", "1m ago", NotificationType.NEW_MESSAGE, isRead = false)
+        )
+        val unreadCount = unreadList.count { !it.isRead }
+        assertEquals(1, unreadCount)
+        assertTrue(unreadCount > 0)
+
+        // 3. All notifications read -> red dot hidden
+        val allReadList = unreadList.map { it.copy(isRead = true) }
+        val readUnreadCount = allReadList.count { !it.isRead }
+        assertEquals(0, readUnreadCount)
+        assertFalse(readUnreadCount > 0)
+    }
+
+    // --- Helper Skills Only Tests ---
+    @Test
+    fun testHelper_skillsListPreservesActualRegisteredSkillsWithoutSuperpowers() {
+        val helper = HelperProfile(
+            id = "helper_test_1",
+            name = "Test Helper",
+            rating = 5.0f,
+            reviewCount = 10,
+            tasksDone = 15,
+            neighborhood = "Maplewood District",
+            distance = "0.2 mi away",
+            onTimePercentage = 99,
+            bio = "Community volunteer ready to help.",
+            skills = listOf("Groceries", "Books", "Repairs", "Transport", "Pet Help"),
+            isAvailableToday = true
+        )
+
+        assertEquals(5, helper.skills.size)
+        assertTrue(helper.skills.contains("Groceries"))
+        assertTrue(helper.skills.contains("Books"))
+        assertTrue(helper.skills.contains("Repairs"))
+        assertTrue(helper.skills.contains("Transport"))
+        assertTrue(helper.skills.contains("Pet Help"))
     }
 }

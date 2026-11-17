@@ -1,14 +1,24 @@
 package com.neighborhero.neighborhero.feature.auth
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -19,11 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.ui.components.BlackPillButton
 import com.neighborhero.neighborhero.ui.components.GlassCard
 import com.neighborhero.neighborhero.ui.components.GlassTextField
@@ -41,6 +54,24 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var rememberDevice by remember { mutableStateOf(false) }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    val focusManager = LocalFocusManager.current
+    val scrollState = rememberScrollState()
+
+    val submitLogin = {
+        focusManager.clearFocus()
+        localError = null
+        val cleanEmailOrPhone = emailOrPhone.trim()
+        val cleanPassword = password.trim()
+        if (cleanEmailOrPhone.isBlank()) {
+            localError = "Please enter your registered email or phone number."
+        } else if (cleanPassword.isBlank()) {
+            localError = "Please enter your password."
+        } else if (onLoginSubmit != null) {
+            onLoginSubmit(cleanEmailOrPhone, cleanPassword)
+        }
+    }
 
     WaterScreenBackground {
         Column(
@@ -48,28 +79,31 @@ fun LoginScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(24.dp),
+                .imePadding()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Brand & Welcome Hero (Header over ocean blue top gradient)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 12.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.22f))
-                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.40f)), CircleShape),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.size(76.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White.copy(alpha = 0.16f),
+                    border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.45f)),
+                    shadowElevation = 8.dp
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.VolunteerActivism,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(36.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.img_neighborhero_logo),
+                        contentDescription = "NeighborHero Official Brand Logo",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(20.dp)),
+                        contentScale = ContentScale.Crop
                     )
                 }
 
@@ -131,7 +165,8 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    if (!errorMessage.isNullOrBlank()) {
+                    val activeError = localError ?: errorMessage
+                    if (!activeError.isNullOrBlank()) {
                         Surface(
                             shape = RoundedCornerShape(12.dp),
                             color = Color(0xFFFFE4E6),
@@ -139,7 +174,7 @@ fun LoginScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = errorMessage,
+                                text = activeError,
                                 color = Color(0xFFE11D48),
                                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                 modifier = Modifier.padding(12.dp)
@@ -159,10 +194,32 @@ fun LoginScreen(
                         )
                         GlassTextField(
                             value = emailOrPhone,
-                            onValueChange = { emailOrPhone = it },
+                            onValueChange = {
+                                emailOrPhone = it
+                                localError = null
+                            },
                             placeholder = "Email or phone number",
                             leadingIcon = Icons.Default.AlternateEmail,
-                            singleLine = true
+                            trailingIcon = if (emailOrPhone.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { emailOrPhone = "" }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Clear,
+                                            contentDescription = "Clear email",
+                                            tint = GlassTheme.textMuted,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            } else null,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                            )
                         )
                     }
 
@@ -192,11 +249,21 @@ fun LoginScreen(
 
                         GlassTextField(
                             value = password,
-                            onValueChange = { password = it },
+                            onValueChange = {
+                                password = it
+                                localError = null
+                            },
                             placeholder = "••••••••",
                             leadingIcon = Icons.Default.Lock,
                             singleLine = true,
                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { submitLogin() }
+                            ),
                             trailingIcon = {
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                     Icon(
@@ -232,13 +299,7 @@ fun LoginScreen(
                     // Black Pill Primary Button
                     BlackPillButton(
                         text = "Log In",
-                        onClick = {
-                            if (onLoginSubmit != null && emailOrPhone.isNotBlank() && password.isNotBlank()) {
-                                onLoginSubmit(emailOrPhone, password)
-                            } else {
-                                onLoginSuccess()
-                            }
-                        },
+                        onClick = submitLogin,
                         isFullWidth = true,
                         icon = Icons.AutoMirrored.Filled.ArrowForward
                     )

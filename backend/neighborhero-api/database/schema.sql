@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(191) NOT NULL UNIQUE,
     phone VARCHAR(32) NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(32) NOT NULL DEFAULT 'requester',
     neighborhood VARCHAR(120) NOT NULL DEFAULT '',
     bio TEXT NULL,
     avatar_url VARCHAR(255) NOT NULL DEFAULT '',

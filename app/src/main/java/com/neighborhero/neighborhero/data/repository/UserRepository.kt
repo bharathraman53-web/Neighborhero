@@ -18,7 +18,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 class UserRepository(
     private val apiService: NeighborHeroApiService = NetworkClient.getService(),
     private val sessionManager: SessionManager = SessionManager.getInstance(),
-    seedForTests: Boolean = false
+    private val seedForTests: Boolean = false
 ) {
     private val defaultUser = if (seedForTests) {
         User(
@@ -31,7 +31,8 @@ class UserRepository(
             skills = listOf("Groceries", "Repairs", "Pet Care", "Tutoring"),
             points = 350,
             completedTasksCount = 24,
-            rating = 4.9f
+            rating = 4.9f,
+            role = "helper"
         )
     } else {
         User(
@@ -45,7 +46,8 @@ class UserRepository(
             points = 0,
             completedTasksCount = 0,
             rating = 5.0f,
-            isVerified = false
+            isVerified = false,
+            role = "requester"
         )
     }
 
@@ -126,13 +128,14 @@ class UserRepository(
         phone: String? = null,
         neighborhood: String? = null,
         bio: String? = null,
-        skills: List<String>? = null
+        skills: List<String>? = null,
+        role: String? = null
     ): Result<User> {
         _isLoading.value = true
         _errorMessage.value = null
         return try {
             val response = apiService.register(
-                RegisterRequest(fullName, email, phone, pass, neighborhood, bio, skills)
+                RegisterRequest(fullName, email, phone, pass, neighborhood, bio, skills, role)
             )
             if (response.isSuccessful && response.body()?.success == true) {
                 val data = response.body()!!.data!!
@@ -170,6 +173,10 @@ class UserRepository(
     }
 
     suspend fun updateRemoteProfile(name: String, neighborhood: String, bio: String, phone: String? = null): Result<User> {
+        if (seedForTests) {
+            updateUserProfile(name, neighborhood, bio, _currentUser.value.skills, phone)
+            return Result.success(_currentUser.value)
+        }
         return try {
             val response = apiService.updateProfile(
                 UpdateProfileRequest(fullName = name, neighborhood = neighborhood, bio = bio, phone = phone)
@@ -246,11 +253,14 @@ class UserRepository(
             points = 0,
             completedTasksCount = 0,
             rating = 5.0f,
-            isVerified = false
+            isVerified = false,
+            role = "requester"
         )
     }
 
     private fun mapUserDtoToDomain(dto: UserDto): User {
+        val userRole = dto.role ?: if (dto.skills.isNotEmpty()) "helper" else "requester"
+        sessionManager.saveRole(userRole)
         return User(
             id = dto.id,
             fullName = dto.fullName,
@@ -263,7 +273,8 @@ class UserRepository(
             isVerified = dto.isVerified,
             points = dto.points,
             completedTasksCount = dto.completedTasksCount,
-            rating = dto.rating
+            rating = dto.rating,
+            role = userRole
         )
     }
 }

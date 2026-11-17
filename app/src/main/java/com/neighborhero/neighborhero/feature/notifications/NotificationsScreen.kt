@@ -87,7 +87,10 @@ fun NotificationsScreen(
                     title = "Notifications",
                     actions = {
                         if (unreadCount > 0 && onMarkAllReadClick != null) {
-                            TextButton(onClick = onMarkAllReadClick) {
+                            TextButton(
+                                onClick = onMarkAllReadClick,
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
                                 Text(
                                     "Mark read",
                                     color = Color.White,
@@ -96,7 +99,10 @@ fun NotificationsScreen(
                             }
                         }
                         if (notifications.isNotEmpty() && onClearAllClick != null) {
-                            TextButton(onClick = { showClearConfirmDialog = true }) {
+                            TextButton(
+                                onClick = { showClearConfirmDialog = true },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
                                 Text(
                                     "Clear all",
                                     color = Color.White.copy(alpha = 0.85f),
@@ -206,17 +212,24 @@ fun NotificationsScreen(
                                         Surface(
                                             shape = RoundedCornerShape(50),
                                             color = GlassTheme.pillButtonBg,
-                                            modifier = Modifier.clickable { onNotificationClick?.invoke(item) }
+                                            shadowElevation = 2.dp,
+                                            modifier = Modifier
+                                                .defaultMinSize(minHeight = 32.dp)
+                                                .clickable { onNotificationClick?.invoke(item) }
                                         ) {
-                                            Text(
-                                                "View",
+                                            Box(
                                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                ),
-                                                color = GlassTheme.pillButtonText
-                                            )
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    "View",
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
+                                                    color = GlassTheme.pillButtonText
+                                                )
+                                            }
                                         }
                                     }
                                 }

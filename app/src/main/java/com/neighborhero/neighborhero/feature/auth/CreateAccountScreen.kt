@@ -1,6 +1,7 @@
 package com.neighborhero.neighborhero.feature.auth
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -25,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,6 +35,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.ui.components.BlackPillButton
 import com.neighborhero.neighborhero.ui.components.GlassCard
 import com.neighborhero.neighborhero.ui.components.GlassTextField
@@ -60,24 +64,26 @@ fun CreateAccountScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header Emblem & Title (Oceanic Teal Gradient Top)
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.22f))
-                    .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.40f)), CircleShape),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(72.dp),
+                shape = RoundedCornerShape(18.dp),
+                color = Color.White.copy(alpha = 0.16f),
+                border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.45f)),
+                shadowElevation = 8.dp
             ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(34.dp)
+                Image(
+                    painter = painterResource(id = R.drawable.img_neighborhero_logo),
+                    contentDescription = "NeighborHero Official Brand Logo",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(18.dp)),
+                    contentScale = ContentScale.Crop
                 )
             }
 

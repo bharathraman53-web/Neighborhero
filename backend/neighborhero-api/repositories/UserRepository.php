@@ -14,7 +14,7 @@ class UserRepository {
 
     public function findById(string $id): ?array {
         $stmt = $this->pdo->prepare(
-            "SELECT id, full_name, email, phone, neighborhood, bio, avatar_url,
+            "SELECT id, full_name, email, phone, role, neighborhood, bio, avatar_url,
                     latitude, longitude,
                     is_verified, points, completed_tasks_count, rating, created_at, updated_at
              FROM users WHERE id = :id LIMIT 1"
@@ -30,28 +30,62 @@ class UserRepository {
         $user['rating'] = (float)$user['rating'];
         $user['latitude'] = $user['latitude'] !== null ? (float)$user['latitude'] : null;
         $user['longitude'] = $user['longitude'] !== null ? (float)$user['longitude'] : null;
+        $user['role'] = $user['role'] ?? (!empty($user['skills']) ? 'helper' : 'requester');
         return $user;
     }
 
     public function findByEmail(string $email): ?array {
         $stmt = $this->pdo->prepare("SELECT * FROM users WHERE LOWER(email) = LOWER(:email) LIMIT 1");
-        $stmt->execute([':email' => trim($email)]);
+        $stmt->execute([':email' => strtolower(trim($email))]);
         $user = $stmt->fetch();
         return $user ?: null;
     }
 
     public function findByPhone(string $phone): ?array {
-        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE phone = :phone LIMIT 1");
-        $stmt->execute([':phone' => trim($phone)]);
+        $clean = preg_replace('/\D/', '', $phone);
+        if (empty($clean)) {
+            $stmt = $this->pdo->prepare("SELECT * FROM users WHERE phone = :phone LIMIT 1");
+            $stmt->execute([':phone' => trim($phone)]);
+            $user = $stmt->fetch();
+            return $user ?: null;
+        }
+
+        // Try exact match or match by last 10 digits
+        $suffix = substr($clean, -10);
+        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE phone = :phone OR phone LIKE :suffix LIMIT 1");
+        $stmt->execute([':phone' => trim($phone), ':suffix' => "%$suffix"]);
         $user = $stmt->fetch();
         return $user ?: null;
     }
 
+    public function findLegacyUserByEmail(string $email): ?array {
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM userdb.users WHERE LOWER(email) = LOWER(:email) LIMIT 1");
+            $stmt->execute([':email' => strtolower(trim($email))]);
+            $legacy = $stmt->fetch();
+            return $legacy ?: null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    public function updatePassword(string $userId, string $newPasswordHash): bool {
+        $stmt = $this->pdo->prepare("UPDATE users SET password_hash = :hash WHERE id = :id");
+        return $stmt->execute([':hash' => $newPasswordHash, ':id' => $userId]);
+    }
+
+    public function updateRole(string $userId, string $role): bool {
+        $stmt = $this->pdo->prepare("UPDATE users SET role = :role WHERE id = :id");
+        return $stmt->execute([':role' => $role, ':id' => $userId]);
+    }
+
     public function create(array $data): array {
         $id = $data['id'] ?? ('usr_' . bin2hex(random_bytes(12)));
+        $role = $data['role'] ?? (!empty($data['skills']) ? 'helper' : 'requester');
+        $createdAt = $data['created_at'] ?? date('Y-m-d H:i:s');
         $stmt = $this->pdo->prepare(
-            "INSERT INTO users (id, full_name, email, phone, password_hash, neighborhood, bio, avatar_url, is_verified, points, completed_tasks_count, rating)
-             VALUES (:id, :full_name, :email, :phone, :password_hash, :neighborhood, :bio, :avatar_url, :is_verified, :points, :completed_tasks_count, :rating)"
+            "INSERT INTO users (id, full_name, email, phone, password_hash, role, neighborhood, bio, avatar_url, is_verified, points, completed_tasks_count, rating, created_at)
+             VALUES (:id, :full_name, :email, :phone, :password_hash, :role, :neighborhood, :bio, :avatar_url, :is_verified, :points, :completed_tasks_count, :rating, :created_at)"
         );
         $stmt->execute([
             ':id' => $id,
@@ -59,6 +93,7 @@ class UserRepository {
             ':email' => strtolower(trim($data['email'])),
             ':phone' => !empty($data['phone']) ? trim($data['phone']) : null,
             ':password_hash' => $data['password_hash'],
+            ':role' => $role,
             ':neighborhood' => $data['neighborhood'] ?? '',
             ':bio' => $data['bio'] ?? '',
             ':avatar_url' => $data['avatar_url'] ?? '',
@@ -66,6 +101,7 @@ class UserRepository {
             ':points' => $data['points'] ?? 0,
             ':completed_tasks_count' => $data['completed_tasks_count'] ?? 0,
             ':rating' => $data['rating'] ?? 5.00,
+            ':created_at' => $createdAt,
         ]);
 
         if (!empty($data['skills']) && is_array($data['skills'])) {

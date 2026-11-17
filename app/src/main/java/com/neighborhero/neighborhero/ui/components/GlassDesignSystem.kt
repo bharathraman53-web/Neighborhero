@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -288,10 +289,12 @@ fun BlackPillButton(
             .clickable(enabled = enabled) { onClick() }
     ) {
         Row(
-            modifier = Modifier.padding(
-                horizontal = if (isFullWidth) 24.dp else 18.dp,
-                vertical = if (isFullWidth) 14.dp else 11.dp
-            ),
+            modifier = Modifier
+                .defaultMinSize(minHeight = if (isFullWidth) 52.dp else 44.dp)
+                .padding(
+                    horizontal = if (isFullWidth) 24.dp else 18.dp,
+                    vertical = if (isFullWidth) 14.dp else 11.dp
+                ),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -327,6 +330,62 @@ fun BlackPillButton(
 }
 
 /**
+ * Frosted secondary action pill button matching primary button geometry and alignment.
+ */
+@Composable
+fun GlassSecondaryPillButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    icon: ImageVector? = null,
+    isFullWidth: Boolean = false
+) {
+    val isDark = LocalIsDarkTheme.current
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = GlassTheme.secondaryButtonBg,
+        border = BorderStroke(1.dp, GlassTheme.secondaryButtonBorder),
+        modifier = (if (isFullWidth) modifier.fillMaxWidth() else modifier)
+            .shadow(
+                if (enabled) 4.dp else 0.dp,
+                RoundedCornerShape(50),
+                spotColor = Color(0x182C4663)
+            )
+            .clickable(enabled = enabled) { onClick() }
+    ) {
+        Row(
+            modifier = Modifier
+                .defaultMinSize(minHeight = if (isFullWidth) 52.dp else 44.dp)
+                .padding(
+                    horizontal = if (isFullWidth) 24.dp else 18.dp,
+                    vertical = if (isFullWidth) 14.dp else 11.dp
+                ),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = GlassTheme.secondaryButtonText,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = GlassTheme.secondaryButtonText
+            )
+        }
+    }
+}
+
+/**
  * Reusable frosted-glass text input field with high contrast text.
  */
 @Composable
@@ -341,6 +400,7 @@ fun GlassTextField(
     maxLines: Int = 1,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     isError: Boolean = false
 ) {
     val isDark = LocalIsDarkTheme.current
@@ -375,6 +435,7 @@ fun GlassTextField(
         maxLines = maxLines,
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
         isError = isError,
         shape = RoundedCornerShape(16.dp),
         colors = OutlinedTextFieldDefaults.colors(

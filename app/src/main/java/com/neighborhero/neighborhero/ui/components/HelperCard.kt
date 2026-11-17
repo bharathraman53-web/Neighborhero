@@ -302,17 +302,24 @@ fun HelperCard(
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = GlassTheme.pillButtonBg,
-                    modifier = Modifier.clickable { onClick() }
+                    shadowElevation = 3.dp,
+                    modifier = Modifier
+                        .defaultMinSize(minHeight = 36.dp)
+                        .clickable { onClick() }
                 ) {
-                    Text(
-                        text = "+ Request",
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = GlassTheme.pillButtonText
-                    )
+                    Box(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "+ Request",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = GlassTheme.pillButtonText
+                        )
+                    }
                 }
             }
         }

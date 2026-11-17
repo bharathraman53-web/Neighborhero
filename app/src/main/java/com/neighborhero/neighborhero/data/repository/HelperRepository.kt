@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class HelperRepository(
     private val apiService: NeighborHeroApiService = NetworkClient.getService(),
     private val cacheDao: HelperDao? = null,
-    seedForTests: Boolean = false
+    private val seedForTests: Boolean = false
 ) {
     private val testSeedHelpers = listOf(
         HelperProfile(
@@ -81,6 +81,9 @@ class HelperRepository(
     }
 
     suspend fun fetchHelpers(skill: String? = null): Result<List<HelperProfile>> {
+        if (seedForTests) {
+            return Result.success(_helpers.value)
+        }
         _isLoading.value = true
         return try {
             val response = apiService.getHelpers(skill = skill)

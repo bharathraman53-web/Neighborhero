@@ -59,12 +59,13 @@ class AuthViewModel(
         neighborhood: String? = null,
         bio: String? = null,
         skills: List<String>? = null,
+        role: String? = null,
         onSuccess: () -> Unit = {}
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             _authError.value = null
-            val result = userRepository.register(fullName, email, pass, phone, neighborhood, bio, skills)
+            val result = userRepository.register(fullName, email, pass, phone, neighborhood, bio, skills, role)
             if (result.isSuccess) {
                 _isLoggedIn.value = true
                 onSuccess()
@@ -75,11 +76,21 @@ class AuthViewModel(
         }
     }
 
+    fun getUserRole(): String {
+        return sessionManager.getRole()
+            ?: if (userRepository.currentUser.value.skills.isNotEmpty()) "helper" else "requester"
+    }
+
+    fun setUserRole(role: String) {
+        sessionManager.saveRole(role)
+    }
+
     fun logout(onComplete: ((serverRevoked: Boolean) -> Unit)? = null) {
+        sessionManager.clearSession()
+        _isLoggedIn.value = false
         viewModelScope.launch {
             val serverRevoked = userRepository.logout()
             RepositoryProvider.clearUserSession()
-            _isLoggedIn.value = false
             onComplete?.invoke(serverRevoked)
         }
     }

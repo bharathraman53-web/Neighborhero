@@ -46,8 +46,8 @@ import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 @Composable
 fun CreateProfileScreen(
     initialName: String = "",
-    onProfileCompleted: (name: String, neighborhood: String, bio: String) -> Unit = { _, _, _ -> },
-    onProfileCompletedWithPhoto: ((name: String, neighborhood: String, bio: String, photoBytes: ByteArray?, mime: String, filename: String) -> Unit)? = null
+    onProfileCompleted: (name: String, neighborhood: String, bio: String, skills: List<String>) -> Unit = { _, _, _, _ -> },
+    onProfileCompletedWithPhoto: ((name: String, neighborhood: String, bio: String, skills: List<String>, photoBytes: ByteArray?, mime: String, filename: String) -> Unit)? = null
 ) {
     val context = LocalContext.current
     var name by remember { mutableStateOf(initialName) }
@@ -97,8 +97,9 @@ fun CreateProfileScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header over Ocean Gradient
@@ -326,10 +327,11 @@ fun CreateProfileScreen(
                     BlackPillButton(
                         text = "Complete Profile",
                         onClick = {
+                            val skillsList = selectedSkills.toList()
                             if (onProfileCompletedWithPhoto != null) {
-                                onProfileCompletedWithPhoto(name, neighborhood, bio, selectedPhotoBytes, selectedPhotoMime, selectedPhotoName)
+                                onProfileCompletedWithPhoto(name, neighborhood, bio, skillsList, selectedPhotoBytes, selectedPhotoMime, selectedPhotoName)
                             } else {
-                                onProfileCompleted(name, neighborhood, bio)
+                                onProfileCompleted(name, neighborhood, bio, skillsList)
                             }
                         },
                         isFullWidth = true,

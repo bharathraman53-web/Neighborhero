@@ -9,7 +9,8 @@ data class RegisterRequest(
     @SerializedName("password") val password: String,
     @SerializedName("neighborhood") val neighborhood: String? = null,
     @SerializedName("bio") val bio: String? = null,
-    @SerializedName("skills") val skills: List<String>? = null
+    @SerializedName("skills") val skills: List<String>? = null,
+    @SerializedName("role") val role: String? = null
 )
 
 data class LoginRequest(
@@ -22,7 +23,8 @@ data class UpdateProfileRequest(
     @SerializedName("neighborhood") val neighborhood: String? = null,
     @SerializedName("bio") val bio: String? = null,
     @SerializedName("phone") val phone: String? = null,
-    @SerializedName("skills") val skills: List<String>? = null
+    @SerializedName("skills") val skills: List<String>? = null,
+    @SerializedName("role") val role: String? = null
 )
 
 data class AuthResponseData(
@@ -42,6 +44,6 @@ data class UserDto(
     @SerializedName("points") val points: Int = 0,
     @SerializedName("completed_tasks_count") val completedTasksCount: Int = 0,
     @SerializedName("rating") val rating: Float = 5.0f,
-    @SerializedName("skills") val skills: List<String> = emptyList()
+    @SerializedName("skills") val skills: List<String> = emptyList(),
+    @SerializedName("role") val role: String? = null
 )
-

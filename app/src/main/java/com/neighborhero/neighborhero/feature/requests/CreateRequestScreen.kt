@@ -162,6 +162,7 @@ fun CreateRequestScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
                     .padding(horizontal = 16.dp)
+                    .imePadding()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -317,14 +318,15 @@ fun CreateRequestScreen(
                                     ),
                                     color = if (isSelected) GlassTheme.chipSelectedText else GlassTheme.chipText
                                 )
-                                if (isSelected) {
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .size(3.dp)
-                                            .background(GlassTheme.chipSelectedText, CircleShape)
-                                    )
-                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(3.dp)
+                                        .background(
+                                            if (isSelected) GlassTheme.chipSelectedText else Color.Transparent,
+                                            CircleShape
+                                        )
+                                )
                             }
                         }
                     }

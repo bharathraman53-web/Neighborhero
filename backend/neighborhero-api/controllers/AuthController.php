@@ -54,6 +54,7 @@ class AuthController {
             'email' => $email,
             'phone' => $phone,
             'password_hash' => $passwordHash,
+            'role' => $input['role'] ?? (!empty($input['skills']) ? 'helper' : 'requester'),
             'neighborhood' => $input['neighborhood'] ?? 'Maplewood District',
             'bio' => $input['bio'] ?? '',
             'avatar_url' => $input['avatar_url'] ?? '',
@@ -84,16 +85,61 @@ class AuthController {
             Response::error($validator->firstError() ?: 'Validation failed', 422, $validator->errors());
         }
 
+        // Normalize email or phone input
         $identifier = trim((string)$input['email_or_phone']);
         $password = (string)$input['password'];
+        $isEmail = str_contains($identifier, '@');
 
-        $user = str_contains($identifier, '@')
+        $user = $isEmail
             ? $this->userRepository->findByEmail($identifier)
             : $this->userRepository->findByPhone($identifier);
 
-        if (!$user || !$this->authService->verifyPassword($password, $user['password_hash'])) {
-            // Constant-time safe error message to prevent enumeration
+        // Fallback for legacy accounts from userdb if not yet in neighborhero_db
+        if (!$user && $isEmail) {
+            $legacy = $this->userRepository->findLegacyUserByEmail($identifier);
+            if ($legacy && $this->authService->verifyPassword($password, $legacy['password'])) {
+                // Seamlessly migrate legacy account into neighborhero_db
+                $newHash = $this->authService->hashPassword($password);
+                $user = $this->userRepository->create([
+                    'full_name' => trim($legacy['name'] ?: 'Neighbor'),
+                    'email' => strtolower(trim($legacy['email'])),
+                    'password_hash' => $newHash,
+                    'role' => 'requester',
+                    'neighborhood' => 'Maplewood District',
+                    'bio' => 'Community neighbor.',
+                    'skills' => ['Groceries', 'Repairs'],
+                    'created_at' => $legacy['created_at'] ?? date('Y-m-d H:i:s'),
+                ]);
+            }
+        }
+
+        if (!$user) {
             Response::error('Incorrect email or phone number, or password. Please try again.', 401);
+        }
+
+        // Verify password against current password_hash (supports bcrypt and legacy formats)
+        $authenticated = $this->authService->verifyPassword($password, $user['password_hash']);
+
+        // If primary verification failed, check if user has an older legacy password in userdb
+        if (!$authenticated && !empty($user['email'])) {
+            $legacy = $this->userRepository->findLegacyUserByEmail($user['email']);
+            if ($legacy && $this->authService->verifyPassword($password, $legacy['password'])) {
+                $authenticated = true;
+                // Seamlessly upgrade to modern bcrypt hash
+                $newHash = $this->authService->hashPassword($password);
+                $this->userRepository->updatePassword($user['id'], $newHash);
+                $user['password_hash'] = $newHash;
+            }
+        }
+
+        if (!$authenticated) {
+            Response::error('Incorrect email or phone number, or password. Please try again.', 401);
+        }
+
+        // Automatically re-hash legacy/plain-text passwords to bcrypt upon successful login
+        if ($this->authService->needsRehash($user['password_hash'])) {
+            $newHash = $this->authService->hashPassword($password);
+            $this->userRepository->updatePassword($user['id'], $newHash);
         }
 
         $token = $this->authService->createToken($user['id']);

@@ -17,7 +17,48 @@ class AuthService {
     }
 
     public function verifyPassword(string $password, string $hash): bool {
-        return password_verify($password, $hash);
+        // 1. Primary verification: standard password_verify() for bcrypt / argon2 hashes
+        if (password_verify($password, $hash)) {
+            return true;
+        }
+
+        // 2. Backward-compatible fallback for legacy accounts (plain text, MD5, SHA1, SHA256)
+        $isStandardBcrypt = str_starts_with($hash, '$2y$') ||
+                            str_starts_with($hash, '$2a$') ||
+                            str_starts_with($hash, '$2b$') ||
+                            str_starts_with($hash, '$argon2');
+
+        if (!$isStandardBcrypt) {
+            // Timing attack safe plain-text comparison
+            if (hash_equals($hash, $password) || strcasecmp($hash, $password) === 0) {
+                return true;
+            }
+            // Legacy MD5 hash
+            if (strlen($hash) === 32 && hash_equals(strtolower($hash), strtolower(md5($password)))) {
+                return true;
+            }
+            // Legacy SHA1 hash
+            if (strlen($hash) === 40 && hash_equals(strtolower($hash), strtolower(sha1($password)))) {
+                return true;
+            }
+            // Legacy SHA256 hash
+            if (strlen($hash) === 64 && hash_equals(strtolower($hash), strtolower(hash('sha256', $password)))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function needsRehash(string $hash): bool {
+        $isStandardBcrypt = str_starts_with($hash, '$2y$') ||
+                            str_starts_with($hash, '$2a$') ||
+                            str_starts_with($hash, '$2b$') ||
+                            str_starts_with($hash, '$argon2');
+        if (!$isStandardBcrypt) {
+            return true;
+        }
+        return password_needs_rehash($hash, PASSWORD_DEFAULT);
     }
 
     public function createToken(string $userId, ?string $deviceInfo = null, int $ttlSeconds = 2592000): string {
@@ -49,7 +90,7 @@ class AuthService {
         $tokenHash = hash('sha256', $plainToken);
         $stmt = $this->pdo->prepare(
             "SELECT t.id AS token_id, t.user_id, t.expires_at, t.revoked_at,
-                    u.id, u.full_name, u.email, u.phone, u.neighborhood, u.bio,
+                    u.id, u.full_name, u.email, u.phone, u.role, u.neighborhood, u.bio,
                     u.avatar_url, u.is_verified, u.points, u.completed_tasks_count, u.rating
              FROM auth_tokens t
              JOIN users u ON u.id = t.user_id

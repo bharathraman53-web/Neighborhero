@@ -29,10 +29,10 @@ fun PrimaryButton(
         enabled = enabled,
         shape = RoundedCornerShape(50),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF0F172A),
-            contentColor = Color.White,
-            disabledContainerColor = Color(0xFF94A3B8),
-            disabledContentColor = Color.White.copy(alpha = 0.8f)
+            containerColor = GlassTheme.pillButtonBg,
+            contentColor = GlassTheme.pillButtonText,
+            disabledContainerColor = if (GlassTheme.isDark) Color(0xFF334155) else Color(0xFF94A3B8),
+            disabledContentColor = if (GlassTheme.isDark) Color(0xFF94A3B8) else Color(0xFFE2E8F0)
         ),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
         content = content

@@ -13,5 +13,6 @@ data class User(
     val isVerified: Boolean = true,
     val points: Int = 350,
     val completedTasksCount: Int = 24,
-    val rating: Float = 4.9f
+    val rating: Float = 4.9f,
+    val role: String = "requester"
 )

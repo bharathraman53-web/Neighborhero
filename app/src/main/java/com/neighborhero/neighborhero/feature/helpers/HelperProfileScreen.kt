@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.HelperProfile
 import com.neighborhero.neighborhero.ui.components.BlackPillButton
+import com.neighborhero.neighborhero.ui.components.GlassSecondaryPillButton
 import com.neighborhero.neighborhero.ui.components.GlassCard
 import com.neighborhero.neighborhero.ui.components.GlassFocusCard
 import com.neighborhero.neighborhero.ui.components.GlassTopBar
@@ -358,14 +360,14 @@ fun HelperProfileScreen(
                     )
                 }
 
-                // Skills & Superpowers Card
+                // Skills Card
                 GlassCard(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(22.dp),
                     alpha = 0.85f
                 ) {
                     Text(
-                        "Skills & Superpowers",
+                        "Skills",
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
@@ -373,25 +375,34 @@ fun HelperProfileScreen(
                         color = GlassTheme.textPrimary
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        helper.skills.take(3).forEach { skill ->
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = GlassTheme.chipBackground,
-                                border = BorderStroke(1.dp, GlassTheme.chipBorder)
-                            ) {
-                                Text(
-                                    skill,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    ),
-                                    color = GlassTheme.chipText
-                                )
+                    if (helper.skills.isEmpty()) {
+                        Text(
+                            text = "No specific skills registered",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                            color = GlassTheme.textMuted
+                        )
+                    } else {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            helper.skills.forEach { skill ->
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = GlassTheme.chipBackground,
+                                    border = BorderStroke(1.dp, GlassTheme.chipBorder)
+                                ) {
+                                    Text(
+                                        skill,
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = GlassTheme.chipText
+                                    )
+                                }
                             }
                         }
                     }
@@ -401,50 +412,23 @@ fun HelperProfileScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .shadow(4.dp, RoundedCornerShape(50), spotColor = GlassShadowColor)
-                            .clickable { onChatClick() },
-                        shape = RoundedCornerShape(50),
-                        color = GlassTheme.cardBackground,
-                        border = BorderStroke(1.dp, GlassTheme.cardBorder)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 14.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.ChatBubble,
-                                contentDescription = null,
-                                tint = GlassTheme.textPrimary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Message",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = GlassTheme.textPrimary
-                            )
-                        }
-                    }
+                    GlassSecondaryPillButton(
+                        text = "Message",
+                        icon = Icons.Default.ChatBubble,
+                        modifier = Modifier.weight(1f),
+                        onClick = onChatClick
+                    )
 
-                    Box(modifier = Modifier.weight(1.4f)) {
-                        BlackPillButton(
-                            text = "Request Help",
-                            icon = Icons.Default.WavingHand,
-                            onClick = onRequestHelperClick,
-                            isFullWidth = true
-                        )
-                    }
+                    BlackPillButton(
+                        text = "Request Help",
+                        icon = Icons.Default.WavingHand,
+                        modifier = Modifier.weight(1.3f),
+                        onClick = onRequestHelperClick
+                    )
                 }
             }
         }

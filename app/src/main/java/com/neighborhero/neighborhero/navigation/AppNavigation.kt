@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -40,6 +41,7 @@ import com.neighborhero.neighborhero.feature.task.MyAcceptedTasksScreen
 import com.neighborhero.neighborhero.feature.task.SubmitCompletionScreen
 import com.neighborhero.neighborhero.feature.task.TaskHistoryScreen
 import com.neighborhero.neighborhero.feature.task.VerifyTaskCompletionScreen
+import com.neighborhero.neighborhero.feature.welcome.SplashScreen
 import com.neighborhero.neighborhero.feature.welcome.WelcomeScreen
 import com.neighborhero.neighborhero.viewmodel.AuthViewModel
 import com.neighborhero.neighborhero.viewmodel.ChatViewModel
@@ -74,12 +76,32 @@ fun AppNavigation(
     val recommendedHelpers by helperViewModel.recommendedHelpers.collectAsState()
     val chatMessages by chatViewModel.messages.collectAsState()
     val notifications by homeViewModel.notifications.collectAsState()
+    val selectedLocation by homeViewModel.selectedLocation.collectAsState()
+    val unreadNotificationCount = remember(notifications) { notifications.count { !it.isRead } }
     val coroutineScope = rememberCoroutineScope()
 
     NavHost(
         navController = navController,
-        startDestination = Routes.WELCOME
+        startDestination = Routes.SPLASH
     ) {
+        // 0. Splash Screen (Official Brand Logo & Session Routing)
+        composable(Routes.SPLASH) {
+            SplashScreen(
+                onNavigateToDashboard = { isHelper ->
+                    homeViewModel.refreshDashboard()
+                    val target = if (isHelper) Routes.NEARBY_REQUESTS else Routes.HOME
+                    navController.navigate(target) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                },
+                onNavigateToWelcome = {
+                    navController.navigate(Routes.WELCOME) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         // 1. Welcome
         composable(Routes.WELCOME) {
             WelcomeScreen(
@@ -92,7 +114,12 @@ fun AppNavigation(
         composable(Routes.COMMUNITY_ONBOARDING) {
             CommunityOnboardingScreen(
                 onContinueClick = { navController.navigate(Routes.CREATE_ACCOUNT) },
-                onSkipClick = { navController.navigate(Routes.HOME) }
+                onSkipClick = {
+                    // Skip must only skip optional onboarding; NEVER bypass authentication
+                    navController.navigate(Routes.WELCOME) {
+                        popUpTo(Routes.COMMUNITY_ONBOARDING) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -103,7 +130,9 @@ fun AppNavigation(
             LaunchedEffect(isLoggedIn) {
                 if (isLoggedIn) {
                     homeViewModel.refreshDashboard()
-                    navController.navigate(Routes.HOME) {
+                    val role = authViewModel.getUserRole()
+                    val target = if (role.equals("helper", ignoreCase = true)) Routes.NEARBY_REQUESTS else Routes.HOME
+                    navController.navigate(target) {
                         popUpTo(Routes.WELCOME) { inclusive = true }
                     }
                 }
@@ -111,7 +140,9 @@ fun AppNavigation(
             LoginScreen(
                 onLoginSuccess = {
                     homeViewModel.refreshDashboard()
-                    navController.navigate(Routes.HOME) {
+                    val role = authViewModel.getUserRole()
+                    val target = if (role.equals("helper", ignoreCase = true)) Routes.NEARBY_REQUESTS else Routes.HOME
+                    navController.navigate(target) {
                         popUpTo(Routes.WELCOME) { inclusive = true }
                     }
                 },
@@ -133,7 +164,9 @@ fun AppNavigation(
             LaunchedEffect(isLoggedIn) {
                 if (isLoggedIn) {
                     homeViewModel.refreshDashboard()
-                    navController.navigate(Routes.CREATE_PROFILE)
+                    navController.navigate(Routes.CREATE_PROFILE) {
+                        popUpTo(Routes.CREATE_ACCOUNT) { inclusive = true }
+                    }
                 }
             }
             CreateAccountScreen(
@@ -146,7 +179,9 @@ fun AppNavigation(
                         phone = phone.ifBlank { null },
                         onSuccess = {
                             homeViewModel.refreshDashboard()
-                            navController.navigate(Routes.CREATE_PROFILE)
+                            navController.navigate(Routes.CREATE_PROFILE) {
+                                popUpTo(Routes.CREATE_ACCOUNT) { inclusive = true }
+                            }
                         }
                     )
                 },
@@ -162,21 +197,27 @@ fun AppNavigation(
         composable(Routes.CREATE_PROFILE) {
             CreateProfileScreen(
                 initialName = currentUser.fullName,
-                onProfileCompleted = { name, neighborhood, bio ->
-                    homeViewModel.updateUserProfile(name, neighborhood, bio)
-                    navController.navigate(Routes.HOME) {
+                onProfileCompleted = { name, neighborhood, bio, skills ->
+                    homeViewModel.updateUserProfile(name, neighborhood, bio, skills)
+                    val role = if (skills.isNotEmpty()) "helper" else "requester"
+                    authViewModel.setUserRole(role)
+                    val target = if (role == "helper") Routes.NEARBY_REQUESTS else Routes.HOME
+                    navController.navigate(target) {
                         popUpTo(Routes.WELCOME) { inclusive = true }
                     }
                 },
-                onProfileCompletedWithPhoto = { name, neighborhood, bio, photoBytes, mime, filename ->
+                onProfileCompletedWithPhoto = { name, neighborhood, bio, skills, photoBytes, mime, filename ->
                     if (photoBytes != null && photoBytes.isNotEmpty()) {
                         homeViewModel.uploadProfilePhoto(photoBytes, mime, filename) { _, _ ->
-                            homeViewModel.updateUserProfile(name, neighborhood, bio)
+                            homeViewModel.updateUserProfile(name, neighborhood, bio, skills)
                         }
                     } else {
-                        homeViewModel.updateUserProfile(name, neighborhood, bio)
+                        homeViewModel.updateUserProfile(name, neighborhood, bio, skills)
                     }
-                    navController.navigate(Routes.HOME) {
+                    val role = if (skills.isNotEmpty()) "helper" else "requester"
+                    authViewModel.setUserRole(role)
+                    val target = if (role == "helper") Routes.NEARBY_REQUESTS else Routes.HOME
+                    navController.navigate(target) {
                         popUpTo(Routes.WELCOME) { inclusive = true }
                     }
                 }
@@ -188,6 +229,11 @@ fun AppNavigation(
             HomeScreen(
                 requests = requests,
                 helpers = helpers,
+                selectedLocation = selectedLocation,
+                unreadNotificationCount = unreadNotificationCount,
+                onLocationChange = { loc, lat, lng ->
+                    homeViewModel.updateSelectedLocation(loc, lat, lng)
+                },
                 onRequestClick = { req -> navController.navigate(Routes.helpRequestDetails(req.id)) },
                 onHelperClick = { helper -> navController.navigate(Routes.helperProfile(helper.id)) },
                 onCreateRequestClick = { navController.navigate(Routes.CREATE_REQUEST) },

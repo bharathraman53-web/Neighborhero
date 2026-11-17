@@ -54,6 +54,7 @@ fun ChatScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
+                    .imePadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
                 // Task Context Banner

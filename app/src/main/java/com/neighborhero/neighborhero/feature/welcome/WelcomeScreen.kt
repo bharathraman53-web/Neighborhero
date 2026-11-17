@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Handshake
@@ -27,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.ui.components.BlackPillButton
+import com.neighborhero.neighborhero.ui.components.GlassSecondaryPillButton
 import com.neighborhero.neighborhero.ui.components.GlassTheme
 import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 
@@ -41,7 +44,8 @@ fun WelcomeScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
@@ -50,19 +54,20 @@ fun WelcomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.22f))
-                        .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.40f)), CircleShape),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.size(78.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White.copy(alpha = 0.16f),
+                    border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.45f)),
+                    shadowElevation = 8.dp
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Handshake,
-                        contentDescription = "Handshake",
-                        tint = Color.White,
-                        modifier = Modifier.size(36.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.img_neighborhero_logo),
+                        contentDescription = "NeighborHero Official Brand Logo",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(20.dp)),
+                        contentScale = ContentScale.Crop
                     )
                 }
 
@@ -193,30 +198,11 @@ fun WelcomeScreen(
                 )
 
                 // Secondary Glass Action Button
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = GlassTheme.secondaryButtonBg,
-                    border = BorderStroke(1.dp, GlassTheme.secondaryButtonBorder),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(4.dp, RoundedCornerShape(50), spotColor = Color(0x182C4663))
-                ) {
-                    TextButton(
-                        onClick = onLoginClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    ) {
-                        Text(
-                            text = "Login",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = GlassTheme.secondaryButtonText
-                        )
-                    }
-                }
+                GlassSecondaryPillButton(
+                    text = "Login",
+                    onClick = onLoginClick,
+                    isFullWidth = true
+                )
 
                 Text(
                     text = "By continuing, you agree to NeighborHero's Community Guidelines.",

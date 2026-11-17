@@ -128,8 +128,7 @@ fun SettingsAndPrivacyScreen(
                         )
                         HorizontalDivider(
                             color = GlassTheme.divider,
-                            thickness = 0.8.dp,
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            thickness = 0.8.dp
                         )
                         SettingsRow(
                             icon = Icons.Default.PrivacyTip,
@@ -139,8 +138,7 @@ fun SettingsAndPrivacyScreen(
                         )
                         HorizontalDivider(
                             color = GlassTheme.divider,
-                            thickness = 0.8.dp,
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            thickness = 0.8.dp
                         )
                         SettingsRow(
                             icon = Icons.Default.Lock,
@@ -150,8 +148,7 @@ fun SettingsAndPrivacyScreen(
                         )
                         HorizontalDivider(
                             color = GlassTheme.divider,
-                            thickness = 0.8.dp,
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            thickness = 0.8.dp
                         )
                         SettingsRow(
                             icon = Icons.AutoMirrored.Filled.Help,
@@ -163,8 +160,7 @@ fun SettingsAndPrivacyScreen(
                         if (onLogoutClick != null) {
                             HorizontalDivider(
                                 color = GlassTheme.divider,
-                                thickness = 0.8.dp,
-                                modifier = Modifier.padding(horizontal = 8.dp)
+                                thickness = 0.8.dp
                             )
                             SettingsRow(
                                 icon = Icons.AutoMirrored.Filled.Logout,
@@ -357,7 +353,7 @@ private fun SettingsRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(horizontal = 8.dp, vertical = 12.dp),
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
