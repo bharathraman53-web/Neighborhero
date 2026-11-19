@@ -1,6 +1,7 @@
 package com.neighborhero.neighborhero.feature.profile
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,9 +29,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.data.model.User
 import com.neighborhero.neighborhero.navigation.Routes
 import com.neighborhero.neighborhero.ui.components.BottomNavigationBar
@@ -327,6 +331,29 @@ fun ProfileAndSettingsScreen(
                             onClick = { showLogoutDialog = true }
                         )
                     }
+                }
+
+                // Brand Footer Emblem & Community Watermark
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.img_header_logo_badge),
+                        contentDescription = "NeighborHero Emblem",
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Fit
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "NeighborHero • Verified Community",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                        color = GlassTheme.textMuted
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(80.dp))

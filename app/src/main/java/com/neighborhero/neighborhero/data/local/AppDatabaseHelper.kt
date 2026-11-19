@@ -15,7 +15,7 @@ class AppDatabaseHelper private constructor(context: Context) : SQLiteOpenHelper
 ) {
     companion object {
         const val DATABASE_NAME = "neighborhero_cache.db"
-        const val DATABASE_VERSION = 2
+        const val DATABASE_VERSION = 3
 
         @Volatile
         private var instance: AppDatabaseHelper? = null
@@ -53,9 +53,41 @@ class AppDatabaseHelper private constructor(context: Context) : SQLiteOpenHelper
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS ${HelpRequestDao.TABLE_NAME}")
-        db.execSQL("DROP TABLE IF EXISTS ${HelperDao.TABLE_NAME}")
-        db.execSQL("DROP TABLE IF EXISTS ${NotificationDao.TABLE_NAME}")
-        onCreate(db)
+        if (oldVersion < 2) {
+            ensureColumnExists(db, HelpRequestDao.TABLE_NAME, HelpRequestDao.COL_LATITUDE, "REAL")
+            ensureColumnExists(db, HelpRequestDao.TABLE_NAME, HelpRequestDao.COL_LONGITUDE, "REAL")
+        }
+        if (oldVersion < 3) {
+            ensureColumnExists(db, HelpRequestDao.TABLE_NAME, HelpRequestDao.COL_PHOTO_URL, "TEXT")
+        }
+    }
+
+    override fun onOpen(db: SQLiteDatabase) {
+        super.onOpen(db)
+        ensureColumnExists(db, HelpRequestDao.TABLE_NAME, HelpRequestDao.COL_PHOTO_URL, "TEXT")
+        ensureColumnExists(db, HelpRequestDao.TABLE_NAME, HelpRequestDao.COL_LATITUDE, "REAL")
+        ensureColumnExists(db, HelpRequestDao.TABLE_NAME, HelpRequestDao.COL_LONGITUDE, "REAL")
+        ensureColumnExists(db, HelpRequestDao.TABLE_NAME, HelpRequestDao.COL_REQUESTER_ID, "TEXT")
+    }
+
+    private fun ensureColumnExists(db: SQLiteDatabase, table: String, column: String, type: String) {
+        try {
+            val cursor = db.rawQuery("PRAGMA table_info($table)", null)
+            var exists = false
+            cursor.use { c ->
+                val nameIndex = c.getColumnIndex("name")
+                while (c.moveToNext()) {
+                    if (nameIndex >= 0 && c.getString(nameIndex).equals(column, ignoreCase = true)) {
+                        exists = true
+                        break
+                    }
+                }
+            }
+            if (!exists) {
+                db.execSQL("ALTER TABLE $table ADD COLUMN $column $type")
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("AppDatabaseHelper", "Column $column verification failed: ${e.message}")
+        }
     }
 }

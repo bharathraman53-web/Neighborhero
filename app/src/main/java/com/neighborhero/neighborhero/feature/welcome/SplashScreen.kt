@@ -94,7 +94,7 @@ fun SplashScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(28.dp)),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Fit
                     )
                 }
 

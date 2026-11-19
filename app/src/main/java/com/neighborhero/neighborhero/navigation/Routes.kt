@@ -29,6 +29,8 @@ object Routes {
     const val SUBMIT_COMPLETION_PARAM = "submit_completion/{taskId}"
     const val VERIFY_TASK_COMPLETION = "verify_task_completion"
     const val VERIFY_TASK_COMPLETION_PARAM = "verify_task_completion/{taskId}"
+    const val TRACK_HELPER = "track_helper"
+    const val TRACK_HELPER_PARAM = "track_helper/{taskId}"
     const val TASK_HISTORY = "task_history"
     const val NOTIFICATIONS = "notifications"
     const val PROFILE_AND_SETTINGS = "profile_and_settings"
@@ -45,6 +47,7 @@ object Routes {
     fun activeTask(taskId: String) = "active_task/$taskId"
     fun submitCompletion(taskId: String) = "submit_completion/$taskId"
     fun verifyTaskCompletion(taskId: String) = "verify_task_completion/$taskId"
+    fun trackHelper(taskId: String) = "track_helper/$taskId"
 
     fun createRequest(targetHelperId: String? = null, targetHelperName: String? = null): String {
         val params = mutableListOf<String>()

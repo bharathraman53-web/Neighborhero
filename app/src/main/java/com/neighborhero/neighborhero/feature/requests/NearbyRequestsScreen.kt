@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.data.model.RequestCategory
+import com.neighborhero.neighborhero.data.model.RequestStatus
 import com.neighborhero.neighborhero.navigation.Routes
 import com.neighborhero.neighborhero.ui.components.BottomNavigationBar
 import com.neighborhero.neighborhero.ui.components.GlassEmptyState
@@ -38,10 +39,14 @@ fun NearbyRequestsScreen(
     var selectedCategory by remember { mutableStateOf("All") }
     val categories = listOf("All") + RequestCategory.CANONICAL
 
+    val openRequests = remember(requests) {
+        requests.filter { it.status == RequestStatus.OPEN }
+    }
+
     val filtered = if (selectedCategory == "All") {
-        requests
+        openRequests
     } else {
-        requests.filter { RequestCategory.matches(it.category, selectedCategory) }
+        openRequests.filter { RequestCategory.matches(it.category, selectedCategory) }
     }
 
     WaterScreenBackground {

@@ -26,6 +26,7 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
         const val COL_REQUESTER_ID = "requester_id"
         const val COL_LATITUDE = "latitude"
         const val COL_LONGITUDE = "longitude"
+        const val COL_PHOTO_URL = "photo_url"
 
         const val CREATE_TABLE = """
             CREATE TABLE IF NOT EXISTS $TABLE_NAME (
@@ -45,62 +46,114 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
                 $COL_ASSIGNED_HELPER_NAME TEXT,
                 $COL_REQUESTER_ID TEXT,
                 $COL_LATITUDE REAL,
-                $COL_LONGITUDE REAL
+                $COL_LONGITUDE REAL,
+                $COL_PHOTO_URL TEXT
             )
         """
     }
 
     fun insertOrUpdate(request: HelpRequest) {
-        val db = dbHelper()
-        val values = ContentValues().apply {
-            put(COL_ID, request.id)
-            put(COL_TITLE, request.title)
-            put(COL_CATEGORY, request.category)
-            put(COL_DESCRIPTION, request.description)
-            put(COL_REQUESTER_NAME, request.requesterName)
-            put(COL_REQUESTER_RATING, request.requesterRating)
-            put(COL_REQUESTER_TASK_COUNT, request.requesterTaskCount)
-            put(COL_LOCATION, request.location)
-            put(COL_DISTANCE, request.distance)
-            put(COL_REQUESTED_TIME, request.requestedTime)
-            put(COL_IS_URGENT, if (request.isUrgent) 1 else 0)
-            put(COL_STATUS, request.status.name)
-            put(COL_ASSIGNED_HELPER_ID, request.assignedHelperId)
-            put(COL_ASSIGNED_HELPER_NAME, request.assignedHelperName)
-            put(COL_REQUESTER_ID, request.requesterId)
-            put(COL_LATITUDE, request.latitude)
-            put(COL_LONGITUDE, request.longitude)
+        try {
+            val db = dbHelper()
+            val values = ContentValues().apply {
+                put(COL_ID, request.id)
+                put(COL_TITLE, request.title)
+                put(COL_CATEGORY, request.category)
+                put(COL_DESCRIPTION, request.description)
+                put(COL_REQUESTER_NAME, request.requesterName)
+                put(COL_REQUESTER_RATING, request.requesterRating)
+                put(COL_REQUESTER_TASK_COUNT, request.requesterTaskCount)
+                put(COL_LOCATION, request.location)
+                put(COL_DISTANCE, request.distance)
+                put(COL_REQUESTED_TIME, request.requestedTime)
+                put(COL_IS_URGENT, if (request.isUrgent) 1 else 0)
+                put(COL_STATUS, request.status.name)
+                put(COL_ASSIGNED_HELPER_ID, request.assignedHelperId)
+                put(COL_ASSIGNED_HELPER_NAME, request.assignedHelperName)
+                put(COL_REQUESTER_ID, request.requesterId)
+                put(COL_LATITUDE, request.latitude)
+                put(COL_LONGITUDE, request.longitude)
+                put(COL_PHOTO_URL, request.photoUrl)
+            }
+            db.insertWithOnConflict(TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+        } catch (e: Exception) {
+            android.util.Log.e("HelpRequestDao", "Safe cache insert failed: ${e.message}")
         }
-        db.insertWithOnConflict(TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     fun insertAll(requests: List<HelpRequest>) {
-        val db = dbHelper()
-        db.beginTransaction()
         try {
-            for (req in requests) {
-                insertOrUpdate(req)
+            val db = dbHelper()
+            db.beginTransaction()
+            try {
+                for (req in requests) {
+                    insertOrUpdate(req)
+                }
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
             }
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
+        } catch (e: Exception) {
+            android.util.Log.e("HelpRequestDao", "Safe cache insertAll failed: ${e.message}")
         }
     }
 
     fun getAll(): List<HelpRequest> {
-        val db = dbHelper()
-        val cursor = db.query(TABLE_NAME, null, null, null, null, null, "$COL_IS_URGENT DESC")
         val list = mutableListOf<HelpRequest>()
-        cursor.use { c ->
-            while (c.moveToNext()) {
-                val statusStr = c.getString(c.getColumnIndexOrThrow(COL_STATUS))
-                val status = try {
-                    RequestStatus.valueOf(statusStr)
-                } catch (e: Exception) {
-                    RequestStatus.OPEN
+        try {
+            val db = dbHelper()
+            val cursor = db.query(TABLE_NAME, null, null, null, null, null, "$COL_IS_URGENT DESC")
+            cursor.use { c ->
+                while (c.moveToNext()) {
+                    val statusStr = c.getString(c.getColumnIndexOrThrow(COL_STATUS))
+                    val status = try {
+                        RequestStatus.valueOf(statusStr)
+                    } catch (e: Exception) {
+                        RequestStatus.OPEN
+                    }
+                    list.add(
+                        HelpRequest(
+                            id = c.getString(c.getColumnIndexOrThrow(COL_ID)),
+                            title = c.getString(c.getColumnIndexOrThrow(COL_TITLE)),
+                            category = c.getString(c.getColumnIndexOrThrow(COL_CATEGORY)),
+                            description = c.getString(c.getColumnIndexOrThrow(COL_DESCRIPTION)),
+                            requesterName = c.getString(c.getColumnIndexOrThrow(COL_REQUESTER_NAME)),
+                            requesterRating = c.getFloat(c.getColumnIndexOrThrow(COL_REQUESTER_RATING)),
+                            requesterTaskCount = c.getInt(c.getColumnIndexOrThrow(COL_REQUESTER_TASK_COUNT)),
+                            location = c.getString(c.getColumnIndexOrThrow(COL_LOCATION)),
+                            distance = c.getString(c.getColumnIndexOrThrow(COL_DISTANCE)),
+                            requestedTime = c.getString(c.getColumnIndexOrThrow(COL_REQUESTED_TIME)),
+                            isUrgent = c.getInt(c.getColumnIndexOrThrow(COL_IS_URGENT)) == 1,
+                            status = status,
+                            assignedHelperId = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_ID)),
+                            assignedHelperName = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_NAME)),
+                            requesterId = c.getColumnIndex(COL_REQUESTER_ID).takeIf { it >= 0 }?.let { c.getString(it) },
+                            latitude = c.getColumnIndex(COL_LATITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) },
+                            longitude = c.getColumnIndex(COL_LONGITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) },
+                            photoUrl = c.getColumnIndex(COL_PHOTO_URL).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getString(it) }
+                        )
+                    )
                 }
-                list.add(
-                    HelpRequest(
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("HelpRequestDao", "Safe cache getAll failed: ${e.message}")
+        }
+        return list
+    }
+
+    fun getById(id: String): HelpRequest? {
+        try {
+            val db = dbHelper()
+            val cursor = db.query(TABLE_NAME, null, "$COL_ID = ?", arrayOf(id), null, null, null)
+            cursor.use { c ->
+                if (c.moveToFirst()) {
+                    val statusStr = c.getString(c.getColumnIndexOrThrow(COL_STATUS))
+                    val status = try {
+                        RequestStatus.valueOf(statusStr)
+                    } catch (e: Exception) {
+                        RequestStatus.OPEN
+                    }
+                    return HelpRequest(
                         id = c.getString(c.getColumnIndexOrThrow(COL_ID)),
                         title = c.getString(c.getColumnIndexOrThrow(COL_TITLE)),
                         category = c.getString(c.getColumnIndexOrThrow(COL_CATEGORY)),
@@ -117,55 +170,32 @@ class HelpRequestDao(private val dbHelper: () -> SQLiteDatabase) {
                         assignedHelperName = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_NAME)),
                         requesterId = c.getColumnIndex(COL_REQUESTER_ID).takeIf { it >= 0 }?.let { c.getString(it) },
                         latitude = c.getColumnIndex(COL_LATITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) },
-                        longitude = c.getColumnIndex(COL_LONGITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) }
+                        longitude = c.getColumnIndex(COL_LONGITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) },
+                        photoUrl = c.getColumnIndex(COL_PHOTO_URL).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getString(it) }
                     )
-                )
-            }
-        }
-        return list
-    }
-
-    fun getById(id: String): HelpRequest? {
-        val db = dbHelper()
-        val cursor = db.query(TABLE_NAME, null, "$COL_ID = ?", arrayOf(id), null, null, null)
-        cursor.use { c ->
-            if (c.moveToFirst()) {
-                val statusStr = c.getString(c.getColumnIndexOrThrow(COL_STATUS))
-                val status = try {
-                    RequestStatus.valueOf(statusStr)
-                } catch (e: Exception) {
-                    RequestStatus.OPEN
                 }
-                return HelpRequest(
-                    id = c.getString(c.getColumnIndexOrThrow(COL_ID)),
-                    title = c.getString(c.getColumnIndexOrThrow(COL_TITLE)),
-                    category = c.getString(c.getColumnIndexOrThrow(COL_CATEGORY)),
-                    description = c.getString(c.getColumnIndexOrThrow(COL_DESCRIPTION)),
-                    requesterName = c.getString(c.getColumnIndexOrThrow(COL_REQUESTER_NAME)),
-                    requesterRating = c.getFloat(c.getColumnIndexOrThrow(COL_REQUESTER_RATING)),
-                    requesterTaskCount = c.getInt(c.getColumnIndexOrThrow(COL_REQUESTER_TASK_COUNT)),
-                    location = c.getString(c.getColumnIndexOrThrow(COL_LOCATION)),
-                    distance = c.getString(c.getColumnIndexOrThrow(COL_DISTANCE)),
-                    requestedTime = c.getString(c.getColumnIndexOrThrow(COL_REQUESTED_TIME)),
-                    isUrgent = c.getInt(c.getColumnIndexOrThrow(COL_IS_URGENT)) == 1,
-                    status = status,
-                    assignedHelperId = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_ID)),
-                    assignedHelperName = c.getString(c.getColumnIndexOrThrow(COL_ASSIGNED_HELPER_NAME)),
-                    requesterId = c.getColumnIndex(COL_REQUESTER_ID).takeIf { it >= 0 }?.let { c.getString(it) },
-                    latitude = c.getColumnIndex(COL_LATITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) },
-                    longitude = c.getColumnIndex(COL_LONGITUDE).takeIf { it >= 0 }?.let { if (c.isNull(it)) null else c.getDouble(it) }
-                )
             }
+        } catch (e: Exception) {
+            android.util.Log.e("HelpRequestDao", "Safe cache getById failed: ${e.message}")
         }
         return null
     }
 
     fun deleteById(id: String): Int {
-        val db = dbHelper()
-        return db.delete(TABLE_NAME, "$COL_ID = ?", arrayOf(id))
+        return try {
+            val db = dbHelper()
+            db.delete(TABLE_NAME, "$COL_ID = ?", arrayOf(id))
+        } catch (e: Exception) {
+            android.util.Log.e("HelpRequestDao", "Safe cache deleteById failed: ${e.message}")
+            0
+        }
     }
 
     fun clear() {
-        dbHelper().delete(TABLE_NAME, null, null)
+        try {
+            dbHelper().delete(TABLE_NAME, null, null)
+        } catch (e: Exception) {
+            android.util.Log.e("HelpRequestDao", "Safe cache clear failed: ${e.message}")
+        }
     }
 }

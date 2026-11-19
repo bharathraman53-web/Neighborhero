@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS help_requests (
     latitude DECIMAL(10, 7) NULL,
     longitude DECIMAL(10, 7) NULL,
     preferred_time_slot VARCHAR(64) NULL,
+    photo_url VARCHAR(255) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_requests_status (status),
@@ -279,4 +280,24 @@ CREATE TABLE IF NOT EXISTS notifications (
     INDEX idx_notif_user_unread (user_id, is_read, created_at DESC),
     CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------------------------
+-- 14. TASK LIVE LOCATIONS TABLE
+-- Live helper location sharing for active in-progress tasks.
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS task_live_locations (
+    request_id VARCHAR(64) NOT NULL PRIMARY KEY,
+    helper_id VARCHAR(64) NOT NULL,
+    latitude DECIMAL(10, 7) NOT NULL,
+    longitude DECIMAL(10, 7) NOT NULL,
+    heading DECIMAL(6, 2) NULL,
+    accuracy DECIMAL(6, 2) NULL,
+    speed DECIMAL(6, 2) NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_tll_helper (helper_id),
+    CONSTRAINT fk_tll_request FOREIGN KEY (request_id) REFERENCES help_requests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_tll_helper FOREIGN KEY (helper_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 

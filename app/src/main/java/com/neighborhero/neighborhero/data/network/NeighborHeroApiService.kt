@@ -115,6 +115,23 @@ interface NeighborHeroApiService {
         @Body body: VerifyCompletionDto
     ): Response<ApiResponse<HelpRequestDto>>
 
+    // --- Live Helper Tracking ---
+    @POST("tasks/{id}/location")
+    suspend fun updateLiveLocation(
+        @Path("id") id: String,
+        @Body body: UpdateLiveLocationDto
+    ): Response<ApiResponse<LiveTrackingDto>>
+
+    @GET("tasks/{id}/location")
+    suspend fun getLiveLocation(
+        @Path("id") id: String
+    ): Response<ApiResponse<LiveTrackingDto>>
+
+    @POST("tasks/{id}/stop-tracking")
+    suspend fun stopLiveLocation(
+        @Path("id") id: String
+    ): Response<ApiResponse<Unit>>
+
     // --- Chat ---
     @GET("chat/messages")
     suspend fun getChatMessages(

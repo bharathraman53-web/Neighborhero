@@ -48,6 +48,9 @@ return function(Router $router): void {
     $router->get('/api/tasks/{id}/evidence/photo', [TaskController::class, 'streamEvidencePhoto']);
     $router->post('/api/tasks/{id}/submit-completion', [TaskController::class, 'submitCompletion']);
     $router->post('/api/tasks/{id}/verify-completion', [TaskController::class, 'verifyCompletion']);
+    $router->post('/api/tasks/{id}/location', [TaskController::class, 'updateLocation']);
+    $router->get('/api/tasks/{id}/location', [TaskController::class, 'getLocation']);
+    $router->post('/api/tasks/{id}/stop-tracking', [TaskController::class, 'stopTracking']);
 
     // Chat
     $router->get('/api/chat/conversations', [ChatController::class, 'getConversations']);

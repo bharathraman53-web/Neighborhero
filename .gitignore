@@ -23,3 +23,7 @@ ai_training/.venv*/
 ai_training/__pycache__/
 *.pyc
 
+# Java/Kotlin compiled classes & scratch
+*.class
+scratch/
+

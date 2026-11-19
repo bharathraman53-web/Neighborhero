@@ -26,6 +26,7 @@ class HelpRequestRepository {
                     h.full_name AS assigned_helper_name,
                     h.avatar_url AS assigned_helper_avatar,
                     r.latitude, r.longitude,
+                    r.photo_url,
                     r.requester_id,
                     r.created_at, r.updated_at
              FROM help_requests r
@@ -108,6 +109,7 @@ class HelpRequestRepository {
                     h.full_name AS assigned_helper_name,
                     h.avatar_url AS assigned_helper_avatar,
                     r.latitude, r.longitude,
+                    r.photo_url,
                     r.requester_id,
                     r.created_at, r.updated_at
              FROM help_requests r
@@ -134,6 +136,7 @@ class HelpRequestRepository {
                     h.full_name AS assigned_helper_name,
                     h.avatar_url AS assigned_helper_avatar,
                     r.latitude, r.longitude,
+                    r.photo_url,
                     r.requester_id,
                     r.created_at, r.updated_at
              FROM help_requests r
@@ -153,9 +156,11 @@ class HelpRequestRepository {
         $latitude = isset($data['latitude']) && is_numeric($data['latitude']) ? (float)$data['latitude'] : null;
         $longitude = isset($data['longitude']) && is_numeric($data['longitude']) ? (float)$data['longitude'] : null;
 
+        $photoUrl = !empty($data['photo_url']) ? $data['photo_url'] : null;
+
         $stmt = $this->pdo->prepare(
-            "INSERT INTO help_requests (id, requester_id, title, category, description, location, distance, requested_time, is_urgent, status, assigned_helper_id, latitude, longitude)
-             VALUES (:id, :requester_id, :title, :category, :description, :location, :distance, :requested_time, :is_urgent, :status, :assigned_helper_id, :latitude, :longitude)"
+            "INSERT INTO help_requests (id, requester_id, title, category, description, location, distance, requested_time, is_urgent, status, assigned_helper_id, latitude, longitude, photo_url)
+             VALUES (:id, :requester_id, :title, :category, :description, :location, :distance, :requested_time, :is_urgent, :status, :assigned_helper_id, :latitude, :longitude, :photo_url)"
         );
         $stmt->execute([
             ':id' => $id,
@@ -171,6 +176,7 @@ class HelpRequestRepository {
             ':assigned_helper_id' => $assignedHelperId,
             ':latitude' => $latitude,
             ':longitude' => $longitude,
+            ':photo_url' => $photoUrl,
         ]);
 
         return $this->findById($id);
@@ -257,6 +263,7 @@ class HelpRequestRepository {
             'assigned_helper_avatar' => !empty($row['assigned_helper_avatar']) ? (string)$row['assigned_helper_avatar'] : null,
             'latitude' => isset($row['latitude']) && is_numeric($row['latitude']) ? (float)$row['latitude'] : null,
             'longitude' => isset($row['longitude']) && is_numeric($row['longitude']) ? (float)$row['longitude'] : null,
+            'photo_url' => !empty($row['photo_url']) ? (string)$row['photo_url'] : null,
             'requester_id' => (string)$row['requester_id'],
             'created_at' => (string)$row['created_at'],
         ];

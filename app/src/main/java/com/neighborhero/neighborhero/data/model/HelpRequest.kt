@@ -20,7 +20,8 @@ data class HelpRequest(
     val requesterAvatarUrl: String? = null,
     val assignedHelperAvatarUrl: String? = null,
     val latitude: Double? = null,
-    val longitude: Double? = null
+    val longitude: Double? = null,
+    val photoUrl: String? = null
 )
 
 enum class RequestStatus {

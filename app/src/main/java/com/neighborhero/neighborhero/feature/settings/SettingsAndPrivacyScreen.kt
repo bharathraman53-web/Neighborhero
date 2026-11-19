@@ -1,6 +1,7 @@
 package com.neighborhero.neighborhero.feature.settings
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,9 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.neighborhero.neighborhero.R
 import com.neighborhero.neighborhero.ui.components.CompactThemeSwitcher
 import com.neighborhero.neighborhero.ui.components.GlassCard
 import com.neighborhero.neighborhero.ui.components.GlassTheme
@@ -168,6 +172,77 @@ fun SettingsAndPrivacyScreen(
                                 subtitle = "End active session",
                                 isDestructive = true,
                                 onClick = { showLogoutDialog = true }
+                            )
+                        }
+                    }
+                }
+
+                // =================================================================
+                // 3. ABOUT NEIGHBORHERO BRAND IDENTITY
+                // =================================================================
+                GlassCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(22.dp),
+                    alpha = 0.88f
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 14.dp, horizontal = 14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(54.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White.copy(alpha = if (isDark) 0.12f else 0.85f),
+                            border = BorderStroke(1.dp, GlassTheme.cardBorder),
+                            shadowElevation = 4.dp
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.img_neighborhero_logo),
+                                contentDescription = "NeighborHero Official Logo",
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(14.dp)),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = "NeighborHero",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            color = GlassTheme.textPrimary
+                        )
+
+                        Spacer(modifier = Modifier.height(3.dp))
+
+                        Text(
+                            text = "Neighbors helping neighbors, effortlessly.",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                            color = GlassTheme.textSecondary
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = (if (isDark) Color(0xFF132B42) else Color(0xFFF1F5F9)),
+                            border = BorderStroke(0.8.dp, GlassTheme.cardBorder)
+                        ) {
+                            Text(
+                                text = "v1.0.0 • Community Edition",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = GlassTheme.textMuted
                             )
                         }
                     }

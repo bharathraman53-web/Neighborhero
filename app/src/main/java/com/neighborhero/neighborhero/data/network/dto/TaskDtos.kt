@@ -32,4 +32,34 @@ data class TaskEvidenceDto(
     @SerializedName("helper_avatar") val helperAvatar: String? = null
 )
 
+data class UpdateLiveLocationDto(
+    @SerializedName("latitude") val latitude: Double,
+    @SerializedName("longitude") val longitude: Double,
+    @SerializedName("heading") val heading: Double? = null,
+    @SerializedName("accuracy") val accuracy: Double? = null,
+    @SerializedName("speed") val speed: Double? = null
+)
+
+data class LiveTrackingDto(
+    @SerializedName("request_id") val requestId: String,
+    @SerializedName("status") val status: String,
+    @SerializedName("is_active") val isActive: Boolean,
+    @SerializedName("helper_id") val helperId: String? = null,
+    @SerializedName("helper_name") val helperName: String? = null,
+    @SerializedName("helper_avatar") val helperAvatar: String? = null,
+    @SerializedName("latitude") val latitude: Double? = null,
+    @SerializedName("longitude") val longitude: Double? = null,
+    @SerializedName("heading") val heading: Double? = null,
+    @SerializedName("accuracy") val accuracy: Double? = null,
+    @SerializedName("speed") val speed: Double? = null,
+    @SerializedName("requester_latitude") val requesterLatitude: Double? = null,
+    @SerializedName("requester_longitude") val requesterLongitude: Double? = null,
+    @SerializedName("requester_location") val requesterLocation: String? = null,
+    @SerializedName("distance_km") val distanceKm: Double? = null,
+    @SerializedName("distance_miles") val distanceMiles: Double? = null,
+    @SerializedName("eta_minutes") val etaMinutes: Int? = null,
+    @SerializedName("updated_at") val updatedAt: String? = null,
+    @SerializedName("message") val message: String? = null
+)
+
 

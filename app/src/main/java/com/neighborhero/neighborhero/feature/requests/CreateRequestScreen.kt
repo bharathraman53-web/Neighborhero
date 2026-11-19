@@ -16,9 +16,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.Handshake
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Schedule
@@ -50,6 +52,9 @@ fun CreateRequestScreen(
     onBackClick: () -> Unit,
     targetHelperId: String? = null,
     targetHelperName: String? = null,
+    isSubmitting: Boolean = false,
+    errorMessage: String? = null,
+    onDismissError: () -> Unit = {},
     onSubmitRequest: (
         title: String,
         category: String,
@@ -185,6 +190,48 @@ fun CreateRequestScreen(
                         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
                         color = GlassTheme.textSecondary
                     )
+                }
+
+                // Inline Error Card
+                AnimatedVisibility(visible = !errorMessage.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = GlassTheme.warningBadgeBg,
+                        border = BorderStroke(1.dp, GlassTheme.warningBadgeText.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = GlassTheme.warningBadgeText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = errorMessage ?: "",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                                    color = GlassTheme.warningBadgeText
+                                )
+                            }
+                            IconButton(onClick = onDismissError) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Dismiss",
+                                    tint = GlassTheme.warningBadgeText,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // Direct Helper Banner (if targeting specific helper)
@@ -594,9 +641,9 @@ fun CreateRequestScreen(
 
                 // Pitch-Black Pill Publish Button
                 BlackPillButton(
-                    text = "Publish Help Request",
+                    text = if (isSubmitting) "Publishing Request..." else "Publish Help Request",
                     onClick = {
-                        if (title.isNotBlank()) {
+                        if (!isSubmitting && title.isNotBlank()) {
                             onSubmitRequest(
                                 title,
                                 selectedCategory,
@@ -609,6 +656,8 @@ fun CreateRequestScreen(
                         }
                     },
                     isFullWidth = true,
+                    isLoading = isSubmitting,
+                    enabled = !isSubmitting && title.isNotBlank(),
                     icon = Icons.AutoMirrored.Filled.Send
                 )
 

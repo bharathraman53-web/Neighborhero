@@ -98,6 +98,7 @@ fun NetworkImage(
             return@LaunchedEffect
         }
 
+        bitmap = null
         isLoading = true
         isError = false
 

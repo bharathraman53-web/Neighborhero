@@ -75,6 +75,7 @@ class HelpRequestController {
             'assigned_helper_id' => $assignedHelperId,
             'latitude' => $latitude,
             'longitude' => $longitude,
+            'photo_url' => !empty($input['photo_url']) ? trim((string)$input['photo_url']) : null,
         ]);
 
         if ($assignedHelperId) {

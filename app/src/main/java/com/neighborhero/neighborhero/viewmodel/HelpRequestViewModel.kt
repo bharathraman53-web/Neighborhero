@@ -21,8 +21,32 @@ class HelpRequestViewModel(
     private val _selectedRequestId = MutableStateFlow<String?>(null)
     val selectedRequestId: StateFlow<String?> = _selectedRequestId.asStateFlow()
 
+    private val _isAccepting = MutableStateFlow(false)
+    val isAccepting: StateFlow<Boolean> = _isAccepting.asStateFlow()
+
+    private val _acceptError = MutableStateFlow<String?>(null)
+    val acceptError: StateFlow<String?> = _acceptError.asStateFlow()
+
+    private val _acceptSuccess = MutableStateFlow<String?>(null)
+    val acceptSuccess: StateFlow<String?> = _acceptSuccess.asStateFlow()
+
+    private val _isCreating = MutableStateFlow(false)
+    val isCreating: StateFlow<Boolean> = _isCreating.asStateFlow()
+
+    private val _createError = MutableStateFlow<String?>(null)
+    val createError: StateFlow<String?> = _createError.asStateFlow()
+
     init {
         refreshRequests()
+    }
+
+    fun clearAcceptStatus() {
+        _acceptError.value = null
+        _acceptSuccess.value = null
+    }
+
+    fun clearCreateStatus() {
+        _createError.value = null
     }
 
     fun refreshRequests(category: String? = null) {
@@ -49,8 +73,13 @@ class HelpRequestViewModel(
         assignedHelperId: String? = null,
         assignedHelperName: String? = null,
         latitude: Double? = null,
-        longitude: Double? = null
+        longitude: Double? = null,
+        onDone: (Boolean, HelpRequest?, String?) -> Unit = { _, _, _ -> }
     ): String {
+        if (_isCreating.value) return ""
+        _isCreating.value = true
+        _createError.value = null
+
         val currentUser = RepositoryProvider.userRepository.currentUser.value
         val newId = "req_${System.currentTimeMillis()}"
         val initialStatus = if (!assignedHelperId.isNullOrBlank()) RequestStatus.IN_PROGRESS else RequestStatus.OPEN
@@ -74,21 +103,43 @@ class HelpRequestViewModel(
             latitude = latitude,
             longitude = longitude
         )
-        repository.addRequest(newReq)
+        try {
+            repository.addRequest(newReq)
+        } catch (e: Exception) {
+            android.util.Log.e("HelpRequestViewModel", "Failed to add request locally: ${e.message}")
+        }
 
         // Asynchronously persist to MySQL backend
         viewModelScope.launch {
-            repository.createRemoteRequest(
-                title = title,
-                category = category,
-                description = description,
-                time = time,
-                location = location,
-                tempId = newId,
-                assignedHelperId = assignedHelperId,
-                latitude = latitude,
-                longitude = longitude
-            )
+            try {
+                val result = repository.createRemoteRequest(
+                    title = title,
+                    category = category,
+                    description = description,
+                    time = time,
+                    location = location,
+                    tempId = newId,
+                    assignedHelperId = assignedHelperId,
+                    latitude = latitude,
+                    longitude = longitude
+                )
+                if (result.isSuccess) {
+                    val created = result.getOrNull() ?: newReq
+                    repository.fetchRequests()
+                    _isCreating.value = false
+                    onDone(true, created, null)
+                } else {
+                    val err = result.exceptionOrNull()?.message ?: "Failed to save request to server"
+                    _createError.value = err
+                    _isCreating.value = false
+                    onDone(false, null, err)
+                }
+            } catch (e: Exception) {
+                val err = e.message ?: "Failed to create request"
+                _createError.value = err
+                _isCreating.value = false
+                onDone(false, null, err)
+            }
         }
 
         return newId
@@ -99,14 +150,39 @@ class HelpRequestViewModel(
         helperName: String,
         onDone: (Boolean, String?) -> Unit = { _, _ -> }
     ) {
-        repository.updateRequestStatus(requestId, RequestStatus.IN_PROGRESS, helperName)
+        if (_isAccepting.value) return // Prevent duplicate concurrent requests
+        _isAccepting.value = true
+        _acceptError.value = null
+        _acceptSuccess.value = null
+
         viewModelScope.launch {
-            val result = repository.assignRemoteHelper(requestId)
-            if (result.isSuccess) {
-                onDone(true, null)
-            } else {
-                val err = result.exceptionOrNull()?.message ?: "Failed to accept request"
+            try {
+                val result = repository.assignRemoteHelper(requestId)
+                if (result.isSuccess) {
+                    val updated = result.getOrNull()
+                    // Update local repository and cache only after remote backend confirms acceptance
+                    repository.updateRequestStatus(
+                        requestId,
+                        RequestStatus.IN_PROGRESS,
+                        updated?.assignedHelperName ?: helperName
+                    )
+                    _acceptSuccess.value = "Task accepted successfully! You are assigned to this task."
+                    // Refresh requests to update helper's lists and nearby cache
+                    repository.fetchRequests()
+                    onDone(true, null)
+                } else {
+                    val err = result.exceptionOrNull()?.message ?: "Failed to accept task"
+                    _acceptError.value = err
+                    // Refresh remote state to reflect current assignment if taken by another helper
+                    repository.fetchRequests()
+                    onDone(false, err)
+                }
+            } catch (e: Exception) {
+                val err = e.message ?: "Failed to accept task"
+                _acceptError.value = err
                 onDone(false, err)
+            } finally {
+                _isAccepting.value = false
             }
         }
     }

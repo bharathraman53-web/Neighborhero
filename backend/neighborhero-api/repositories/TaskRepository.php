@@ -29,13 +29,59 @@ class TaskRepository {
         }
 
         if ($req['status'] !== 'OPEN') {
-            throw new RuntimeException("Request is not open for assignment (Current status: {$req['status']})", 400);
+            if ($req['assigned_helper_id'] === $helperId) {
+                throw new RuntimeException("You have already accepted this task.", 409);
+            }
+            if ($req['status'] === 'CANCELLED' || $req['status'] === 'COMPLETED') {
+                throw new RuntimeException("This task is unavailable or has been {$req['status']}.", 400);
+            }
+            throw new RuntimeException("This task has already been accepted by another helper.", 409);
         }
 
         $this->pdo->beginTransaction();
         try {
-            // Assign helper and transition status to IN_PROGRESS
-            $this->requestRepository->updateStatus($requestId, 'IN_PROGRESS', $helperId, $actorUserId);
+            // Atomic conditional update ensuring concurrency protection (prevents race condition)
+            $isSqlite = ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite');
+            $nowExpr = $isSqlite ? "datetime('now')" : "NOW()";
+
+            $atomicStmt = $this->pdo->prepare(
+                "UPDATE help_requests 
+                 SET status = 'IN_PROGRESS', assigned_helper_id = :helper_id, updated_at = {$nowExpr} 
+                 WHERE id = :id AND status = 'OPEN'"
+            );
+            $atomicStmt->execute([
+                ':id' => $requestId,
+                ':helper_id' => $helperId
+            ]);
+
+            if ($atomicStmt->rowCount() === 0) {
+                // Another helper already accepted or request status changed concurrently
+                $this->pdo->rollBack();
+                $latest = $this->requestRepository->findById($requestId);
+                if ($latest) {
+                    if ($latest['assigned_helper_id'] === $helperId) {
+                        throw new RuntimeException("You have already accepted this task.", 409);
+                    }
+                    if ($latest['status'] === 'CANCELLED' || $latest['status'] === 'COMPLETED') {
+                        throw new RuntimeException("This task is unavailable or has been {$latest['status']}.", 400);
+                    }
+                    if ($latest['status'] !== 'OPEN') {
+                        throw new RuntimeException("This task has already been accepted by another helper.", 409);
+                    }
+                }
+                throw new RuntimeException("Failed to accept task. Request is no longer available.", 400);
+            }
+
+            // Record status history audit
+            $hStmt = $this->pdo->prepare(
+                "INSERT INTO task_status_history (id, request_id, changed_by_user_id, old_status, new_status)
+                 VALUES (:id, :req_id, :user_id, 'OPEN', 'IN_PROGRESS')"
+            );
+            $hStmt->execute([
+                ':id' => 'tsh_' . bin2hex(random_bytes(10)),
+                ':req_id' => $requestId,
+                ':user_id' => $actorUserId,
+            ]);
 
             // Create assignment record
             $assignStmt = $this->pdo->prepare(
@@ -67,7 +113,9 @@ class TaskRepository {
             $this->pdo->commit();
             return $this->requestRepository->findById($requestId);
         } catch (\Exception $e) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw $e;
         }
     }
@@ -161,6 +209,9 @@ class TaskRepository {
             // Transition status to PENDING_VERIFICATION
             $this->requestRepository->updateStatus($requestId, 'PENDING_VERIFICATION', $helperId, $helperId);
 
+            // Automatically deactivate live tracking when completion is submitted
+            $this->pdo->prepare("UPDATE task_live_locations SET is_active = 0 WHERE request_id = :id")->execute([':id' => $requestId]);
+
             // Notify requester that completion was submitted
             $nStmt = $this->pdo->prepare(
                 "INSERT INTO notifications (id, user_id, title, message, type, related_request_id)
@@ -201,6 +252,9 @@ class TaskRepository {
         try {
             // Transition status to COMPLETED
             $this->requestRepository->updateStatus($requestId, 'COMPLETED', null, $requesterId);
+
+            // Automatically deactivate live tracking when task completes
+            $this->pdo->prepare("UPDATE task_live_locations SET is_active = 0 WHERE request_id = :id")->execute([':id' => $requestId]);
 
             $helperId = $req['assigned_helper_id'] ?? $requesterId;
 
@@ -334,5 +388,167 @@ class TaskRepository {
                 'category' => $r['status'] === 'COMPLETED' ? 'completed' : 'cancelled',
             ];
         }, $rows);
+    }
+
+    public function updateLiveLocation(string $requestId, string $helperId, float $lat, float $lng, ?float $heading = null, ?float $accuracy = null, ?float $speed = null): array {
+        $req = $this->requestRepository->findById($requestId);
+        if (!$req) {
+            throw new RuntimeException("Request not found", 404);
+        }
+        // Only the assigned helper can update live location
+        if ($req['assigned_helper_id'] !== $helperId) {
+            throw new RuntimeException("Only the assigned helper can share location for this task", 403);
+        }
+        // Location sharing only allowed while task is IN_PROGRESS
+        if ($req['status'] !== 'IN_PROGRESS') {
+            throw new RuntimeException("Location sharing is only active while the task is IN_PROGRESS (Current: {$req['status']})", 400);
+        }
+
+        $isSqlite = ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite');
+        if ($isSqlite) {
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO task_live_locations (request_id, helper_id, latitude, longitude, heading, accuracy, speed, is_active, updated_at)
+                 VALUES (:req_id, :helper_id, :lat, :lng, :heading, :accuracy, :speed, 1, datetime('now'))
+                 ON CONFLICT(request_id) DO UPDATE SET
+                    latitude = excluded.latitude,
+                    longitude = excluded.longitude,
+                    heading = excluded.heading,
+                    accuracy = excluded.accuracy,
+                    speed = excluded.speed,
+                    is_active = 1,
+                    updated_at = datetime('now')"
+            );
+        } else {
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO task_live_locations (request_id, helper_id, latitude, longitude, heading, accuracy, speed, is_active, updated_at)
+                 VALUES (:req_id, :helper_id, :lat, :lng, :heading, :accuracy, :speed, 1, NOW())
+                 ON DUPLICATE KEY UPDATE
+                    latitude = VALUES(latitude),
+                    longitude = VALUES(longitude),
+                    heading = VALUES(heading),
+                    accuracy = VALUES(accuracy),
+                    speed = VALUES(speed),
+                    is_active = 1,
+                    updated_at = NOW()"
+            );
+        }
+        $stmt->execute([
+            ':req_id' => $requestId,
+            ':helper_id' => $helperId,
+            ':lat' => $lat,
+            ':lng' => $lng,
+            ':heading' => $heading,
+            ':accuracy' => $accuracy,
+            ':speed' => $speed,
+        ]);
+
+        return $this->getLiveLocation($requestId, $helperId);
+    }
+
+    public function getLiveLocation(string $requestId, string $viewerUserId): array {
+        $req = $this->requestRepository->findById($requestId);
+        if (!$req) {
+            throw new RuntimeException("Request not found", 404);
+        }
+
+        // Privacy check: Only requester and assigned helper can see live tracking
+        $isRequester = ($req['requester_id'] === $viewerUserId);
+        $isHelper = ($req['assigned_helper_id'] === $viewerUserId);
+        if (!$isRequester && !$isHelper) {
+            throw new RuntimeException("Access denied. Helper location is only visible to the requester of this active task.", 403);
+        }
+
+        // If task is no longer IN_PROGRESS, deactivate live location
+        if ($req['status'] !== 'IN_PROGRESS') {
+            $this->pdo->prepare("UPDATE task_live_locations SET is_active = 0 WHERE request_id = :id")->execute([':id' => $requestId]);
+            return [
+                'request_id' => $requestId,
+                'status' => $req['status'],
+                'is_active' => false,
+                'message' => 'Task is no longer active. Location tracking has ended.'
+            ];
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT l.*, u.full_name AS helper_name, u.avatar_url AS helper_avatar
+             FROM task_live_locations l
+             JOIN users u ON u.id = l.helper_id
+             WHERE l.request_id = :req_id
+             LIMIT 1"
+        );
+        $stmt->execute([':req_id' => $requestId]);
+        $loc = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$loc || empty($loc['is_active'])) {
+            return [
+                'request_id' => $requestId,
+                'status' => $req['status'],
+                'is_active' => false,
+                'helper_name' => $req['assigned_helper_name'],
+                'message' => 'Helper has not shared live location yet.'
+            ];
+        }
+
+        $helperLat = (float)$loc['latitude'];
+        $helperLng = (float)$loc['longitude'];
+        $reqLat = $req['latitude'] !== null ? (float)$req['latitude'] : null;
+        $reqLng = $req['longitude'] !== null ? (float)$req['longitude'] : null;
+
+        $distKm = null;
+        $distMiles = null;
+        $etaMinutes = null;
+
+        if ($reqLat !== null && $reqLng !== null) {
+            $earthRadiusKm = 6371.0;
+            $dLat = deg2rad($reqLat - $helperLat);
+            $dLng = deg2rad($reqLng - $helperLng);
+            $a = sin($dLat / 2) * sin($dLat / 2) +
+                 cos(deg2rad($helperLat)) * cos(deg2rad($reqLat)) *
+                 sin($dLng / 2) * sin($dLng / 2);
+            $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+            $distKm = round($earthRadiusKm * $c, 2);
+            $distMiles = round($distKm * 0.621371, 2);
+
+            $speedKmh = ($loc['speed'] !== null && (float)$loc['speed'] > 2.0) ? ((float)$loc['speed'] * 3.6) : 20.0;
+            if ($distKm > 0) {
+                $etaMinutes = max(1, (int)round(($distKm / $speedKmh) * 60));
+            } else {
+                $etaMinutes = 0;
+            }
+        }
+
+        return [
+            'request_id' => $requestId,
+            'status' => $req['status'],
+            'is_active' => true,
+            'helper_id' => $loc['helper_id'],
+            'helper_name' => $loc['helper_name'] ?? $req['assigned_helper_name'],
+            'helper_avatar' => $loc['helper_avatar'] ?? $req['assigned_helper_avatar'],
+            'latitude' => $helperLat,
+            'longitude' => $helperLng,
+            'heading' => $loc['heading'] !== null ? (float)$loc['heading'] : null,
+            'accuracy' => $loc['accuracy'] !== null ? (float)$loc['accuracy'] : null,
+            'speed' => $loc['speed'] !== null ? (float)$loc['speed'] : null,
+            'requester_latitude' => $reqLat,
+            'requester_longitude' => $reqLng,
+            'requester_location' => $req['location'],
+            'distance_km' => $distKm,
+            'distance_miles' => $distMiles,
+            'eta_minutes' => $etaMinutes,
+            'updated_at' => $loc['updated_at'],
+        ];
+    }
+
+    public function stopLiveLocation(string $requestId, string $userId): bool {
+        $req = $this->requestRepository->findById($requestId);
+        if (!$req) {
+            throw new RuntimeException("Request not found", 404);
+        }
+        if ($req['requester_id'] !== $userId && $req['assigned_helper_id'] !== $userId) {
+            throw new RuntimeException("Access denied", 403);
+        }
+        $stmt = $this->pdo->prepare("UPDATE task_live_locations SET is_active = 0 WHERE request_id = :req_id");
+        $stmt->execute([':req_id' => $requestId]);
+        return true;
     }
 }

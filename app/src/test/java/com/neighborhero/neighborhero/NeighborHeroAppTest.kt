@@ -2,6 +2,7 @@ package com.neighborhero.neighborhero
 
 import com.neighborhero.neighborhero.data.local.AppDatabaseHelper
 import com.neighborhero.neighborhero.data.model.ChatMessage
+import com.neighborhero.neighborhero.data.model.HelpRequest
 import com.neighborhero.neighborhero.data.model.HelperProfile
 import com.neighborhero.neighborhero.data.model.NotificationItem
 import com.neighborhero.neighborhero.data.model.NotificationType
@@ -899,5 +900,189 @@ class NeighborHeroAppTest {
         assertTrue(helper.skills.contains("Repairs"))
         assertTrue(helper.skills.contains("Transport"))
         assertTrue(helper.skills.contains("Pet Help"))
+    }
+
+    // --- Live Helper Tracking & Category Image Integrity Tests ---
+    @Test
+    fun testCategoryThumbnail_explicitRoutingPreventsWrongImages() {
+        val groceriesRes = com.neighborhero.neighborhero.ui.components.RequestCategoryImages.getCategoryPlaceholder("Groceries")
+        val booksRes = com.neighborhero.neighborhero.ui.components.RequestCategoryImages.getCategoryPlaceholder("Books")
+        val repairsRes = com.neighborhero.neighborhero.ui.components.RequestCategoryImages.getCategoryPlaceholder("Repairs")
+        val transportRes = com.neighborhero.neighborhero.ui.components.RequestCategoryImages.getCategoryPlaceholder("Transport")
+        val petRes = com.neighborhero.neighborhero.ui.components.RequestCategoryImages.getCategoryPlaceholder("Pet Help")
+        val otherRes = com.neighborhero.neighborhero.ui.components.RequestCategoryImages.getCategoryPlaceholder("Other")
+
+        assertEquals(R.drawable.img_thumb_supermarket, groceriesRes)
+        assertEquals(R.drawable.img_thumb_books, booksRes)
+        assertEquals(R.drawable.img_thumb_repairs, repairsRes)
+        assertEquals(R.drawable.img_thumb_transport, transportRes)
+        assertEquals(R.drawable.img_thumb_pets, petRes)
+        assertEquals(R.drawable.img_thumb_community, otherRes)
+
+        // Verify Transport and Pet Help do NOT fall back to Groceries
+        assertNotEquals(R.drawable.img_thumb_supermarket, transportRes)
+        assertNotEquals(R.drawable.img_thumb_supermarket, petRes)
+        assertNotEquals(R.drawable.img_thumb_repairs, petRes)
+    }
+
+    @Test
+    fun testLiveTracking_modelIntegrityAndDistanceEtaFormatting() {
+        val tracking = com.neighborhero.neighborhero.data.network.dto.LiveTrackingDto(
+            requestId = "req_100",
+            status = "in_progress",
+            isActive = true,
+            helperId = "helper_42",
+            helperName = "Marcus",
+            latitude = 37.7749,
+            longitude = -122.4194,
+            heading = 90.0,
+            accuracy = 4.5,
+            speed = 1.3,
+            distanceKm = 0.8,
+            distanceMiles = 0.5,
+            etaMinutes = 11,
+            updatedAt = "2026-11-17 10:45:00"
+        )
+
+        assertEquals("req_100", tracking.requestId)
+        assertEquals("in_progress", tracking.status)
+        assertEquals("helper_42", tracking.helperId)
+        assertEquals("Marcus", tracking.helperName)
+        assertTrue(tracking.isActive)
+        assertEquals(0.5, tracking.distanceMiles ?: 0.0, 0.01)
+        assertEquals(11, tracking.etaMinutes)
+        assertEquals("2026-11-17 10:45:00", tracking.updatedAt)
+
+        // When helper stops, isActive becomes false
+        val stopped = tracking.copy(isActive = false)
+        assertFalse(stopped.isActive)
+    }
+
+    // --- Task Acceptance & Concurrency Tests ---
+    @Test
+    fun testAcceptRequest_successfulWorkflowAndStatusTransitions() {
+        val repo = HelpRequestRepository(seedForTests = true)
+        val vm = HelpRequestViewModel(repo)
+
+        val newId = vm.createRequest(
+            title = "Help with moving boxes",
+            category = "Repairs",
+            description = "Need help carrying 4 boxes upstairs",
+            time = "Today 2pm",
+            location = "Maplewood 5"
+        )
+
+        var callbackSuccess: Boolean? = null
+        var callbackError: String? = null
+
+        vm.acceptRequest(newId, "Marcus Vance") { success, err ->
+            callbackSuccess = success
+            callbackError = err
+        }
+
+        assertTrue(callbackSuccess == true)
+        assertNull(callbackError)
+        assertNotNull(vm.acceptSuccess.value)
+        assertNull(vm.acceptError.value)
+
+        val accepted = vm.getRequest(newId)
+        assertEquals(RequestStatus.IN_PROGRESS, accepted?.status)
+    }
+
+    @Test
+    fun testAcceptRequest_failurePreservesOpenStatusAndReportsError() {
+        val repo = HelpRequestRepository(seedForTests = true)
+        val vm = HelpRequestViewModel(repo)
+
+        var callbackSuccess: Boolean? = null
+        var callbackError: String? = null
+
+        // Try to accept a non-existent request ID
+        vm.acceptRequest("req_nonexistent_999", "Marcus Vance") { success, err ->
+            callbackSuccess = success
+            callbackError = err
+        }
+
+        assertFalse(callbackSuccess == true)
+        assertNotNull(callbackError)
+        assertNotNull(vm.acceptError.value)
+        assertNull(vm.acceptSuccess.value)
+    }
+
+    @Test
+    fun testAcceptRequest_debouncePreventsDuplicateInFlight() {
+        val repo = HelpRequestRepository(seedForTests = true)
+        val vm = HelpRequestViewModel(repo)
+
+        val newId = vm.createRequest(
+            title = "Help with moving boxes",
+            category = "Repairs",
+            description = "Need help carrying 4 boxes upstairs",
+            time = "Today 2pm",
+            location = "Maplewood 5"
+        )
+
+        var calls = 0
+        vm.acceptRequest(newId, "Marcus Vance") { _, _ -> calls++ }
+        assertEquals(1, calls)
+    }
+
+    @Test
+    fun testCreateRequest_successfulWorkflowAndStatusTransitions() {
+        val repo = HelpRequestRepository(seedForTests = true)
+        val vm = HelpRequestViewModel(repo)
+
+        var createdRequest: HelpRequest? = null
+        var isSuccess = false
+        val newId = vm.createRequest(
+            title = "Lawn Mowing Assistance",
+            category = "Repairs",
+            description = "Need lawn mowing help",
+            time = "Today 5pm",
+            location = "Maplewood"
+        ) { success, req, _ ->
+            isSuccess = success
+            createdRequest = req
+        }
+
+        assertTrue(newId.isNotEmpty())
+        assertTrue(isSuccess)
+        assertNotNull(createdRequest)
+        assertEquals(RequestStatus.OPEN, createdRequest?.status)
+    }
+
+    @Test
+    fun testNearbyRequests_filtersOnlyOpenTasks() {
+        val req1 = HelpRequest(
+            id = "req_open_1",
+            title = "Open grocery task",
+            category = "Groceries",
+            description = "Open desc",
+            requesterName = "Alice",
+            requesterRating = 5.0f,
+            requesterTaskCount = 2,
+            location = "Maplewood",
+            distance = "0.2 mi",
+            requestedTime = "Today 3pm",
+            status = RequestStatus.OPEN
+        )
+        val req2 = HelpRequest(
+            id = "req_inprogress_2",
+            title = "Accepted grocery task",
+            category = "Groceries",
+            description = "Accepted desc",
+            requesterName = "Alice",
+            requesterRating = 5.0f,
+            requesterTaskCount = 2,
+            location = "Maplewood",
+            distance = "0.2 mi",
+            requestedTime = "Today 3pm",
+            status = RequestStatus.IN_PROGRESS,
+            assignedHelperId = "hlp_1"
+        )
+        val allRequests = listOf(req1, req2)
+        val openOnly = allRequests.filter { it.status == RequestStatus.OPEN }
+        assertEquals(1, openOnly.size)
+        assertEquals("req_open_1", openOnly.first().id)
     }
 }

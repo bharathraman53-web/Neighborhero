@@ -262,16 +262,18 @@ fun BlackPillButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    isLoading: Boolean = false,
     icon: ImageVector? = null,
     isFullWidth: Boolean = false
 ) {
     val isDark = LocalIsDarkTheme.current
-    val buttonBg = if (!enabled) {
-        if (isDark) Color(0xFF334155) else Color(0xFF94A3B8)
+    val effectiveEnabled = enabled && !isLoading
+    val buttonBg = if (!effectiveEnabled) {
+        if (isDark) Color(0xFF334155) else if (isLoading) Color(0xFF0F172A).copy(alpha = 0.85f) else Color(0xFF94A3B8)
     } else {
         if (isDark) Color(0xFFFFFFFF) else Color(0xFF0F172A)
     }
-    val contentColor = if (!enabled) {
+    val contentColor = if (!effectiveEnabled && !isLoading) {
         if (isDark) Color(0xFF94A3B8) else Color(0xFFE2E8F0)
     } else {
         if (isDark) Color(0xFF0F172A) else Color.White
@@ -282,11 +284,11 @@ fun BlackPillButton(
         color = buttonBg,
         modifier = (if (isFullWidth) modifier.fillMaxWidth() else modifier)
             .shadow(
-                if (enabled) 6.dp else 0.dp,
+                if (effectiveEnabled) 6.dp else 0.dp,
                 RoundedCornerShape(50),
                 spotColor = if (isDark) Color(0x4038BDF8) else Color(0x330F172A)
             )
-            .clickable(enabled = enabled) { onClick() }
+            .clickable(enabled = effectiveEnabled) { onClick() }
     ) {
         Row(
             modifier = Modifier
@@ -298,7 +300,14 @@ fun BlackPillButton(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (icon != null) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = contentColor,
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+            } else if (icon != null) {
                 Box(
                     modifier = Modifier
                         .size(20.dp)

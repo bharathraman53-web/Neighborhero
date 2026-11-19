@@ -91,7 +91,11 @@ class HelpRequestRepository(
 
     fun addRequest(request: HelpRequest) {
         _requests.value = listOf(request) + _requests.value.filter { it.id != request.id }
-        cacheDao?.insertOrUpdate(request)
+        try {
+            cacheDao?.insertOrUpdate(request)
+        } catch (e: Exception) {
+            android.util.Log.e("HelpRequestRepository", "Cache update failed: ${e.message}")
+        }
     }
 
     fun replaceOrAddRequest(tempId: String?, request: HelpRequest) {
@@ -102,14 +106,22 @@ class HelpRequestRepository(
             current.filter { it.id != request.id }
         }
         _requests.value = listOf(request) + filtered
-        if (!tempId.isNullOrBlank()) {
-            cacheDao?.deleteById(tempId)
+        try {
+            if (!tempId.isNullOrBlank()) {
+                cacheDao?.deleteById(tempId)
+            }
+            cacheDao?.insertOrUpdate(request)
+        } catch (e: Exception) {
+            android.util.Log.e("HelpRequestRepository", "Cache replace failed: ${e.message}")
         }
-        cacheDao?.insertOrUpdate(request)
     }
 
     fun getRequestById(requestId: String): HelpRequest? {
-        return _requests.value.find { it.id == requestId } ?: cacheDao?.getById(requestId)
+        return _requests.value.find { it.id == requestId } ?: try {
+            cacheDao?.getById(requestId)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     fun updateRequestStatus(requestId: String, newStatus: RequestStatus, helperName: String? = null) {
@@ -119,7 +131,11 @@ class HelpRequestRepository(
                     status = newStatus,
                     assignedHelperName = helperName ?: req.assignedHelperName
                 )
-                cacheDao?.insertOrUpdate(updated)
+                try {
+                    cacheDao?.insertOrUpdate(updated)
+                } catch (e: Exception) {
+                    android.util.Log.e("HelpRequestRepository", "Cache status update failed: ${e.message}")
+                }
                 updated
             } else req
         }
@@ -171,6 +187,24 @@ class HelpRequestRepository(
         latitude: Double? = null,
         longitude: Double? = null
     ): Result<HelpRequest> {
+        if (seedForTests) {
+            val created = HelpRequest(
+                id = tempId ?: "req_${System.currentTimeMillis()}",
+                title = title,
+                category = category,
+                description = description,
+                requesterName = "Bharath Raman",
+                requesterRating = 5.0f,
+                requesterTaskCount = 0,
+                location = location.ifBlank { "Maplewood District" },
+                distance = "0.4 mi away",
+                requestedTime = time.ifBlank { "Due Today, 4:00 PM" },
+                latitude = latitude,
+                longitude = longitude
+            )
+            addRequest(created)
+            return Result.success(created)
+        }
         _isLoading.value = true
         _errorMessage.value = null
         return try {
@@ -203,6 +237,20 @@ class HelpRequestRepository(
     }
 
     suspend fun assignRemoteHelper(requestId: String, helperId: String? = null): Result<HelpRequest> {
+        if (seedForTests) {
+            val existing = getRequestById(requestId)
+            if (existing != null) {
+                val updated = existing.copy(
+                    status = RequestStatus.IN_PROGRESS,
+                    assignedHelperId = helperId ?: "test_helper",
+                    assignedHelperName = "Vikram Roy"
+                )
+                addRequest(updated)
+                return Result.success(updated)
+            } else {
+                return Result.failure(Exception("Request not found"))
+            }
+        }
         return try {
             val response = apiService.assignHelper(requestId, AssignHelperDto(helperId))
             if (response.isSuccessful && response.body()?.success == true) {
@@ -220,11 +268,21 @@ class HelpRequestRepository(
                         }
                     } catch (_: Exception) {}
                 }
-                val finalMsg = errorMsg ?: "Failed to assign helper (HTTP ${response.code()})"
+                val finalMsg = errorMsg ?: when (response.code()) {
+                    409 -> "This task has already been accepted by another helper."
+                    403 -> "Requesters cannot accept their own requests."
+                    404 -> "Request not found."
+                    else -> "Failed to accept task (HTTP ${response.code()})"
+                }
                 Result.failure(Exception(finalMsg))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            val networkMsg = if (e is java.io.IOException || e is java.net.ConnectException || e is java.net.SocketTimeoutException) {
+                "Network connection error. Please check your connection and try again."
+            } else {
+                e.message ?: "Failed to accept task. Please try again."
+            }
+            Result.failure(Exception(networkMsg))
         }
     }
 
@@ -254,7 +312,8 @@ class HelpRequestRepository(
             requesterAvatarUrl = dto.requesterAvatar,
             assignedHelperAvatarUrl = dto.assignedHelperAvatar,
             latitude = dto.latitude,
-            longitude = dto.longitude
+            longitude = dto.longitude,
+            photoUrl = dto.photoUrl
         )
     }
 }

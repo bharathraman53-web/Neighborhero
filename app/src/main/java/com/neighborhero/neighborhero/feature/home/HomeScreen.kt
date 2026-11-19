@@ -50,6 +50,7 @@ import com.neighborhero.neighborhero.ui.components.GlassEmptyState
 import com.neighborhero.neighborhero.ui.components.GlassTheme
 import com.neighborhero.neighborhero.ui.components.HelperCard
 import com.neighborhero.neighborhero.ui.components.RequestCard
+import com.neighborhero.neighborhero.ui.components.RequestThumbnailImage
 import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 import com.neighborhero.neighborhero.ui.theme.*
 
@@ -69,7 +70,7 @@ fun HomeScreen(
 ) {
     var showLocationSelector by remember { mutableStateOf(false) }
     val activeTask = requests.firstOrNull { it.status == RequestStatus.IN_PROGRESS }
-    val displayActiveTask = activeTask ?: requests.firstOrNull() ?: HelpRequest(
+    val displayActiveTask = activeTask ?: HelpRequest(
         id = "default_focus_task",
         title = "Help with groceries",
         category = "Groceries",
@@ -135,13 +136,13 @@ fun HomeScreen(
 
     val combinedRequests = remember(requests, sampleReferenceRequests) {
         val openRequests = requests.filter { it.status == RequestStatus.OPEN }
-        val list = openRequests.toMutableList()
-        for (sample in sampleReferenceRequests) {
-            if (list.none { it.id == sample.id || it.title.equals(sample.title, ignoreCase = true) }) {
-                list.add(sample)
+        val list = sampleReferenceRequests.toMutableList()
+        for (req in openRequests) {
+            if (list.none { it.id == req.id || it.title.equals(req.title, ignoreCase = true) }) {
+                list.add(req)
             }
         }
-        if (list.isEmpty()) sampleReferenceRequests else list
+        list
     }
 
     val filteredRequests = remember(combinedRequests, selectedCategoryFilter) {
@@ -164,26 +165,14 @@ fun HomeScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 // Official Circular NeighborHero Logo Badge
-                                Surface(
-                                    modifier = Modifier.size(44.dp),
-                                    shape = CircleShape,
-                                    color = Color.White.copy(alpha = if (isDark) 0.16f else 0.22f),
-                                    border = BorderStroke(
-                                        1.5.dp,
-                                        Color.White.copy(alpha = if (isDark) 0.35f else 0.55f)
-                                    ),
-                                    shadowElevation = 3.dp
-                                ) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.img_header_logo_badge),
-                                        contentDescription = "NeighborHero Logo",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(2.dp)
-                                            .clip(CircleShape)
-                                    )
-                                }
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_header_logo_badge),
+                                    contentDescription = "NeighborHero Logo",
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier
+                                        .size(46.dp)
+                                        .clip(CircleShape)
+                                )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
@@ -310,9 +299,10 @@ fun HomeScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // 1. Water-Inspired Multi-Layered Glass Hero Focus Card
+                // 1. Water-Inspired Multi-Layered Glass Hero Focus Card matching Reference Design
                 item {
                     Column(modifier = Modifier.fillMaxWidth().padding(top = 2.dp)) {
+                        // Outer Frosted Glass Card
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -347,7 +337,7 @@ fun HomeScreen(
                                                 progress = { 0.75f },
                                                 modifier = Modifier.fillMaxSize(),
                                                 color = if (isDark) Color(0xFF38BDF8) else Color(0xFF00C6FF),
-                                                trackColor = if (isDark) Color(0xFF1E3A52) else Color(0xFFBAE6FD),
+                                                trackColor = if (isDark) Color(0xFF1E3A52) else Color(0xFFBAE6FD).copy(alpha = 0.5f),
                                                 strokeWidth = 4.5.dp,
                                                 strokeCap = StrokeCap.Round
                                             )
@@ -355,7 +345,7 @@ fun HomeScreen(
                                                 text = "75%",
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontSize = 11.5.sp,
-                                                    fontWeight = FontWeight.ExtraBold
+                                                    fontWeight = FontWeight.Bold
                                                 ),
                                                 color = GlassTheme.textPrimary
                                             )
@@ -364,8 +354,8 @@ fun HomeScreen(
                                         Text(
                                             text = "Overall progress",
                                             style = MaterialTheme.typography.titleMedium.copy(
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.SemiBold
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold
                                             ),
                                             color = GlassTheme.textPrimary
                                         )
@@ -381,7 +371,13 @@ fun HomeScreen(
                                         )
                                     ) {
                                         Text(
-                                            text = "In Progress",
+                                            text = when (displayActiveTask.status) {
+                                                RequestStatus.IN_PROGRESS -> "In Progress"
+                                                RequestStatus.PENDING_VERIFICATION -> "Pending Review"
+                                                RequestStatus.COMPLETED -> "Completed"
+                                                RequestStatus.CANCELLED -> "Cancelled"
+                                                else -> "In Progress"
+                                            },
                                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontSize = 11.5.sp,
@@ -469,7 +465,7 @@ fun HomeScreen(
                                                 Text(
                                                     text = displayActiveTask.description.ifEmpty { "Buy some groceries from the store." },
                                                     style = MaterialTheme.typography.bodySmall.copy(
-                                                        fontSize = 12.5.sp,
+                                                        fontSize = 12.sp,
                                                         lineHeight = 16.sp
                                                     ),
                                                     color = GlassTheme.textSecondary,
@@ -478,7 +474,7 @@ fun HomeScreen(
                                                 )
                                             }
 
-                                            // Grocery Image Thumbnail on right
+                                            // Category / Task Thumbnail Photo
                                             Surface(
                                                 shape = RoundedCornerShape(14.dp),
                                                 border = BorderStroke(
@@ -486,14 +482,23 @@ fun HomeScreen(
                                                     if (isDark) Color(0xFF38BDF8).copy(alpha = 0.25f) else Color.White.copy(alpha = 0.85f)
                                                 ),
                                                 shadowElevation = 2.dp,
-                                                modifier = Modifier.size(62.dp)
+                                                modifier = Modifier.size(64.dp)
                                             ) {
-                                                Image(
-                                                    painter = painterResource(id = R.drawable.img_thumb_groceries),
-                                                    contentDescription = "Groceries Focus",
-                                                    contentScale = ContentScale.Crop,
-                                                    modifier = Modifier.fillMaxSize()
-                                                )
+                                                if (!displayActiveTask.photoUrl.isNullOrBlank()) {
+                                                    RequestThumbnailImage(
+                                                        category = displayActiveTask.category,
+                                                        photoUrl = displayActiveTask.photoUrl,
+                                                        contentDescription = displayActiveTask.title,
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
+                                                } else {
+                                                    Image(
+                                                        painter = painterResource(id = R.drawable.img_thumb_groceries),
+                                                        contentDescription = displayActiveTask.title,
+                                                        contentScale = ContentScale.Crop,
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
+                                                }
                                             }
                                         }
 
@@ -565,7 +570,7 @@ fun HomeScreen(
                             }
                         }
 
-                        // Dedicated "Next Up" Capsule Bar below Progress Card
+                        // Dedicated "Next Up" Capsule Bar below Hero Focus Card
                         Surface(
                             shape = RoundedCornerShape(50),
                             color = if (isDark) Color(0xFF0C1F32).copy(alpha = 0.65f) else Color.White.copy(alpha = 0.65f),

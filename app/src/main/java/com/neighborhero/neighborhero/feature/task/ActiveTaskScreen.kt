@@ -8,14 +8,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,6 +44,7 @@ import com.neighborhero.neighborhero.ui.components.GlassCard
 import com.neighborhero.neighborhero.ui.components.GlassFocusCard
 import com.neighborhero.neighborhero.ui.components.GlassTopBar
 import com.neighborhero.neighborhero.ui.components.NetworkImage
+import com.neighborhero.neighborhero.ui.components.RequestThumbnailImage
 import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 import com.neighborhero.neighborhero.ui.theme.*
 
@@ -49,7 +55,10 @@ fun ActiveTaskScreen(
     onBackClick: () -> Unit,
     onChatClick: () -> Unit,
     onSubmitCompletionClick: () -> Unit,
-    onVerifyCompletionClick: () -> Unit = {}
+    onVerifyCompletionClick: () -> Unit = {},
+    onTrackHelperClick: () -> Unit = {},
+    isLocationSharingActive: Boolean = false,
+    onToggleLocationSharing: (Boolean) -> Unit = {}
 ) {
     val title = task?.title ?: "Active Task"
     val location = task?.location ?: "Community Location"
@@ -114,30 +123,48 @@ fun ActiveTaskScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Text(
-                            title,
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontSize = 21.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-0.4).sp
-                            ),
-                            color = GlassTheme.textPrimary
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    title,
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = (-0.4).sp
+                                    ),
+                                    color = GlassTheme.textPrimary
+                                )
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = GlassTheme.accent,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                location,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                                color = GlassTheme.textSecondary
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = GlassTheme.accent,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        location,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                                        color = GlassTheme.textSecondary
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            RequestThumbnailImage(
+                                category = task?.category ?: "Other",
+                                photoUrl = task?.photoUrl,
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(RoundedCornerShape(16.dp))
                             )
                         }
                     }
@@ -283,7 +310,8 @@ fun ActiveTaskScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp)
+                        .padding(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (isRequester) {
                         if (isPendingVerification) {
@@ -299,27 +327,45 @@ fun ActiveTaskScreen(
                                 shape = RoundedCornerShape(20.dp),
                                 alpha = 0.88f
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        Icons.Default.Info,
-                                        contentDescription = null,
-                                        tint = GlassTheme.accent,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Navigation,
+                                            contentDescription = null,
+                                            tint = GlassTheme.accent,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Live Helper Tracking",
+                                            style = MaterialTheme.typography.titleSmall.copy(
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = GlassTheme.textPrimary
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "Your helper is currently completing this task. Once they submit evidence, you can verify completion and release points here.",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontSize = 13.sp,
-                                            lineHeight = 18.sp
+                                        text = "Your helper is currently active. Track their live shared location, radar proximity, and arrival time in real time.",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 12.sp,
+                                            lineHeight = 16.sp
                                         ),
                                         color = GlassTheme.textSecondary
                                     )
                                 }
                             }
+
+                            BlackPillButton(
+                                text = "Track Helper Live",
+                                icon = Icons.Default.Navigation,
+                                onClick = onTrackHelperClick,
+                                isFullWidth = true
+                            )
                         }
                     } else if (isAssignedHelper) {
                         if (isPendingVerification) {
@@ -350,6 +396,75 @@ fun ActiveTaskScreen(
                                 }
                             }
                         } else {
+                            GlassCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                alpha = 0.88f
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.LocationOn,
+                                            contentDescription = null,
+                                            tint = if (isLocationSharingActive) GlassTheme.statusBadgeText else GlassTheme.accent,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = if (isLocationSharingActive) "Location Sharing Active" else "Live Location Sharing",
+                                            style = MaterialTheme.typography.titleSmall.copy(
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold
+                                            ),
+                                            color = GlassTheme.textPrimary
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = if (isLocationSharingActive)
+                                            "Your coordinates are securely shared only with this requester while this task is ongoing."
+                                        else
+                                            "Share your route with the requester during this task. Stops automatically when task completes.",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 11.sp,
+                                            lineHeight = 15.sp
+                                        ),
+                                        color = GlassTheme.textSecondary
+                                    )
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = { onToggleLocationSharing(!isLocationSharingActive) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(50),
+                                border = BorderStroke(1.dp, if (isLocationSharingActive) GlassTheme.statusBadgeText else GlassTheme.chipBorder),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isLocationSharingActive) GlassTheme.statusBadgeBg else GlassTheme.chipBackground
+                                )
+                            ) {
+                                Icon(
+                                    if (isLocationSharingActive) Icons.Default.LocationOff else Icons.Default.PlayArrow,
+                                    contentDescription = null,
+                                    tint = if (isLocationSharingActive) GlassTheme.statusBadgeText else GlassTheme.textPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isLocationSharingActive) "Stop Location Sharing" else "Start Task & Share Live Location",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    ),
+                                    color = if (isLocationSharingActive) GlassTheme.statusBadgeText else GlassTheme.textPrimary
+                                )
+                            }
+
                             BlackPillButton(
                                 text = "Submit Task Completion",
                                 icon = Icons.Default.CheckCircle,

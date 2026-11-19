@@ -137,6 +137,7 @@ $pdo->exec("
         latitude REAL NULL,
         longitude REAL NULL,
         preferred_time_slot VARCHAR(64) NULL,
+        photo_url VARCHAR(255) NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -222,6 +223,18 @@ $pdo->exec("
         is_read INT NOT NULL DEFAULT 0,
         related_request_id VARCHAR(64) NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE task_live_locations (
+        request_id VARCHAR(64) PRIMARY KEY,
+        helper_id VARCHAR(64) NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        heading REAL NULL,
+        accuracy REAL NULL,
+        speed REAL NULL,
+        is_active INT NOT NULL DEFAULT 1,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 ");
 
@@ -470,6 +483,18 @@ echo "\n--- 5. Task Lifecycle & Points Duplication Prevention Tests ---\n";
 $assigned = $taskRepo->assignHelper('req_101', 'usr_2', 'usr_2');
 assertTest($assigned['status'] === 'IN_PROGRESS', "Task transitions to IN_PROGRESS upon helper assignment");
 assertTest($assigned['assigned_helper_id'] === 'usr_2', "Helper correctly assigned to request");
+
+// Test: Second helper attempting to accept the same task is rejected with HTTP 409 Conflict
+$secondHelperBlocked = false;
+$secondHelperErrorMsg = '';
+try {
+    $taskRepo->assignHelper('req_101', 'usr_3', 'usr_3');
+} catch (\Exception $e) {
+    $secondHelperBlocked = ($e->getCode() === 409);
+    $secondHelperErrorMsg = $e->getMessage();
+}
+assertTest($secondHelperBlocked, "Second helper attempting to accept already-accepted task blocked with HTTP 409 Conflict");
+assertTest(strpos($secondHelperErrorMsg, 'already been accepted') !== false, "Error message clearly explains task was already accepted by another helper");
 
 // Confirm start
 $started = $taskRepo->confirmStart('req_101', 'usr_2');
@@ -973,6 +998,55 @@ assertTest(!empty($noGpsRecs), "Matching engine safely falls back to neighborhoo
 // Verify exact coordinates are not leaked in public helper output
 $firstRec = $gpsRecs[0];
 assertTest(!isset($firstRec['latitude']) && !isset($firstRec['longitude']), "Public helper recommendation output does not expose exact helper coordinates");
+
+// 9. Live Helper Tracking & Request Photo Tests
+echo "\n--- 11. Live Helper Tracking & Request Photo Tests ---\n";
+$reqWithPhoto = $requestRepo->create([
+    'id' => 'req_photo_test',
+    'requester_id' => 'usr_1',
+    'title' => 'Pick up organic apples from supermarket',
+    'category' => 'Groceries',
+    'description' => 'Need 2kg fuji apples.',
+    'location' => 'Maplewood',
+    'requested_time' => 'Today 5pm',
+    'photo_url' => 'https://example.com/photos/apples.jpg',
+    'latitude' => 37.7749,
+    'longitude' => -122.4194
+]);
+assertTest($reqWithPhoto['photo_url'] === 'https://example.com/photos/apples.jpg', "Help request stores and returns photo_url");
+
+$fetchedReq = $requestRepo->findById('req_photo_test');
+assertTest($fetchedReq['photo_url'] === 'https://example.com/photos/apples.jpg', "HelpRequestRepository::findById returns photo_url");
+
+// Assign helper Dave to the request
+$taskRepo->assignHelper('req_photo_test', 'hlp_dave', 'hlp_dave');
+
+// Helper updates live location
+$locUpdate = $taskRepo->updateLiveLocation('req_photo_test', 'hlp_dave', 37.7780, -122.4150, 45.0, 5.0, 2.5);
+assertTest($locUpdate['is_active'] === true, "Helper updates live location and active status is true");
+assertTest(isset($locUpdate['distance_miles']), "Live tracking response calculates distance in miles");
+assertTest(isset($locUpdate['eta_minutes']), "Live tracking response calculates realistic ETA based on speed");
+
+// Requester usr_1 tracks helper
+$requesterTracking = $taskRepo->getLiveLocation('req_photo_test', 'usr_1');
+assertTest($requesterTracking['is_active'] === true, "Requester can track helper live location");
+assertTest($requesterTracking['helper_id'] === 'hlp_dave', "Tracking returns correct helper ID");
+
+// Unrelated user cannot track helper (security rule)
+try {
+    $taskRepo->getLiveLocation('req_photo_test', 'usr_unrelated');
+    assertTest(false, "Unrelated user should be denied access to live tracking");
+} catch (\Exception $e) {
+    assertTest($e->getCode() === 403, "TaskRepository::getLiveLocation throws 403 Forbidden for unauthorized user");
+}
+
+// Stop tracking
+$stopped = $taskRepo->stopLiveLocation('req_photo_test', 'hlp_dave');
+assertTest($stopped === true, "TaskRepository::stopLiveLocation returns true when deactivating live location sharing");
+
+$afterStop = $taskRepo->getLiveLocation('req_photo_test', 'usr_1');
+assertTest($afterStop['is_active'] === false, "Live tracking reports is_active false after stopping");
+
 
 
 echo "\n==================================================\n";

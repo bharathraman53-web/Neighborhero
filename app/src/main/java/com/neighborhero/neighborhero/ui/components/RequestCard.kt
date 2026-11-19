@@ -41,11 +41,12 @@ fun RequestCard(
 
     val categoryIcon = when (request.category.lowercase().trim()) {
         "groceries" -> Icons.Default.ShoppingCart
-        "books" -> Icons.AutoMirrored.Filled.MenuBook
+        "books", "tutoring" -> Icons.AutoMirrored.Filled.MenuBook
         "repairs" -> Icons.Default.Build
+        "transport", "moving" -> Icons.Default.DirectionsCar
         "pet care", "pet help" -> Icons.Default.Pets
         "heavy lifting" -> Icons.Default.FitnessCenter
-        "gardening", "yard work" -> Icons.Default.Yard
+        "gardening", "yard work", "yardwork" -> Icons.Default.Yard
         "tech support" -> Icons.Default.Computer
         else -> Icons.Default.Handshake
     }
@@ -225,14 +226,7 @@ fun RequestCard(
                 }
             }
 
-            // Right Thumbnail Photo matching category exactly
-            val categoryDrawableRes = when (request.category.lowercase().trim()) {
-                "groceries" -> R.drawable.img_thumb_supermarket
-                "books", "tutoring" -> R.drawable.img_thumb_books
-                "repairs", "gardening", "yard work" -> R.drawable.img_proof_garden
-                else -> R.drawable.img_thumb_groceries
-            }
-
+            // Right Thumbnail Photo matching category exactly (or uploaded photo if present)
             Surface(
                 shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(
@@ -242,10 +236,10 @@ fun RequestCard(
                 shadowElevation = 2.dp,
                 modifier = Modifier.size(64.dp)
             ) {
-                Image(
-                    painter = painterResource(id = categoryDrawableRes),
-                    contentDescription = request.category,
-                    contentScale = ContentScale.Crop,
+                RequestThumbnailImage(
+                    category = request.category,
+                    photoUrl = request.photoUrl,
+                    contentDescription = request.title,
                     modifier = Modifier.fillMaxSize()
                 )
             }

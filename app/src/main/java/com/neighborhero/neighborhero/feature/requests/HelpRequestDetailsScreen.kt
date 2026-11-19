@@ -11,7 +11,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
@@ -39,6 +42,7 @@ import com.neighborhero.neighborhero.ui.components.GlassCard
 import com.neighborhero.neighborhero.ui.components.GlassFocusCard
 import com.neighborhero.neighborhero.ui.components.GlassTopBar
 import com.neighborhero.neighborhero.ui.components.NetworkImage
+import com.neighborhero.neighborhero.ui.components.RequestThumbnailImage
 import com.neighborhero.neighborhero.ui.components.WaterScreenBackground
 import com.neighborhero.neighborhero.ui.components.GlassTheme
 
@@ -49,7 +53,11 @@ fun HelpRequestDetailsScreen(
     onBackClick: () -> Unit,
     onAcceptClick: () -> Unit,
     onChatClick: () -> Unit,
-    onFindHelpersClick: ((String) -> Unit)? = null
+    onFindHelpersClick: ((String) -> Unit)? = null,
+    isAccepting: Boolean = false,
+    errorMessage: String? = null,
+    successMessage: String? = null,
+    onDismissError: () -> Unit = {}
 ) {
     if (request == null) {
         WaterScreenBackground {
@@ -370,6 +378,24 @@ fun HelpRequestDetailsScreen(
                             style = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp, lineHeight = 20.sp),
                             color = GlassTheme.textSecondary
                         )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Category Photo or Requester Uploaded Image
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, GlassTheme.cardBorder),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                        ) {
+                            RequestThumbnailImage(
+                                category = request.category,
+                                photoUrl = request.photoUrl,
+                                contentDescription = request.title,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                 }
 
@@ -392,7 +418,7 @@ fun HelpRequestDetailsScreen(
                         }
                         RequestStatus.IN_PROGRESS -> {
                             buttonEnabled = true
-                            buttonText = "Helper Working on Task — View Progress"
+                            buttonText = "Track Helper & View Progress"
                             buttonAction = onAcceptClick
                         }
                         RequestStatus.PENDING_VERIFICATION -> {
@@ -414,8 +440,8 @@ fun HelpRequestDetailsScreen(
                 } else {
                     when (request.status) {
                         RequestStatus.OPEN -> {
-                            buttonEnabled = true
-                            buttonText = "Offer Help / Accept Request"
+                            buttonEnabled = !isAccepting
+                            buttonText = if (isAccepting) "Accepting Task..." else "Accept Task"
                             buttonAction = onAcceptClick
                         }
                         RequestStatus.IN_PROGRESS -> {
@@ -455,13 +481,96 @@ fun HelpRequestDetailsScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
+                // Error Message Card
+                if (!errorMessage.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = GlassTheme.warningBadgeBg,
+                        border = BorderStroke(1.dp, GlassTheme.warningBadgeText.copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = GlassTheme.warningBadgeText,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = errorMessage,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = GlassTheme.warningBadgeText,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            IconButton(
+                                onClick = onDismissError,
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Dismiss",
+                                    tint = GlassTheme.warningBadgeText,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // Success Message Card
+                if (!successMessage.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = GlassTheme.statusBadgeBg,
+                        border = BorderStroke(1.dp, GlassTheme.statusBadgeText.copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = GlassTheme.statusBadgeText,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = successMessage,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = GlassTheme.statusBadgeText,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
                 // Solid Pitch-Black Primary Pill Action Button
                 BlackPillButton(
                     text = buttonText,
                     onClick = buttonAction,
                     enabled = buttonEnabled,
+                    isLoading = isAccepting,
                     isFullWidth = true,
-                    icon = Icons.Default.Handshake
+                    icon = if (isAccepting) null else Icons.Default.Handshake
                 )
 
                 Spacer(modifier = Modifier.height(28.dp))

@@ -188,5 +188,51 @@ class TaskController {
         $history = $this->taskRepository->getTaskHistory($user['id']);
         Response::success($history);
     }
+
+    public function updateLocation(string $requestId): void {
+        $user = AuthMiddleware::authenticate(true);
+        $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+
+        $validator = Validator::make($input)
+            ->required('latitude')
+            ->required('longitude');
+
+        if (!$validator->passes()) {
+            Response::error($validator->firstError() ?: 'Latitude and longitude are required', 422, $validator->errors());
+        }
+
+        $lat = (float)$input['latitude'];
+        $lng = (float)$input['longitude'];
+        $heading = isset($input['heading']) && is_numeric($input['heading']) ? (float)$input['heading'] : null;
+        $accuracy = isset($input['accuracy']) && is_numeric($input['accuracy']) ? (float)$input['accuracy'] : null;
+        $speed = isset($input['speed']) && is_numeric($input['speed']) ? (float)$input['speed'] : null;
+
+        try {
+            $updated = $this->taskRepository->updateLiveLocation($requestId, $user['id'], $lat, $lng, $heading, $accuracy, $speed);
+            Response::success($updated, 'Live location updated successfully');
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), $e->getCode() >= 400 && $e->getCode() <= 499 ? (int)$e->getCode() : 400);
+        }
+    }
+
+    public function getLocation(string $requestId): void {
+        $user = AuthMiddleware::authenticate(true);
+        try {
+            $tracking = $this->taskRepository->getLiveLocation($requestId, $user['id']);
+            Response::success($tracking);
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), $e->getCode() >= 400 && $e->getCode() <= 499 ? (int)$e->getCode() : 403);
+        }
+    }
+
+    public function stopTracking(string $requestId): void {
+        $user = AuthMiddleware::authenticate(true);
+        try {
+            $this->taskRepository->stopLiveLocation($requestId, $user['id']);
+            Response::success(null, 'Tracking stopped successfully');
+        } catch (Throwable $e) {
+            Response::error($e->getMessage(), $e->getCode() >= 400 && $e->getCode() <= 499 ? (int)$e->getCode() : 400);
+        }
+    }
 }
 
